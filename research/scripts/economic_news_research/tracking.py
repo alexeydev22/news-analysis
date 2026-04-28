@@ -10,6 +10,8 @@ import pandas as pd
 from economic_news_research.metrics import ClassificationMetrics
 from economic_news_research.modeling import IMPACT_LABELS, BaselineTrainingResult
 
+MLFLOW_EXPERIMENT_NAME = "economic-news-research"
+
 
 def save_baseline_artifacts(result: BaselineTrainingResult, *, output_dir: Path) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -29,7 +31,12 @@ def save_baseline_artifacts(result: BaselineTrainingResult, *, output_dir: Path)
 
 
 def log_baseline_to_mlflow(result: BaselineTrainingResult, *, artifact_dir: Path) -> None:
-    with mlflow.start_run(run_name=result.model_name):
+    experiment = mlflow.set_experiment(MLFLOW_EXPERIMENT_NAME)
+    with mlflow.start_run(
+        experiment_id=experiment.experiment_id,
+        run_name=result.model_name,
+        nested=mlflow.active_run() is not None,
+    ):
         mlflow.log_params(result.best_params)
         mlflow.log_metrics(
             {

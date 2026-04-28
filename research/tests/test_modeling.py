@@ -1,12 +1,14 @@
 from pathlib import Path
 
+import mlflow
+
 from economic_news_research.data import load_news_dataset, split_news_dataset
 from economic_news_research.modeling import (
     BaselineTrainingResult,
     build_baseline_pipeline,
     train_baseline_model,
 )
-from economic_news_research.tracking import save_baseline_artifacts
+from economic_news_research.tracking import log_baseline_to_mlflow, save_baseline_artifacts
 
 FIXTURE = Path(__file__).parent / "fixtures" / "news_impact_sample.csv"
 
@@ -44,3 +46,23 @@ def test_save_baseline_artifacts_writes_expected_files(tmp_path: Path) -> None:
     assert (tmp_path / "tfidf-logreg.joblib").exists()
     assert (tmp_path / "tfidf-logreg_metrics.json").exists()
     assert (tmp_path / "tfidf-logreg_confusion_matrix.csv").exists()
+
+
+def test_log_baseline_to_mlflow_creates_experiment_for_fresh_tracking_uri(
+    tmp_path: Path,
+) -> None:
+    dataset = load_news_dataset(FIXTURE)
+    split = split_news_dataset(dataset, random_state=42)
+    result = train_baseline_model(split, random_state=42)
+    artifacts_dir = tmp_path / "artifacts"
+    save_baseline_artifacts(result, output_dir=artifacts_dir)
+
+    previous_tracking_uri = mlflow.get_tracking_uri()
+    tracking_database = tmp_path / "mlflow.db"
+    mlflow.set_tracking_uri(f"sqlite:///{tracking_database}")
+    try:
+        log_baseline_to_mlflow(result, artifact_dir=artifacts_dir)
+    finally:
+        mlflow.set_tracking_uri(previous_tracking_uri)
+
+    assert tracking_database.exists()
