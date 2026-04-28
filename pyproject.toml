@@ -1,0 +1,47 @@
+[project]
+name = "economic-news-dialog-system"
+version = "0.1.0"
+description = "Coursework monorepo for a local dialog system for economic news analysis"
+requires-python = ">=3.12"
+dependencies = []
+
+[dependency-groups]
+dev = [
+  "httpx>=0.28",
+  "pytest>=8.3",
+  "pytest-asyncio>=0.24",
+  "ruff>=0.8",
+  "ty>=0.0.1a1",
+]
+
+[tool.uv.workspace]
+members = [
+  "packages/framework",
+  "packages/contracts",
+  "apps/api-gateway",
+]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+src = ["apps", "packages", "research/scripts"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "ASYNC"]
+ignore = []
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.pytest.ini_options]
+testpaths = ["apps", "packages"]
+pythonpath = [
+  "packages/framework/src",
+  "packages/contracts/src",
+  "apps/api-gateway/src",
+]
+asyncio_mode = "auto"
+
+[tool.ty.src]
+include = ["apps", "packages"]

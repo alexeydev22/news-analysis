@@ -34,3 +34,22 @@
 - `test: добавить ...`
 - `docs: описать ...`
 - `chore: настроить ...`
+
+## Локальный запуск foundation
+
+```bash
+just test
+just compose-up
+```
+
+API Gateway healthcheck:
+
+```bash
+curl http://localhost:8000/health
+```
+
+Ожидаемый ответ:
+
+```json
+{"service":"api-gateway","status":"ok"}
+```
