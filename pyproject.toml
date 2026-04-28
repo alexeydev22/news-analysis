@@ -1,0 +1,24 @@
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+src = ["apps", "packages", "research/scripts"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "ASYNC"]
+ignore = []
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.pytest.ini_options]
+testpaths = ["apps", "packages"]
+pythonpath = [
+  "packages/framework/src",
+  "packages/contracts/src",
+  "apps/api-gateway/src",
+]
+asyncio_mode = "auto"
+
+[tool.ty.src]
+include = ["apps", "packages"]
