@@ -1,13 +1,10 @@
 import json
+import sys
 from dataclasses import asdict, dataclass
 from pathlib import Path
+from typing import Any
 
-import matplotlib
 import pandas as pd
-import seaborn as sns
-
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt  # noqa: E402
 
 
 @dataclass(frozen=True)
@@ -68,6 +65,7 @@ def save_eda_artifacts(dataset: pd.DataFrame, *, output_dir: Path) -> None:
 
 
 def _save_bar_plot(frame: pd.DataFrame, *, x: str, y: str, title: str, path: Path) -> None:
+    plt, sns = _load_plotting_modules()
     plt.figure(figsize=(8, 5))
     sns.barplot(data=frame, x=x, y=y)
     plt.title(title)
@@ -77,9 +75,22 @@ def _save_bar_plot(frame: pd.DataFrame, *, x: str, y: str, title: str, path: Pat
 
 
 def _save_histogram(frame: pd.DataFrame, *, column: str, title: str, path: Path) -> None:
+    plt, sns = _load_plotting_modules()
     plt.figure(figsize=(8, 5))
     sns.histplot(data=frame, x=column, bins=10)
     plt.title(title)
     plt.tight_layout()
     plt.savefig(path)
     plt.close()
+
+
+def _load_plotting_modules() -> tuple[Any, Any]:
+    import matplotlib
+
+    if "matplotlib.pyplot" not in sys.modules:
+        matplotlib.use("Agg")
+
+    import matplotlib.pyplot as plt
+    import seaborn as sns
+
+    return plt, sns
