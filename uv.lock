@@ -158,6 +158,7 @@ version = "0.1.0"
 source = { editable = "packages/framework" }
 dependencies = [
     { name = "dishka" },
+    { name = "economic-news-contracts" },
     { name = "fastapi" },
     { name = "pydantic-settings" },
     { name = "structlog" },
@@ -166,6 +167,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "dishka", specifier = ">=1.4" },
+    { name = "economic-news-contracts", editable = "packages/contracts" },
     { name = "fastapi", specifier = ">=0.115" },
     { name = "pydantic-settings", specifier = ">=2.6" },
     { name = "structlog", specifier = ">=24.4" },

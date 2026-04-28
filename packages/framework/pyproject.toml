@@ -4,11 +4,15 @@ version = "0.1.0"
 description = "Shared technical framework for the economic news dialog system"
 requires-python = ">=3.12"
 dependencies = [
+  "economic-news-contracts",
   "fastapi>=0.115",
   "dishka>=1.4",
   "pydantic-settings>=2.6",
   "structlog>=24.4",
 ]
+
+[tool.uv.sources]
+economic-news-contracts = { workspace = true }
 
 [build-system]
 requires = ["hatchling"]
