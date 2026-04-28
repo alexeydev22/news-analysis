@@ -3,7 +3,9 @@ name = "economic-news-dialog-system"
 version = "0.1.0"
 description = "Coursework monorepo for a local dialog system for economic news analysis"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+  "economic-news-research",
+]
 
 [dependency-groups]
 dev = [
@@ -25,7 +27,11 @@ members = [
   "packages/framework",
   "packages/contracts",
   "apps/api-gateway",
+  "research",
 ]
+
+[tool.uv.sources]
+economic-news-research = { workspace = true }
 
 [tool.ruff]
 target-version = "py312"
@@ -51,4 +57,4 @@ pythonpath = [
 asyncio_mode = "auto"
 
 [tool.ty.src]
-include = ["apps", "packages"]
+include = ["apps", "packages", "research/scripts"]
