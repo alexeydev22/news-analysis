@@ -10,8 +10,11 @@ from mlflow.entities import Experiment
 
 from economic_news_research.metrics import ClassificationMetrics
 from economic_news_research.modeling import IMPACT_LABELS, BaselineTrainingResult
+from economic_news_research.paths import MLFLOW_DIR
 
 MLFLOW_EXPERIMENT_NAME = "economic-news-research"
+MLFLOW_DATABASE = MLFLOW_DIR / "mlflow.db"
+DEFAULT_MLFLOW_TRACKING_URI = f"sqlite:///{MLFLOW_DATABASE}"
 
 
 def save_baseline_artifacts(result: BaselineTrainingResult, *, output_dir: Path) -> None:
@@ -29,10 +32,17 @@ def save_baseline_artifacts(result: BaselineTrainingResult, *, output_dir: Path)
         columns=pd.Index(IMPACT_LABELS),
     )
     confusion_matrix.to_csv(output_dir / f"{result.model_name}_confusion_matrix.csv")
+    _build_comparison_frame(result).to_csv(output_dir / "model_comparison.csv", index=False)
 
 
-def log_baseline_to_mlflow(result: BaselineTrainingResult, *, artifact_dir: Path) -> None:
-    experiment = _ensure_experiment(artifact_dir=artifact_dir)
+def log_baseline_to_mlflow(
+    result: BaselineTrainingResult,
+    *,
+    artifact_dir: Path,
+    tracking_uri: str | None = None,
+) -> None:
+    _configure_default_tracking_uri(tracking_uri=tracking_uri)
+    experiment = _ensure_experiment(artifact_dir=artifact_dir, tracking_uri=tracking_uri)
     with mlflow.start_run(
         experiment_id=experiment.experiment_id,
         run_name=result.model_name,
@@ -50,14 +60,26 @@ def log_baseline_to_mlflow(result: BaselineTrainingResult, *, artifact_dir: Path
         mlflow.log_artifacts(str(artifact_dir))
 
 
-def _ensure_experiment(*, artifact_dir: Path) -> Experiment:
+def _configure_default_tracking_uri(*, tracking_uri: str | None) -> None:
+    if tracking_uri is not None:
+        mlflow.set_tracking_uri(tracking_uri)
+        return
+
+    MLFLOW_DIR.mkdir(parents=True, exist_ok=True)
+    mlflow.set_tracking_uri(DEFAULT_MLFLOW_TRACKING_URI)
+
+
+def _ensure_experiment(*, artifact_dir: Path, tracking_uri: str | None) -> Experiment:
     experiment = mlflow.get_experiment_by_name(MLFLOW_EXPERIMENT_NAME)
     if experiment is not None:
         return experiment
 
     experiment_id = mlflow.create_experiment(
         MLFLOW_EXPERIMENT_NAME,
-        artifact_location=_build_artifact_store_path(artifact_dir=artifact_dir).as_uri(),
+        artifact_location=_build_artifact_store_path(
+            artifact_dir=artifact_dir,
+            tracking_uri=tracking_uri,
+        ).as_uri(),
     )
     experiment = mlflow.get_experiment(experiment_id)
     if experiment is None:
@@ -65,9 +87,31 @@ def _ensure_experiment(*, artifact_dir: Path) -> Experiment:
     return experiment
 
 
-def _build_artifact_store_path(*, artifact_dir: Path) -> Path:
+def _build_artifact_store_path(*, artifact_dir: Path, tracking_uri: str | None) -> Path:
+    if tracking_uri is None:
+        return MLFLOW_DIR / "artifacts"
+
     artifact_path = artifact_dir.resolve()
     return artifact_path.parent / f"{artifact_path.name}-mlflow-artifacts"
+
+
+def _build_comparison_frame(result: BaselineTrainingResult) -> pd.DataFrame:
+    return pd.DataFrame(
+        [
+            {
+                "model_name": result.model_name,
+                "validation_accuracy": float(result.validation_metrics.accuracy),
+                "validation_macro_f1": float(result.validation_metrics.macro_f1),
+                "test_accuracy": float(result.test_metrics.accuracy),
+                "test_macro_f1": float(result.test_metrics.macro_f1),
+                "best_params": json.dumps(
+                    _to_json_value(result.best_params),
+                    ensure_ascii=False,
+                    sort_keys=True,
+                ),
+            }
+        ]
+    )
 
 
 def _serialize_baseline_metrics(result: BaselineTrainingResult) -> dict[str, Any]:

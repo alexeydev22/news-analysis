@@ -46,6 +46,7 @@ def test_save_baseline_artifacts_writes_expected_files(tmp_path: Path) -> None:
     assert (tmp_path / "tfidf-logreg.joblib").exists()
     assert (tmp_path / "tfidf-logreg_metrics.json").exists()
     assert (tmp_path / "tfidf-logreg_confusion_matrix.csv").exists()
+    assert (tmp_path / "model_comparison.csv").exists()
 
 
 def test_log_baseline_to_mlflow_creates_experiment_for_fresh_tracking_uri(
@@ -61,7 +62,11 @@ def test_log_baseline_to_mlflow_creates_experiment_for_fresh_tracking_uri(
     tracking_database = tmp_path / "mlflow.db"
     mlflow.set_tracking_uri(f"sqlite:///{tracking_database}")
     try:
-        log_baseline_to_mlflow(result, artifact_dir=artifacts_dir)
+        log_baseline_to_mlflow(
+            result,
+            artifact_dir=artifacts_dir,
+            tracking_uri=f"sqlite:///{tracking_database}",
+        )
     finally:
         mlflow.set_tracking_uri(previous_tracking_uri)
 
