@@ -8,9 +8,15 @@ dependencies = []
 [dependency-groups]
 dev = [
   "httpx>=0.28",
+  "joblib>=1.4",
+  "matplotlib>=3.9",
+  "mlflow>=2.19",
+  "pandas>=2.2",
   "pytest>=8.3",
   "pytest-asyncio>=0.24",
   "ruff>=0.8",
+  "scikit-learn>=1.6",
+  "seaborn>=0.13",
   "ty>=0.0.1a1",
 ]
 
@@ -40,6 +46,7 @@ pythonpath = [
   "packages/framework/src",
   "packages/contracts/src",
   "apps/api-gateway/src",
+  "research/scripts",
 ]
 asyncio_mode = "auto"
 
