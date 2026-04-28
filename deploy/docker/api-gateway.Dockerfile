@@ -7,13 +7,11 @@ WORKDIR /app
 
 RUN pip install --no-cache-dir uv
 
+COPY pyproject.toml uv.lock ./
 COPY packages/framework ./packages/framework
 COPY packages/contracts ./packages/contracts
 COPY apps/api-gateway ./apps/api-gateway
 
-RUN uv pip install --system --no-cache \
-    ./packages/framework \
-    ./packages/contracts \
-    ./apps/api-gateway
+RUN uv sync --frozen --package economic-news-api-gateway --no-dev
 
-CMD ["granian", "api_gateway.main.app:app", "--interface", "asgi", "--host", "0.0.0.0", "--port", "8000"]
+CMD [".venv/bin/granian", "api_gateway.main.app:app", "--interface", "asgi", "--host", "0.0.0.0", "--port", "8000"]
