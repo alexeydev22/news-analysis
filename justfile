@@ -19,4 +19,4 @@ compose-down:
     docker compose -f deploy/compose.yaml down
 
 api-dev:
-    granian api_gateway.main.app:app --interface asgi --host 0.0.0.0 --port 8000
+    uv run --package economic-news-api-gateway granian api_gateway.main.app:app --interface asgi --host 0.0.0.0 --port 8000

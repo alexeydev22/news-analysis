@@ -5,7 +5,7 @@ ENV PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
-RUN pip install --no-cache-dir uv
+RUN pip install --no-cache-dir uv==0.11.8
 
 COPY pyproject.toml uv.lock ./
 COPY packages/framework ./packages/framework
