@@ -25,5 +25,5 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.uv.sources]
-economic-news-framework = { path = "../../packages/framework", editable = true }
-economic-news-contracts = { path = "../../packages/contracts", editable = true }
+economic-news-framework = { workspace = true }
+economic-news-contracts = { workspace = true }
