@@ -1,0 +1,49 @@
+services:
+  api-gateway:
+    build:
+      context: ..
+      dockerfile: deploy/docker/api-gateway.Dockerfile
+    env_file:
+      - ../.env.example
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+      - redis
+      - qdrant
+
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: economic_news
+      POSTGRES_USER: economic_news
+      POSTGRES_PASSWORD: economic_news
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    ports:
+      - "6333:6333"
+    volumes:
+      - qdrant_data:/qdrant/storage
+
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v2.19.0
+    command: mlflow server --host 0.0.0.0 --port 5000
+    ports:
+      - "5000:5000"
+    volumes:
+      - mlflow_data:/mlflow
+
+volumes:
+  postgres_data:
+  qdrant_data:
+  mlflow_data:
