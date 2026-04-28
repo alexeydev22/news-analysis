@@ -25,6 +25,7 @@ artifacts/mlflow/*
 !artifacts/mlflow/.gitkeep
 
 .superpowers/
+Методические_указания_по_выполнения_КР_МОвСиСА.docx
 node_modules/
 dist/
 build/
