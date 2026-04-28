@@ -39,6 +39,9 @@ def validate_news_dataset(frame: pd.DataFrame) -> pd.DataFrame:
         raise NewsDatasetError(f"Missing required columns: {missing_columns}")
 
     dataset = frame.loc[:, REQUIRED_COLUMNS].copy()
+    if dataset["text"].isna().any():
+        raise NewsDatasetError("text values must be non-empty")
+
     dataset["text"] = dataset["text"].astype(str).str.strip()
     dataset["impact"] = dataset["impact"].astype(str).str.strip().str.lower()
     dataset["source"] = dataset["source"].astype(str).str.strip()

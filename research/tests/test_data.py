@@ -41,6 +41,14 @@ def test_validate_news_dataset_rejects_unknown_label() -> None:
         validate_news_dataset(frame)
 
 
+def test_validate_news_dataset_rejects_missing_text() -> None:
+    frame = pd.read_csv(FIXTURE)
+    frame.loc[0, "text"] = None
+
+    with pytest.raises(NewsDatasetError, match="text values must be non-empty"):
+        validate_news_dataset(frame)
+
+
 def test_split_news_dataset_is_deterministic() -> None:
     dataset = load_news_dataset(FIXTURE)
 
