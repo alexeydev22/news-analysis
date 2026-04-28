@@ -26,6 +26,14 @@ Raw datasets are not committed. Tests use a small committed fixture in `research
 
 ## Commands
 
+Current package smoke check:
+
+```bash
+uv run python -c "from economic_news_research.paths import DEFAULT_RAW_DATASET; print(DEFAULT_RAW_DATASET)"
+```
+
+After the research CLI task is implemented, these commands will be available:
+
 ```bash
 uv run python -m economic_news_research.cli validate
 uv run python -m economic_news_research.cli eda
