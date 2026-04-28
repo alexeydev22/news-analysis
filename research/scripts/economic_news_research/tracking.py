@@ -6,6 +6,7 @@ import joblib
 import mlflow
 import numpy as np
 import pandas as pd
+from mlflow.entities import Experiment
 
 from economic_news_research.metrics import ClassificationMetrics
 from economic_news_research.modeling import IMPACT_LABELS, BaselineTrainingResult
@@ -31,7 +32,7 @@ def save_baseline_artifacts(result: BaselineTrainingResult, *, output_dir: Path)
 
 
 def log_baseline_to_mlflow(result: BaselineTrainingResult, *, artifact_dir: Path) -> None:
-    experiment = mlflow.set_experiment(MLFLOW_EXPERIMENT_NAME)
+    experiment = _ensure_experiment(artifact_dir=artifact_dir)
     with mlflow.start_run(
         experiment_id=experiment.experiment_id,
         run_name=result.model_name,
@@ -47,6 +48,26 @@ def log_baseline_to_mlflow(result: BaselineTrainingResult, *, artifact_dir: Path
             }
         )
         mlflow.log_artifacts(str(artifact_dir))
+
+
+def _ensure_experiment(*, artifact_dir: Path) -> Experiment:
+    experiment = mlflow.get_experiment_by_name(MLFLOW_EXPERIMENT_NAME)
+    if experiment is not None:
+        return experiment
+
+    experiment_id = mlflow.create_experiment(
+        MLFLOW_EXPERIMENT_NAME,
+        artifact_location=_build_artifact_store_path(artifact_dir=artifact_dir).as_uri(),
+    )
+    experiment = mlflow.get_experiment(experiment_id)
+    if experiment is None:
+        raise RuntimeError(f"MLflow experiment was not created: {MLFLOW_EXPERIMENT_NAME}")
+    return experiment
+
+
+def _build_artifact_store_path(*, artifact_dir: Path) -> Path:
+    artifact_path = artifact_dir.resolve()
+    return artifact_path.parent / f"{artifact_path.name}-mlflow-artifacts"
 
 
 def _serialize_baseline_metrics(result: BaselineTrainingResult) -> dict[str, Any]:

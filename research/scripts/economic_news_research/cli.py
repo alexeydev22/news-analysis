@@ -1,17 +1,11 @@
 import argparse
 from pathlib import Path
 
-import mlflow
-
 from economic_news_research.data import load_news_dataset, split_news_dataset
 from economic_news_research.eda import save_eda_artifacts
 from economic_news_research.modeling import train_baseline_model
 from economic_news_research.paths import DEFAULT_RAW_DATASET, MODELS_DIR, REPORTS_DIR
-from economic_news_research.tracking import (
-    MLFLOW_EXPERIMENT_NAME,
-    log_baseline_to_mlflow,
-    save_baseline_artifacts,
-)
+from economic_news_research.tracking import log_baseline_to_mlflow, save_baseline_artifacts
 
 
 def run_validate(*, dataset_path: Path) -> int:
@@ -35,7 +29,6 @@ def run_train_baseline(
     result = train_baseline_model(split, random_state=random_state)
 
     save_baseline_artifacts(result, output_dir=output_dir)
-    _configure_mlflow_tracking(output_dir=output_dir)
     log_baseline_to_mlflow(result, artifact_dir=output_dir)
 
 
@@ -109,18 +102,6 @@ def _build_parser() -> argparse.ArgumentParser:
     )
 
     return parser
-
-
-def _configure_mlflow_tracking(*, output_dir: Path) -> None:
-    tracking_dir = output_dir.resolve().parent / f"{output_dir.name}-mlflow"
-    tracking_dir.mkdir(parents=True, exist_ok=True)
-    mlflow.set_tracking_uri(f"sqlite:///{tracking_dir / 'tracking.db'}")
-
-    if mlflow.get_experiment_by_name(MLFLOW_EXPERIMENT_NAME) is None:
-        mlflow.create_experiment(
-            MLFLOW_EXPERIMENT_NAME,
-            artifact_location=(tracking_dir / "artifacts").as_uri(),
-        )
 
 
 if __name__ == "__main__":
