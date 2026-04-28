@@ -1,0 +1,10 @@
+article_id,text,impact,source,published_at
+n-001,"Central bank signals lower rates as inflation slows",positive,reuters,2026-01-12
+n-002,"Oil prices fall after weak manufacturing data",negative,reuters,2026-01-13
+n-003,"Markets wait for budget decision with limited movement",neutral,interfax,2026-01-14
+n-004,"Technology shares rise after strong earnings forecast",positive,bloomberg,2026-01-15
+n-005,"Retail sales decline amid tighter credit conditions",negative,bloomberg,2026-01-16
+n-006,"Analysts keep GDP forecast unchanged before new data",neutral,interfax,2026-01-17
+n-007,"Exporters gain as national currency weakens",positive,rbc,2026-01-18
+n-008,"Banking sector drops after loan quality warning",negative,rbc,2026-01-19
+n-009,"Bond yields remain stable before treasury auction",neutral,kommersant,2026-01-20
