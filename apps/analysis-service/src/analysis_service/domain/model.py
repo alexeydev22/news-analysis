@@ -1,9 +1,11 @@
+from collections.abc import Mapping
 from dataclasses import dataclass, field
+from types import MappingProxyType
 from typing import Any
 
 from economic_news_contracts.analysis import AnalysisModelName, ImpactLabel
 
-from analysis_service.domain.errors import EmptyNewsTextError
+from analysis_service.domain.errors import EmptyNewsTextError, InvalidPredictionConfidenceError
 
 
 @dataclass(frozen=True)
@@ -24,12 +26,15 @@ class ImpactPrediction:
     impact: ImpactLabel
     confidence: float | None = None
     explanation: str | None = None
-    metadata: dict[str, Any] = field(default_factory=dict)
+    metadata: Mapping[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
+        if self.confidence is not None and not 0.0 <= self.confidence <= 1.0:
+            raise InvalidPredictionConfidenceError(self.confidence)
         if self.explanation is None:
             object.__setattr__(
                 self,
                 "explanation",
                 f"Model classified the news text as {self.impact.value}.",
             )
+        object.__setattr__(self, "metadata", MappingProxyType(dict(self.metadata)))
