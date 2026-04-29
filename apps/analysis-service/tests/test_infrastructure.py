@@ -18,6 +18,11 @@ class FakeEstimator:
         return ["positive"]
 
 
+class FailingEstimator:
+    def predict(self, texts: list[str]) -> list[str]:
+        raise RuntimeError("broken estimator")
+
+
 def test_static_classifier_returns_configured_prediction() -> None:
     classifier = StaticImpactClassifier(
         model_name=AnalysisModelName.TFIDF_LOGREG,
@@ -50,6 +55,38 @@ def test_joblib_classifier_reports_missing_artifact(tmp_path: Path) -> None:
     classifier = JoblibImpactClassifier(
         model_name=AnalysisModelName.TFIDF_LOGREG,
         artifact_path=tmp_path / "missing.joblib",
+    )
+
+    with pytest.raises(ModelUnavailableError):
+        classifier.predict(NewsText.from_raw("Markets rise"))
+
+
+def test_joblib_classifier_wraps_unloadable_artifact(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    model_path = tmp_path / "model.joblib"
+    model_path.write_bytes(b"not a real joblib artifact")
+
+    def fail_load(path: Path) -> object:
+        raise ModuleNotFoundError("economic_news_research")
+
+    monkeypatch.setattr(joblib, "load", fail_load)
+    classifier = JoblibImpactClassifier(
+        model_name=AnalysisModelName.TFIDF_LOGREG,
+        artifact_path=model_path,
+    )
+
+    with pytest.raises(ModelUnavailableError):
+        classifier.predict(NewsText.from_raw("Markets rise"))
+
+
+def test_joblib_classifier_wraps_prediction_failure(tmp_path: Path) -> None:
+    model_path = tmp_path / "model.joblib"
+    joblib.dump(FailingEstimator(), model_path)
+    classifier = JoblibImpactClassifier(
+        model_name=AnalysisModelName.TFIDF_LOGREG,
+        artifact_path=model_path,
     )
 
     with pytest.raises(ModelUnavailableError):

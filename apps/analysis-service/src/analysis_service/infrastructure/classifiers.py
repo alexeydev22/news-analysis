@@ -36,10 +36,14 @@ class JoblibImpactClassifier:
 
     def predict(self, text: NewsText) -> ImpactPrediction:
         estimator = self._load_estimator()
-        raw_prediction = estimator.predict([text.value])[0]
+        try:
+            raw_prediction = estimator.predict([text.value])[0]
+            impact = ImpactLabel(str(raw_prediction))
+        except Exception as exc:
+            raise ModelUnavailableError(self.model_name) from exc
         return ImpactPrediction(
             model_name=self.model_name,
-            impact=ImpactLabel(str(raw_prediction)),
+            impact=impact,
             metadata={"artifact_path": str(self._artifact_path)},
         )
 
@@ -48,7 +52,10 @@ class JoblibImpactClassifier:
             return self._estimator
         if not self._artifact_path.exists():
             raise ModelUnavailableError(self.model_name)
-        self._estimator = joblib.load(self._artifact_path)
+        try:
+            self._estimator = joblib.load(self._artifact_path)
+        except Exception as exc:
+            raise ModelUnavailableError(self.model_name) from exc
         return self._estimator
 
 
