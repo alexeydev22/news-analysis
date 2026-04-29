@@ -91,4 +91,3 @@ def _build_training_pipeline(*, random_state: int) -> Pipeline:
     classifier = pipeline.named_steps["classifier"]
     classifier.set_params(random_state=random_state)
     return pipeline
-
