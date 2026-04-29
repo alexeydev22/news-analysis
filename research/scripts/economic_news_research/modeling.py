@@ -1,24 +1,17 @@
-from dataclasses import dataclass
-from typing import Any
-
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
-from sklearn.model_selection import GridSearchCV, LeaveOneOut, StratifiedKFold
+from sklearn.model_selection import GridSearchCV
 from sklearn.pipeline import Pipeline
 
 from economic_news_research.data import DatasetSplit
-from economic_news_research.metrics import ClassificationMetrics, compute_classification_metrics
+from economic_news_research.metrics import compute_classification_metrics
+from economic_news_research.model_selection import safe_cv
+from economic_news_research.results import ModelTrainingResult, measure_prediction_time
 
 IMPACT_LABELS = ["negative", "neutral", "positive"]
 
 
-@dataclass(frozen=True)
-class BaselineTrainingResult:
-    model_name: str
-    best_params: dict[str, Any]
-    validation_metrics: ClassificationMetrics
-    test_metrics: ClassificationMetrics
-    estimator: Pipeline
+BaselineTrainingResult = ModelTrainingResult
 
 
 def build_baseline_pipeline(
@@ -59,14 +52,17 @@ def train_baseline_model(
             "classifier__C": [0.1, 1.0, 10.0],
         },
         scoring="f1_macro",
-        cv=_safe_cv(split.train["impact"].tolist(), random_state=random_state),
+        cv=safe_cv(split.train["impact"].tolist(), random_state=random_state),
         n_jobs=1,
     )
     search.fit(split.train["text"], split.train["impact"])
 
     best_estimator = search.best_estimator_
     validation_predictions = best_estimator.predict(split.validation["text"]).tolist()
-    test_predictions = best_estimator.predict(split.test["text"]).tolist()
+    test_predictions, inference_seconds_per_sample = measure_prediction_time(
+        predictor=best_estimator.predict,
+        values=split.test["text"].tolist(),
+    )
 
     return BaselineTrainingResult(
         model_name="tfidf-logreg",
@@ -82,6 +78,7 @@ def train_baseline_model(
             labels=IMPACT_LABELS,
         ),
         estimator=best_estimator,
+        inference_seconds_per_sample=inference_seconds_per_sample,
     )
 
 
@@ -94,16 +91,3 @@ def _build_training_pipeline(*, random_state: int) -> Pipeline:
     classifier = pipeline.named_steps["classifier"]
     classifier.set_params(random_state=random_state)
     return pipeline
-
-
-def _safe_cv(labels: list[str], *, random_state: int) -> LeaveOneOut | StratifiedKFold:
-    class_counts = {label: labels.count(label) for label in set(labels)}
-    min_class_count = min(class_counts.values())
-    if min_class_count < 2:
-        return LeaveOneOut()
-
-    return StratifiedKFold(
-        n_splits=min(3, min_class_count),
-        shuffle=True,
-        random_state=random_state,
-    )

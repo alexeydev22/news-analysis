@@ -1,8 +1,10 @@
 from pathlib import Path
 
 import mlflow
+from sklearn.model_selection import LeaveOneOut, StratifiedKFold
 
 from economic_news_research.data import load_news_dataset, split_news_dataset
+from economic_news_research.model_selection import safe_cv
 from economic_news_research.modeling import (
     BaselineTrainingResult,
     build_baseline_pipeline,
@@ -34,6 +36,23 @@ def test_train_baseline_model_returns_metrics() -> None:
     assert result.model_name == "tfidf-logreg"
     assert result.validation_metrics.confusion_matrix.shape == (3, 3)
     assert result.best_params["classifier__C"] in {0.1, 1.0, 10.0}
+    assert result.inference_seconds_per_sample >= 0
+
+
+def test_safe_cv_uses_leave_one_out_for_tiny_classes() -> None:
+    cv = safe_cv(["positive", "neutral", "negative"], random_state=42)
+
+    assert isinstance(cv, LeaveOneOut)
+
+
+def test_safe_cv_uses_stratified_k_fold_for_repeated_classes() -> None:
+    cv = safe_cv(
+        ["positive", "positive", "neutral", "neutral", "negative", "negative"],
+        random_state=42,
+    )
+
+    assert isinstance(cv, StratifiedKFold)
+    assert cv.n_splits == 2
 
 
 def test_save_baseline_artifacts_writes_expected_files(tmp_path: Path) -> None:

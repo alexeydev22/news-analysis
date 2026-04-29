@@ -8,6 +8,7 @@ __pycache__/
 .ruff_cache/
 .mypy_cache/
 .ty/
+.cache/
 .coverage
 htmlcov/
 
@@ -21,9 +22,11 @@ data/external/*
 artifacts/models/*
 artifacts/indexes/*
 artifacts/mlflow/*
+artifacts/hf-cache/*
 !artifacts/models/.gitkeep
 !artifacts/indexes/.gitkeep
 !artifacts/mlflow/.gitkeep
+!artifacts/hf-cache/.gitkeep
 
 research/reports/*
 !research/reports/.gitkeep

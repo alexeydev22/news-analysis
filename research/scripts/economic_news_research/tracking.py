@@ -11,6 +11,7 @@ from mlflow.entities import Experiment
 from economic_news_research.metrics import ClassificationMetrics
 from economic_news_research.modeling import IMPACT_LABELS, BaselineTrainingResult
 from economic_news_research.paths import MLFLOW_DIR
+from economic_news_research.results import ModelTrainingResult
 
 MLFLOW_EXPERIMENT_NAME = "economic-news-research"
 MLFLOW_DATABASE = MLFLOW_DIR / "mlflow.db"
@@ -18,11 +19,15 @@ DEFAULT_MLFLOW_TRACKING_URI = f"sqlite:///{MLFLOW_DATABASE}"
 
 
 def save_baseline_artifacts(result: BaselineTrainingResult, *, output_dir: Path) -> None:
+    save_model_artifacts(result, output_dir=output_dir)
+
+
+def save_model_artifacts(result: ModelTrainingResult, *, output_dir: Path) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
 
     joblib.dump(result.estimator, output_dir / f"{result.model_name}.joblib")
     (output_dir / f"{result.model_name}_metrics.json").write_text(
-        json.dumps(_serialize_baseline_metrics(result), ensure_ascii=False, indent=2),
+        json.dumps(_serialize_model_metrics(result), ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
 
@@ -32,7 +37,20 @@ def save_baseline_artifacts(result: BaselineTrainingResult, *, output_dir: Path)
         columns=pd.Index(IMPACT_LABELS),
     )
     confusion_matrix.to_csv(output_dir / f"{result.model_name}_confusion_matrix.csv")
-    _build_comparison_frame(result).to_csv(output_dir / "model_comparison.csv", index=False)
+    write_model_comparison([result], output_path=output_dir / "model_comparison.csv")
+
+
+def write_model_comparison(
+    results: list[ModelTrainingResult],
+    *,
+    output_path: Path,
+) -> Path:
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    pd.DataFrame([_build_comparison_row(result) for result in results]).to_csv(
+        output_path,
+        index=False,
+    )
+    return output_path
 
 
 def log_baseline_to_mlflow(
@@ -95,26 +113,25 @@ def _build_artifact_store_path(*, artifact_dir: Path, tracking_uri: str | None) 
     return artifact_path.parent / f"{artifact_path.name}-mlflow-artifacts"
 
 
-def _build_comparison_frame(result: BaselineTrainingResult) -> pd.DataFrame:
-    return pd.DataFrame(
-        [
-            {
-                "model_name": result.model_name,
-                "validation_accuracy": float(result.validation_metrics.accuracy),
-                "validation_macro_f1": float(result.validation_metrics.macro_f1),
-                "test_accuracy": float(result.test_metrics.accuracy),
-                "test_macro_f1": float(result.test_metrics.macro_f1),
-                "best_params": json.dumps(
-                    _to_json_value(result.best_params),
-                    ensure_ascii=False,
-                    sort_keys=True,
-                ),
-            }
-        ]
-    )
+def _build_comparison_row(result: ModelTrainingResult) -> dict[str, Any]:
+    return {
+        "model_name": result.model_name,
+        "validation_accuracy": float(result.validation_metrics.accuracy),
+        "validation_macro_f1": float(result.validation_metrics.macro_f1),
+        "test_accuracy": float(result.test_metrics.accuracy),
+        "test_macro_f1": float(result.test_metrics.macro_f1),
+        "inference_seconds_per_sample": float(
+            result.inference_seconds_per_sample,
+        ),
+        "best_params": json.dumps(
+            _to_json_value(result.best_params),
+            ensure_ascii=False,
+            sort_keys=True,
+        ),
+    }
 
 
-def _serialize_baseline_metrics(result: BaselineTrainingResult) -> dict[str, Any]:
+def _serialize_model_metrics(result: ModelTrainingResult) -> dict[str, Any]:
     return {
         "model_name": result.model_name,
         "best_params": _to_json_value(result.best_params),
