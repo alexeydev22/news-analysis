@@ -1,13 +1,12 @@
 import pytest
+from api_gateway.application.errors import AnalysisServiceUnavailableError
+from api_gateway.application.use_cases import AnalyzeNewsUseCase
 from economic_news_contracts.analysis import (
     AnalysisModelName,
     AnalyzeNewsRequest,
     AnalyzeNewsResponse,
     ImpactLabel,
 )
-
-from api_gateway.application.errors import AnalysisServiceUnavailableError
-from api_gateway.application.use_cases import AnalyzeNewsUseCase
 
 
 class FakeAnalysisClient:

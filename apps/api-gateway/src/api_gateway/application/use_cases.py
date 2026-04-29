@@ -1,6 +1,5 @@
-from economic_news_contracts.analysis import AnalyzeNewsRequest, AnalyzeNewsResponse
-
 from api_gateway.application.ports import AnalysisClient
+from economic_news_contracts.analysis import AnalyzeNewsRequest, AnalyzeNewsResponse
 
 
 class AnalyzeNewsUseCase:
