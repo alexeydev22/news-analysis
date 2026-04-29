@@ -7,6 +7,7 @@ services:
       - ../.env.example
     environment:
       API_GATEWAY_ANALYSIS_SERVICE_URL: "http://analysis-service:8000"
+      API_GATEWAY_RETRIEVAL_SERVICE_URL: "http://retrieval-service:8000"
     ports:
       - "8000:8000"
     depends_on:
@@ -14,6 +15,7 @@ services:
       - redis
       - qdrant
       - analysis-service
+      - retrieval-service
 
   analysis-service:
     build:
