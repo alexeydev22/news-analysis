@@ -9,7 +9,10 @@ dependencies = [
   "mlflow>=2.19",
   "pandas>=2.2",
   "scikit-learn>=1.6",
+  "sentence-transformers>=3.4",
   "seaborn>=0.13",
+  "torch>=2.6",
+  "transformers>=4.48",
 ]
 
 [build-system]

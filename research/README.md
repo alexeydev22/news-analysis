@@ -38,4 +38,10 @@ After the research CLI task is implemented, these commands will be available:
 uv run python -m economic_news_research.cli validate
 uv run python -m economic_news_research.cli eda
 uv run python -m economic_news_research.cli train-baseline
+uv run python -m economic_news_research.cli train-embedding
+uv run python -m economic_news_research.cli train-transformer
+uv run python -m economic_news_research.cli compare-models
 ```
+
+Transformer and embedding model weights are downloaded into a local Hugging Face cache and
+are not committed. Unit tests use fake model adapters and do not require network access.
