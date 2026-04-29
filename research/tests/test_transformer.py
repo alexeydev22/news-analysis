@@ -10,7 +10,10 @@ FIXTURE = Path(__file__).parent / "fixtures" / "news_impact_sample.csv"
 
 
 class FakeTinyTransformerTrainer:
-    best_params = {"model_name": "fake-tiny-transformer", "epochs": 1}
+    best_params: dict[str, object] = {
+        "model_name": "fake-tiny-transformer",
+        "epochs": 1,
+    }
 
     def fit(
         self,
