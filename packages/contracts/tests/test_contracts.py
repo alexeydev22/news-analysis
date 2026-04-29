@@ -137,6 +137,18 @@ def test_search_news_response_serializes_results() -> None:
     }
 
 
+def test_search_news_result_accepts_negative_cosine_score() -> None:
+    result = SearchNewsResult(
+        id="news-1",
+        score=-0.25,
+        title="GDP grows",
+        text="GDP grew by 2 percent.",
+        source="demo",
+    )
+
+    assert result.score == -0.25
+
+
 def test_index_news_response_reports_collection_and_count() -> None:
     response = IndexNewsResponse(indexed_count=2, collection_name="economic_news")
 

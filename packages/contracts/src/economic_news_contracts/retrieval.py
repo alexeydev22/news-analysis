@@ -58,7 +58,7 @@ class SearchNewsResult(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     id: str = Field(min_length=1)
-    score: float = Field(ge=0.0)
+    score: float = Field(ge=-1.0, le=1.0)
     title: str = Field(min_length=1)
     text: str = Field(min_length=1)
     source: str = Field(min_length=1)
