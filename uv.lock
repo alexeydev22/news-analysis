@@ -4,6 +4,7 @@ requires-python = ">=3.12"
 
 [manifest]
 members = [
+    "economic-news-analysis-service",
     "economic-news-api-gateway",
     "economic-news-contracts",
     "economic-news-dialog-system",
@@ -610,6 +611,44 @@ sdist = { url = "https://files.pythonhosted.org/packages/91/9b/4a2ea29aeba624712
 wheels = [
     { url = "https://files.pythonhosted.org/packages/e3/26/57c6fb270950d476074c087527a558ccb6f4436657314bfb6cdf484114c4/docker-7.1.0-py3-none-any.whl", hash = "sha256:c96b93b7f0a746f9e77d325bcfb87422a3d8bd4f03136ae8a85b37f1898d5fc0", size = 147774, upload-time = "2024-05-23T11:13:55.01Z" },
 ]
+
+[[package]]
+name = "economic-news-analysis-service"
+version = "0.1.0"
+source = { editable = "apps/analysis-service" }
+dependencies = [
+    { name = "dishka" },
+    { name = "economic-news-contracts" },
+    { name = "economic-news-framework" },
+    { name = "fastapi" },
+    { name = "granian" },
+    { name = "joblib" },
+    { name = "pydantic-settings" },
+    { name = "structlog" },
+]
+
+[package.optional-dependencies]
+test = [
+    { name = "httpx" },
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "dishka", specifier = ">=1.4" },
+    { name = "economic-news-contracts", editable = "packages/contracts" },
+    { name = "economic-news-framework", editable = "packages/framework" },
+    { name = "fastapi", specifier = ">=0.115" },
+    { name = "granian", specifier = ">=1.7" },
+    { name = "httpx", marker = "extra == 'test'", specifier = ">=0.28" },
+    { name = "joblib", specifier = ">=1.4" },
+    { name = "pydantic-settings", specifier = ">=2.6" },
+    { name = "pytest", marker = "extra == 'test'", specifier = ">=8.3" },
+    { name = "pytest-asyncio", marker = "extra == 'test'", specifier = ">=0.24" },
+    { name = "structlog", specifier = ">=24.4" },
+]
+provides-extras = ["test"]
 
 [[package]]
 name = "economic-news-api-gateway"

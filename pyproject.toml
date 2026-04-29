@@ -31,6 +31,7 @@ members = [
   "packages/framework",
   "packages/contracts",
   "apps/api-gateway",
+  "apps/analysis-service",
   "research",
 ]
 
@@ -56,6 +57,7 @@ pythonpath = [
   "packages/framework/src",
   "packages/contracts/src",
   "apps/api-gateway/src",
+  "apps/analysis-service/src",
   "research/scripts",
 ]
 asyncio_mode = "auto"
