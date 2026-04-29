@@ -12,6 +12,17 @@ services:
       - redis
       - qdrant
 
+  analysis-service:
+    build:
+      context: ..
+      dockerfile: deploy/docker/analysis-service.Dockerfile
+    env_file:
+      - ../.env.example
+    environment:
+      ANALYSIS_USE_STATIC_CLASSIFIER: "true"
+    ports:
+      - "8001:8000"
+
   postgres:
     image: postgres:17-alpine
     environment:
