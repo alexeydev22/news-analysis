@@ -1,9 +1,16 @@
 from typing import Protocol
 
+from economic_news_contracts.analysis import AnalyzeNewsRequest, AnalyzeNewsResponse
+
 
 class VersionProvider(Protocol):
     def get_version(self) -> str:
         """Return current service version."""
+
+
+class AnalysisClient(Protocol):
+    async def analyze(self, request: AnalyzeNewsRequest) -> AnalyzeNewsResponse:
+        """Analyze economic news text through analysis-service."""
 
 
 class StaticVersionProvider:
