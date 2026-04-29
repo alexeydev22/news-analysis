@@ -61,5 +61,5 @@ just analysis-dev
 curl http://localhost:8001/health
 curl -X POST http://localhost:8001/api/v1/analyze \
   -H 'Content-Type: application/json' \
-  -d '{"text":"GDP growth beat expectations","model":"static-v1"}'
+  -d '{"text":"GDP growth beat expectations","analysis_model":"tfidf-logreg"}'
 ```

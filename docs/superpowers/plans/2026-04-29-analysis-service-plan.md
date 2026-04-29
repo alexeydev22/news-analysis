@@ -231,7 +231,6 @@ apps/analysis-service/src/analysis_service/infrastructure/__init__.py
 apps/analysis-service/src/analysis_service/main/__init__.py
 apps/analysis-service/src/analysis_service/presentation/__init__.py
 apps/analysis-service/src/analysis_service/workers/__init__.py
-apps/analysis-service/tests/__init__.py
 ```
 
 - [ ] **Step 5: Wire workspace paths**
