@@ -22,3 +22,15 @@ def test_api_gateway_settings_include_analysis_service_defaults() -> None:
 
     assert str(settings.analysis_service_url) == "http://analysis-service:8000/"
     assert settings.analysis_service_timeout_seconds == 3.0
+
+
+def test_api_gateway_settings_read_prefixed_analysis_service_env(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("API_GATEWAY_ANALYSIS_SERVICE_URL", "http://localhost:9000")
+    monkeypatch.setenv("API_GATEWAY_ANALYSIS_SERVICE_TIMEOUT_SECONDS", "4.5")
+
+    settings = ApiGatewaySettings()
+
+    assert str(settings.analysis_service_url) == "http://localhost:9000/"
+    assert settings.analysis_service_timeout_seconds == 4.5
