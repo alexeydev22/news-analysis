@@ -6,7 +6,8 @@ from sklearn.model_selection import GridSearchCV
 
 from economic_news_research.data import DatasetSplit
 from economic_news_research.metrics import compute_classification_metrics
-from economic_news_research.modeling import IMPACT_LABELS, _safe_cv
+from economic_news_research.model_selection import safe_cv
+from economic_news_research.modeling import IMPACT_LABELS
 from economic_news_research.results import ModelTrainingResult, measure_prediction_time
 
 DEFAULT_EMBEDDING_MODEL = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
@@ -56,7 +57,7 @@ def train_embedding_classifier(
         ),
         param_grid={"C": [0.1, 1.0, 10.0]},
         scoring="f1_macro",
-        cv=_safe_cv(split.train["impact"].tolist(), random_state=random_state),
+        cv=safe_cv(split.train["impact"].tolist(), random_state=random_state),
         n_jobs=1,
     )
     search.fit(train_embeddings, split.train["impact"])
