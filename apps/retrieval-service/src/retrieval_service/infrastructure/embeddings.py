@@ -1,3 +1,4 @@
+import asyncio
 from typing import Any
 
 from fastembed import TextEmbedding
@@ -11,6 +12,8 @@ class FastEmbedEmbeddingProvider:
 
     async def embed(self, texts: list[str]) -> list[list[float]]:
         try:
-            return [list(vector) for vector in self._model.embed(texts)]
+            return await asyncio.to_thread(
+                lambda: [list(vector) for vector in self._model.embed(texts)],
+            )
         except Exception as error:
             raise RetrievalUnavailableError() from error
