@@ -5,12 +5,15 @@ services:
       dockerfile: deploy/docker/api-gateway.Dockerfile
     env_file:
       - ../.env.example
+    environment:
+      API_GATEWAY_ANALYSIS_SERVICE_URL: "http://analysis-service:8000"
     ports:
       - "8000:8000"
     depends_on:
       - postgres
       - redis
       - qdrant
+      - analysis-service
 
   analysis-service:
     build:
