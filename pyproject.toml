@@ -66,8 +66,3 @@ asyncio_mode = "auto"
 
 [tool.ty.src]
 include = ["apps", "packages", "research/scripts"]
-
-[tool.ty.environment]
-extra-paths = [
-  "apps/retrieval-service/src",
-]
