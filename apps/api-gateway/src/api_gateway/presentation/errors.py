@@ -12,8 +12,8 @@ def map_analysis_error(error: AnalysisServiceUnavailableError) -> HTTPException:
     )
 
 
-def map_retrieval_error(error: RetrievalServiceUnavailableError) -> HTTPException:
+def map_retrieval_error(_: RetrievalServiceUnavailableError) -> HTTPException:
     return HTTPException(
         status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-        detail=str(error),
+        detail="retrieval-service is unavailable",
     )

@@ -32,13 +32,13 @@ class ZaprosRetrievalClient:
 
     async def index(self, request: IndexNewsRequest) -> IndexNewsResponse:
         response = await self._post("/api/v1/index", request.model_dump(mode="json"))
-        if response.status >= 500:
+        if response.status >= 400:
             raise RetrievalServiceUnavailableError("retrieval-service is unavailable")
         return IndexNewsResponse.model_validate(response.json)
 
     async def search(self, request: SearchNewsRequest) -> SearchNewsResponse:
         response = await self._post("/api/v1/search", request.model_dump(mode="json"))
-        if response.status >= 500:
+        if response.status >= 400:
             raise RetrievalServiceUnavailableError("retrieval-service is unavailable")
         return SearchNewsResponse.model_validate(response.json)
 

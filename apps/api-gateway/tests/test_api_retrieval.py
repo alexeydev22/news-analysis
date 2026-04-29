@@ -48,6 +48,14 @@ class UnavailableClient:
         raise RetrievalServiceUnavailableError("retrieval-service is unavailable")
 
 
+class SensitiveUnavailableClient:
+    async def index(self, request: IndexNewsRequest) -> IndexNewsResponse:
+        raise RetrievalServiceUnavailableError("connection refused at 10.0.0.12")
+
+    async def search(self, request: SearchNewsRequest) -> SearchNewsResponse:
+        raise RetrievalServiceUnavailableError("connection refused at 10.0.0.12")
+
+
 class RetrievalProvider(Provider):
     def __init__(self, retrieval_client: RetrievalClient) -> None:
         super().__init__()
@@ -148,6 +156,14 @@ def test_index_endpoint_maps_unavailable_error_to_503() -> None:
 
 def test_search_endpoint_maps_unavailable_error_to_503() -> None:
     with make_client(UnavailableClient()) as client:
+        response = client.post("/api/v1/retrieval/search", json={"query": "GDP"})
+
+    assert response.status_code == 503
+    assert response.json() == {"detail": "retrieval-service is unavailable"}
+
+
+def test_retrieval_endpoint_does_not_expose_internal_error_detail() -> None:
+    with make_client(SensitiveUnavailableClient()) as client:
         response = client.post("/api/v1/retrieval/search", json={"query": "GDP"})
 
     assert response.status_code == 503
