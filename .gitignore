@@ -32,6 +32,7 @@ research/reports/*
 !research/reports/.gitkeep
 
 .superpowers/
+.worktrees/
 Методические_указания_по_выполнения_КР_МОвСиСА.docx
 node_modules/
 dist/

@@ -11,6 +11,7 @@ dependencies = [
   "dishka>=1.4",
   "pydantic-settings>=2.6",
   "structlog>=24.4",
+  "zapros>=0.3.0",
 ]
 
 [project.optional-dependencies]
