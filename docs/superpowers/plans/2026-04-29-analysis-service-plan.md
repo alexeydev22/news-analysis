@@ -33,7 +33,6 @@ apps/analysis-service/src/analysis_service/presentation/__init__.py
 apps/analysis-service/src/analysis_service/presentation/errors.py
 apps/analysis-service/src/analysis_service/presentation/router.py
 apps/analysis-service/src/analysis_service/workers/__init__.py
-apps/analysis-service/tests/__init__.py
 apps/analysis-service/tests/test_api.py
 apps/analysis-service/tests/test_domain.py
 apps/analysis-service/tests/test_infrastructure.py
