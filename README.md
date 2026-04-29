@@ -53,3 +53,13 @@ curl http://localhost:8000/health
 ```json
 {"service":"api-gateway","status":"ok"}
 ```
+
+Analysis Service local run:
+
+```bash
+just analysis-dev
+curl http://localhost:8001/health
+curl -X POST http://localhost:8001/api/v1/analyze \
+  -H 'Content-Type: application/json' \
+  -d '{"text":"GDP growth beat expectations","model":"static-v1"}'
+```

@@ -20,3 +20,6 @@ compose-down:
 
 api-dev:
     uv run --package economic-news-api-gateway granian api_gateway.main.app:app --interface asgi --host 0.0.0.0 --port 8000
+
+analysis-dev:
+    ANALYSIS_USE_STATIC_CLASSIFIER=true uv run --package economic-news-analysis-service granian analysis_service.main.app:app --interface asgi --host 0.0.0.0 --port 8001
