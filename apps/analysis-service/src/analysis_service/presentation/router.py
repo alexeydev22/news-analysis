@@ -5,6 +5,7 @@ from fastapi import APIRouter
 from analysis_service.application.use_cases import AnalyzeNewsImpact
 
 router = APIRouter(prefix="/api/v1")
+PUBLIC_METADATA_KEYS = frozenset({"source"})
 
 
 @router.post("/analyze")
@@ -22,5 +23,9 @@ async def analyze(
         impact=prediction.impact,
         confidence=prediction.confidence,
         explanation=prediction.explanation or "",
-        metadata=dict(prediction.metadata),
+        metadata={
+            key: value
+            for key, value in prediction.metadata.items()
+            if key in PUBLIC_METADATA_KEYS
+        },
     )
