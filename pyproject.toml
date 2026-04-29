@@ -9,6 +9,7 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+  "accelerate>=1.10",
   "httpx>=0.28",
   "joblib>=1.4",
   "matplotlib>=3.9",

@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from tempfile import TemporaryDirectory
 from typing import Any, Protocol
 
 from economic_news_research.data import DatasetSplit
@@ -32,6 +33,8 @@ class TinyTransformerConfig:
     epochs: int = 1
     batch_size: int = 4
     learning_rate: float = 2e-5
+    max_length: int = 256
+    seed: int = 42
 
 
 class HuggingFaceTinyTransformerTrainer:
@@ -43,7 +46,12 @@ class HuggingFaceTinyTransformerTrainer:
             "batch_size": self.config.batch_size,
             "learning_rate": self.config.learning_rate,
         }
-        self._pipeline = None
+        self._label_to_id = {label: index for index, label in enumerate(IMPACT_LABELS)}
+        self._id_to_label = {index: label for label, index in self._label_to_id.items()}
+        self._tokenizer: Any | None = None
+        self._model: Any | None = None
+        self._trainer: Any | None = None
+        self._training_dir: TemporaryDirectory[str] | None = None
 
     def fit(
         self,
@@ -52,24 +60,77 @@ class HuggingFaceTinyTransformerTrainer:
         validation_texts: list[str],
         validation_labels: list[str],
     ) -> None:
-        from transformers import pipeline
-
-        self._pipeline = pipeline(
-            "text-classification",
-            model=self.config.model_name,
-            tokenizer=self.config.model_name,
-            top_k=None,
+        from transformers import (
+            AutoModelForSequenceClassification,
+            AutoTokenizer,
+            Trainer,
+            TrainingArguments,
+            set_seed,
         )
 
+        set_seed(self.config.seed)
+        tokenizer: Any = AutoTokenizer.from_pretrained(self.config.model_name)
+        self._tokenizer = tokenizer
+        self._model = AutoModelForSequenceClassification.from_pretrained(
+            self.config.model_name,
+            num_labels=len(IMPACT_LABELS),
+            id2label=self._id_to_label,
+            label2id=self._label_to_id,
+        )
+        self._training_dir = TemporaryDirectory()
+        training_args = TrainingArguments(
+            output_dir=self._training_dir.name,
+            num_train_epochs=self.config.epochs,
+            per_device_train_batch_size=self.config.batch_size,
+            per_device_eval_batch_size=self.config.batch_size,
+            learning_rate=self.config.learning_rate,
+            report_to=[],
+            save_strategy="no",
+            logging_strategy="no",
+            eval_strategy="no",
+        )
+        self._trainer = Trainer(
+            model=self._model,
+            args=training_args,
+            train_dataset=_NewsTextDataset(
+                encodings=tokenizer(
+                    train_texts,
+                    truncation=True,
+                    padding=True,
+                    max_length=self.config.max_length,
+                ),
+                labels=[self._label_to_id[label] for label in train_labels],
+            ),
+            eval_dataset=_NewsTextDataset(
+                encodings=tokenizer(
+                    validation_texts,
+                    truncation=True,
+                    padding=True,
+                    max_length=self.config.max_length,
+                ),
+                labels=[self._label_to_id[label] for label in validation_labels],
+            ),
+        )
+        self._trainer.train()
+
     def predict(self, texts: list[str]) -> list[str]:
-        if self._pipeline is None:
+        if self._model is None or self._tokenizer is None:
             raise RuntimeError("Tiny transformer trainer must be fitted before prediction")
 
-        raw_predictions = self._pipeline(texts)
-        predictions: list[str] = []
-        for prediction_group in raw_predictions:
-            predictions.append(_prediction_group_to_label(prediction_group))
-        return predictions
+        import torch
+
+        encoded = self._tokenizer(
+            texts,
+            truncation=True,
+            padding=True,
+            max_length=self.config.max_length,
+            return_tensors="pt",
+        )
+        self._model.eval()
+        with torch.no_grad():
+            outputs = self._model(**encoded)
+        prediction_ids = outputs.logits.argmax(dim=-1).tolist()
+        return [self._id_to_label[prediction_id] for prediction_id in prediction_ids]
 
 
 def train_tiny_transformer_classifier(
@@ -112,11 +173,17 @@ def train_tiny_transformer_classifier(
     )
 
 
-def _prediction_group_to_label(prediction_group: Any) -> str:
-    if isinstance(prediction_group, dict):
-        label = str(prediction_group.get("label", "")).lower()
-    else:
-        best_prediction = max(prediction_group, key=lambda item: item["score"])
-        label = str(best_prediction["label"]).lower()
+@dataclass(frozen=True)
+class _NewsTextDataset:
+    encodings: dict[str, list[int]]
+    labels: list[int]
 
-    return label if label in IMPACT_LABELS else "neutral"
+    def __len__(self) -> int:
+        return len(self.labels)
+
+    def __getitem__(self, index: int) -> dict[str, Any]:
+        import torch
+
+        item = {key: torch.tensor(values[index]) for key, values in self.encodings.items()}
+        item["labels"] = torch.tensor(self.labels[index])
+        return item

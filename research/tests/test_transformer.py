@@ -37,6 +37,28 @@ class FakeTinyTransformerTrainer:
         return predictions
 
 
+class RecordingTinyTransformerTrainer(FakeTinyTransformerTrainer):
+    def fit(
+        self,
+        train_texts: list[str],
+        train_labels: list[str],
+        validation_texts: list[str],
+        validation_labels: list[str],
+    ) -> None:
+        super().fit(
+            train_texts=train_texts,
+            train_labels=train_labels,
+            validation_texts=validation_texts,
+            validation_labels=validation_labels,
+        )
+        self.fit_call = {
+            "train_texts": train_texts,
+            "train_labels": train_labels,
+            "validation_texts": validation_texts,
+            "validation_labels": validation_labels,
+        }
+
+
 def test_train_tiny_transformer_classifier_returns_metrics_without_downloads() -> None:
     dataset = load_news_dataset(FIXTURE)
     split = split_news_dataset(dataset, random_state=42)
@@ -52,3 +74,20 @@ def test_train_tiny_transformer_classifier_returns_metrics_without_downloads() -
     assert result.validation_metrics.confusion_matrix.shape == (3, 3)
     assert result.test_metrics.confusion_matrix.shape == (3, 3)
     assert result.best_params["model_name"] == "fake-tiny-transformer"
+
+
+def test_train_tiny_transformer_classifier_passes_training_data_to_trainer() -> None:
+    dataset = load_news_dataset(FIXTURE)
+    split = split_news_dataset(dataset, random_state=42)
+    trainer = RecordingTinyTransformerTrainer()
+
+    train_tiny_transformer_classifier(
+        split,
+        trainer=trainer,
+        random_state=42,
+    )
+
+    assert trainer.fit_call["train_texts"] == split.train["text"].tolist()
+    assert trainer.fit_call["train_labels"] == split.train["impact"].tolist()
+    assert trainer.fit_call["validation_texts"] == split.validation["text"].tolist()
+    assert trainer.fit_call["validation_labels"] == split.validation["impact"].tolist()

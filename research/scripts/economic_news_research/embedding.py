@@ -1,4 +1,5 @@
-from typing import Protocol
+from dataclasses import dataclass
+from typing import Any, Protocol
 
 import numpy as np
 from sklearn.linear_model import LogisticRegression
@@ -23,7 +24,7 @@ class TextEmbedder(Protocol):
 class SentenceTransformerEmbedder:
     def __init__(self, model_name: str = DEFAULT_EMBEDDING_MODEL) -> None:
         self.model_name = model_name
-        self._model = None
+        self._model: Any | None = None
 
     def encode(self, texts: list[str]) -> np.ndarray:
         if self._model is None:
@@ -36,6 +37,23 @@ class SentenceTransformerEmbedder:
             show_progress_bar=False,
         )
         return np.asarray(embeddings)
+
+    def __getstate__(self) -> dict[str, str]:
+        return {"model_name": self.model_name}
+
+    def __setstate__(self, state: dict[str, str]) -> None:
+        self.model_name = state["model_name"]
+        self._model = None
+
+
+@dataclass
+class EmbeddingTextClassifier:
+    embedder: TextEmbedder
+    classifier: LogisticRegression
+
+    def predict(self, texts: list[str]) -> list[str]:
+        embeddings = self.embedder.encode(texts)
+        return self.classifier.predict(embeddings).tolist()
 
 
 def train_embedding_classifier(
@@ -62,12 +80,11 @@ def train_embedding_classifier(
     )
     search.fit(train_embeddings, split.train["impact"])
 
-    best_estimator = search.best_estimator_
-    validation_predictions = best_estimator.predict(validation_embeddings).tolist()
+    classifier = search.best_estimator_
+    estimator = EmbeddingTextClassifier(embedder=active_embedder, classifier=classifier)
+    validation_predictions = classifier.predict(validation_embeddings).tolist()
     test_predictions, inference_seconds_per_sample = measure_prediction_time(
-        predictor=lambda values: best_estimator.predict(
-            active_embedder.encode(list(values))
-        ).tolist(),
+        predictor=lambda values: estimator.predict(list(values)),
         values=test_texts,
     )
 
@@ -84,6 +101,6 @@ def train_embedding_classifier(
             y_pred=test_predictions,
             labels=IMPACT_LABELS,
         ),
-        estimator=best_estimator,
+        estimator=estimator,
         inference_seconds_per_sample=inference_seconds_per_sample,
     )
