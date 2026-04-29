@@ -32,6 +32,7 @@ members = [
   "packages/contracts",
   "apps/api-gateway",
   "apps/analysis-service",
+  "apps/retrieval-service",
   "research",
 ]
 
@@ -58,9 +59,15 @@ pythonpath = [
   "packages/contracts/src",
   "apps/api-gateway/src",
   "apps/analysis-service/src",
+  "apps/retrieval-service/src",
   "research/scripts",
 ]
 asyncio_mode = "auto"
 
 [tool.ty.src]
 include = ["apps", "packages", "research/scripts"]
+
+[tool.ty.environment]
+extra-paths = [
+  "apps/retrieval-service/src",
+]
