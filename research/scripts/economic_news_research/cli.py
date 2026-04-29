@@ -133,10 +133,14 @@ def main() -> None:
         return
 
     if args.command == "compare-models":
-        output_path = run_compare_models(
-            comparison_paths=args.comparison,
-            output_path=args.output_path,
-        )
+        comparison_paths = args.comparison or _default_comparison_paths()
+        try:
+            output_path = run_compare_models(
+                comparison_paths=comparison_paths,
+                output_path=args.output_path,
+            )
+        except FileNotFoundError as error:
+            parser.error(str(error))
         print(f"comparison_path={output_path}")
         return
 
@@ -225,11 +229,7 @@ def _build_parser() -> argparse.ArgumentParser:
         "--comparison",
         action="append",
         type=Path,
-        default=[
-            MODELS_DIR / "baseline" / "model_comparison.csv",
-            MODELS_DIR / "embedding" / "model_comparison.csv",
-            MODELS_DIR / "transformer" / "model_comparison.csv",
-        ],
+        default=None,
     )
     compare_parser.add_argument(
         "--output-path",
@@ -238,6 +238,14 @@ def _build_parser() -> argparse.ArgumentParser:
     )
 
     return parser
+
+
+def _default_comparison_paths() -> list[Path]:
+    return [
+        MODELS_DIR / "baseline" / "model_comparison.csv",
+        MODELS_DIR / "embedding" / "model_comparison.csv",
+        MODELS_DIR / "transformer" / "model_comparison.csv",
+    ]
 
 
 if __name__ == "__main__":
