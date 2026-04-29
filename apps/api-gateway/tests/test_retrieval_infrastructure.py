@@ -24,6 +24,27 @@ class RaisingZaprosClient:
         raise OSError("connection refused")
 
 
+class FakeZaprosClientContext:
+    def __init__(self, response: Response) -> None:
+        self._client = FakeZaprosClient(response)
+
+    async def __aenter__(self) -> FakeZaprosClient:
+        return self._client
+
+    async def __aexit__(self, *args: object) -> None:
+        return None
+
+
+class RecordingClientFactory:
+    def __init__(self, response: Response) -> None:
+        self.timeout_seconds: float | None = None
+        self.context = FakeZaprosClientContext(response)
+
+    def __call__(self, timeout_seconds: float) -> FakeZaprosClientContext:
+        self.timeout_seconds = timeout_seconds
+        return self.context
+
+
 def index_request() -> IndexNewsRequest:
     return IndexNewsRequest(
         documents=[
@@ -101,6 +122,20 @@ async def test_retrieval_client_search_accepts_negative_score() -> None:
         "http://retrieval-service:8000/api/v1/search",
         {"query": "GDP", "limit": 3, "source": None},
     )
+
+
+@pytest.mark.asyncio
+async def test_zapros_retrieval_client_passes_timeout_to_real_client_factory() -> None:
+    factory = RecordingClientFactory(Response(200, json={"results": []}))
+    client = ZaprosRetrievalClient(
+        base_url="http://retrieval-service:8000",
+        timeout_seconds=4.5,
+        client_factory=factory,
+    )
+
+    await client.search(SearchNewsRequest(query="GDP"))
+
+    assert factory.timeout_seconds == 4.5
 
 
 @pytest.mark.asyncio
