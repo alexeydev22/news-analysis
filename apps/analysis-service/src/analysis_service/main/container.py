@@ -34,20 +34,16 @@ class AnalysisServiceProvider(Provider):
                     ),
                 ],
             )
+        artifact_paths = {
+            AnalysisModelName.TFIDF_LOGREG: settings.tfidf_artifact_path,
+            AnalysisModelName.EMBEDDING_LOGREG: settings.embedding_artifact_path,
+            AnalysisModelName.TINY_TRANSFORMER_CLASSIFIER: settings.transformer_artifact_path,
+        }
         return StaticModelRegistry(
             [
-                JoblibImpactClassifier(
-                    model_name=AnalysisModelName.TFIDF_LOGREG,
-                    artifact_path=settings.tfidf_artifact_path,
-                ),
-                JoblibImpactClassifier(
-                    model_name=AnalysisModelName.EMBEDDING_LOGREG,
-                    artifact_path=settings.embedding_artifact_path,
-                ),
-                JoblibImpactClassifier(
-                    model_name=AnalysisModelName.TINY_TRANSFORMER_CLASSIFIER,
-                    artifact_path=settings.transformer_artifact_path,
-                ),
+                JoblibImpactClassifier(model_name=model_name, artifact_path=artifact_path)
+                for model_name, artifact_path in artifact_paths.items()
+                if artifact_path.exists()
             ],
         )
 
