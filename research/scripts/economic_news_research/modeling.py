@@ -1,24 +1,16 @@
-from dataclasses import dataclass
-from typing import Any
-
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import GridSearchCV, LeaveOneOut, StratifiedKFold
 from sklearn.pipeline import Pipeline
 
 from economic_news_research.data import DatasetSplit
-from economic_news_research.metrics import ClassificationMetrics, compute_classification_metrics
+from economic_news_research.metrics import compute_classification_metrics
+from economic_news_research.results import ModelTrainingResult, measure_prediction_time
 
 IMPACT_LABELS = ["negative", "neutral", "positive"]
 
 
-@dataclass(frozen=True)
-class BaselineTrainingResult:
-    model_name: str
-    best_params: dict[str, Any]
-    validation_metrics: ClassificationMetrics
-    test_metrics: ClassificationMetrics
-    estimator: Pipeline
+BaselineTrainingResult = ModelTrainingResult
 
 
 def build_baseline_pipeline(
@@ -66,7 +58,10 @@ def train_baseline_model(
 
     best_estimator = search.best_estimator_
     validation_predictions = best_estimator.predict(split.validation["text"]).tolist()
-    test_predictions = best_estimator.predict(split.test["text"]).tolist()
+    test_predictions, inference_seconds_per_sample = measure_prediction_time(
+        predictor=best_estimator.predict,
+        values=split.test["text"].tolist(),
+    )
 
     return BaselineTrainingResult(
         model_name="tfidf-logreg",
@@ -82,6 +77,7 @@ def train_baseline_model(
             labels=IMPACT_LABELS,
         ),
         estimator=best_estimator,
+        inference_seconds_per_sample=inference_seconds_per_sample,
     )
 
 

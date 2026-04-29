@@ -104,6 +104,9 @@ def _build_comparison_frame(result: BaselineTrainingResult) -> pd.DataFrame:
                 "validation_macro_f1": float(result.validation_metrics.macro_f1),
                 "test_accuracy": float(result.test_metrics.accuracy),
                 "test_macro_f1": float(result.test_metrics.macro_f1),
+                "inference_seconds_per_sample": float(
+                    result.inference_seconds_per_sample,
+                ),
                 "best_params": json.dumps(
                     _to_json_value(result.best_params),
                     ensure_ascii=False,

@@ -34,6 +34,7 @@ def test_train_baseline_model_returns_metrics() -> None:
     assert result.model_name == "tfidf-logreg"
     assert result.validation_metrics.confusion_matrix.shape == (3, 3)
     assert result.best_params["classifier__C"] in {0.1, 1.0, 10.0}
+    assert result.inference_seconds_per_sample >= 0
 
 
 def test_save_baseline_artifacts_writes_expected_files(tmp_path: Path) -> None:
