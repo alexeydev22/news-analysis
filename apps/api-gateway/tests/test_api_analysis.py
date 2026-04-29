@@ -57,12 +57,11 @@ def make_client(analysis_client: AnalysisClient) -> TestClient:
 
 
 def test_analyze_endpoint_returns_analysis_response() -> None:
-    client = make_client(SuccessfulClient())
-
-    response = client.post(
-        "/api/v1/analyze",
-        json={"text": "Инфляция замедлилась", "analysis_model": "tfidf-logreg"},
-    )
+    with make_client(SuccessfulClient()) as client:
+        response = client.post(
+            "/api/v1/analyze",
+            json={"text": "Инфляция замедлилась", "analysis_model": "tfidf-logreg"},
+        )
 
     assert response.status_code == 200
     assert response.json() == {
@@ -75,9 +74,8 @@ def test_analyze_endpoint_returns_analysis_response() -> None:
 
 
 def test_analyze_endpoint_maps_unavailable_error_to_503() -> None:
-    client = make_client(UnavailableClient())
-
-    response = client.post("/api/v1/analyze", json={"text": "Индекс снизился"})
+    with make_client(UnavailableClient()) as client:
+        response = client.post("/api/v1/analyze", json={"text": "Индекс снизился"})
 
     assert response.status_code == 503
     assert response.json() == {"detail": "analysis-service is unavailable"}
