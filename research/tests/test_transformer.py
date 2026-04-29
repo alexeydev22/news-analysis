@@ -1,7 +1,9 @@
+from collections.abc import Iterator
 from pathlib import Path
 
 from economic_news_research.data import load_news_dataset, split_news_dataset
 from economic_news_research.transformer import (
+    HuggingFaceTinyTransformerTrainer,
     TransformerTrainingResult,
     train_tiny_transformer_classifier,
 )
@@ -59,6 +61,59 @@ class RecordingTinyTransformerTrainer(FakeTinyTransformerTrainer):
         }
 
 
+class FakeTensor:
+    def __init__(self) -> None:
+        self.received_device: str | None = None
+
+    def to(self, device: str) -> "FakeTensor":
+        self.received_device = device
+        return self
+
+
+class FakeParameter:
+    device = "fake-accelerator"
+
+
+class FakeLogits:
+    def argmax(self, *, dim: int) -> "FakeLogits":
+        assert dim == -1
+        return self
+
+    def tolist(self) -> list[int]:
+        return [0]
+
+
+class FakeModelOutput:
+    logits = FakeLogits()
+
+
+class DeviceCheckingModel:
+    def __init__(self, input_ids: FakeTensor) -> None:
+        self.input_ids = input_ids
+        self.evaluated = False
+
+    def parameters(self) -> Iterator[FakeParameter]:
+        return iter([FakeParameter()])
+
+    def eval(self) -> None:
+        self.evaluated = True
+
+    def __call__(self, **kwargs: FakeTensor) -> FakeModelOutput:
+        assert kwargs["input_ids"].received_device == FakeParameter.device
+        assert self.evaluated
+        return FakeModelOutput()
+
+
+class FakeTokenizer:
+    def __init__(self, input_ids: FakeTensor) -> None:
+        self.input_ids = input_ids
+
+    def __call__(self, texts: list[str], **kwargs: object) -> dict[str, FakeTensor]:
+        assert texts == ["Markets rise"]
+        assert kwargs["return_tensors"] == "pt"
+        return {"input_ids": self.input_ids}
+
+
 def test_train_tiny_transformer_classifier_returns_metrics_without_downloads() -> None:
     dataset = load_news_dataset(FIXTURE)
     split = split_news_dataset(dataset, random_state=42)
@@ -91,3 +146,15 @@ def test_train_tiny_transformer_classifier_passes_training_data_to_trainer() -> 
     assert trainer.fit_call["train_labels"] == split.train["impact"].tolist()
     assert trainer.fit_call["validation_texts"] == split.validation["text"].tolist()
     assert trainer.fit_call["validation_labels"] == split.validation["impact"].tolist()
+
+
+def test_huggingface_tiny_transformer_predict_moves_batch_to_model_device() -> None:
+    input_ids = FakeTensor()
+    trainer = HuggingFaceTinyTransformerTrainer()
+    trainer._tokenizer = FakeTokenizer(input_ids)
+    trainer._model = DeviceCheckingModel(input_ids)
+
+    predictions = trainer.predict(["Markets rise"])
+
+    assert predictions == ["negative"]
+    assert input_ids.received_device == FakeParameter.device

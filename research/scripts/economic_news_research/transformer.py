@@ -126,6 +126,8 @@ class HuggingFaceTinyTransformerTrainer:
             max_length=self.config.max_length,
             return_tensors="pt",
         )
+        device = next(self._model.parameters()).device
+        encoded = {key: value.to(device) for key, value in encoded.items()}
         self._model.eval()
         with torch.no_grad():
             outputs = self._model(**encoded)
