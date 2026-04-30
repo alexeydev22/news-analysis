@@ -1,6 +1,9 @@
-from economic_news_contracts.dialog import DialogImpactSummary
-
-from dialog_service.domain.model import DialogContextItem, DialogGeneration, DialogQuestion
+from dialog_service.domain.model import (
+    DialogContextItem,
+    DialogGeneration,
+    DialogImpactItem,
+    DialogQuestion,
+)
 
 
 class TemplateDialogGenerator:
@@ -11,7 +14,7 @@ class TemplateDialogGenerator:
         self,
         question: DialogQuestion,
         context: list[DialogContextItem],
-        impact_summaries: list[DialogImpactSummary],
+        impact_summaries: list[DialogImpactItem],
         language: str,
     ) -> DialogGeneration:
         used_context_ids = [item.id for item in context]
@@ -31,7 +34,7 @@ class TemplateDialogGenerator:
         self,
         question: DialogQuestion,
         context: list[DialogContextItem],
-        impact_summaries: list[DialogImpactSummary],
+        impact_summaries: list[DialogImpactItem],
     ) -> str:
         if not context:
             return (

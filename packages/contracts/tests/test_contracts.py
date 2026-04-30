@@ -264,6 +264,63 @@ def test_generate_dialog_response_trims_and_rejects_empty_used_context_ids() -> 
         )
 
 
+def test_generate_dialog_request_rejects_orphan_impact_summary() -> None:
+    with pytest.raises(ValueError, match="Impact summary news_id must exist in context"):
+        GenerateDialogRequest(
+            question="Что значит рост ВВП?",
+            context=[
+                DialogContextNews(
+                    id="news-1",
+                    title="GDP grows",
+                    text="GDP grew by 2 percent.",
+                    source="demo",
+                    score=0.75,
+                ),
+            ],
+            impact_summaries=[
+                DialogImpactSummary(
+                    news_id="news-2",
+                    model_name=AnalysisModelName.TFIDF_LOGREG,
+                    impact=ImpactLabel.POSITIVE,
+                    confidence=0.82,
+                    explanation="Позитивное влияние.",
+                ),
+            ],
+        )
+
+
+def test_generate_dialog_request_rejects_duplicate_impact_summaries() -> None:
+    with pytest.raises(ValueError, match="Impact summaries must be unique by news_id"):
+        GenerateDialogRequest(
+            question="Что значит рост ВВП?",
+            context=[
+                DialogContextNews(
+                    id="news-1",
+                    title="GDP grows",
+                    text="GDP grew by 2 percent.",
+                    source="demo",
+                    score=0.75,
+                ),
+            ],
+            impact_summaries=[
+                DialogImpactSummary(
+                    news_id="news-1",
+                    model_name=AnalysisModelName.TFIDF_LOGREG,
+                    impact=ImpactLabel.POSITIVE,
+                    confidence=0.82,
+                    explanation="Позитивное влияние.",
+                ),
+                DialogImpactSummary(
+                    news_id="news-1",
+                    model_name=AnalysisModelName.EMBEDDING_LOGREG,
+                    impact=ImpactLabel.NEUTRAL,
+                    confidence=0.64,
+                    explanation="Нейтральное влияние.",
+                ),
+            ],
+        )
+
+
 def test_chat_request_trims_question_and_defaults_model() -> None:
     request = ChatRequest(question="  Что с инфляцией?  ")
 

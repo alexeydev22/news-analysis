@@ -4,7 +4,12 @@ from fastapi import APIRouter
 
 from dialog_service.application.use_cases import GenerateDialogAnswer
 from dialog_service.domain.errors import DialogGeneratorUnavailableError
-from dialog_service.domain.model import DialogContextItem, DialogGeneration, DialogQuestion
+from dialog_service.domain.model import (
+    DialogContextItem,
+    DialogGeneration,
+    DialogImpactItem,
+    DialogQuestion,
+)
 from dialog_service.presentation.errors import map_generator_error
 
 router = APIRouter(prefix="/api/v1")
@@ -22,6 +27,19 @@ def _to_domain_context(request: GenerateDialogRequest) -> list[DialogContextItem
             metadata=item.metadata,
         )
         for item in request.context
+    ]
+
+
+def _to_domain_impact_summaries(request: GenerateDialogRequest) -> list[DialogImpactItem]:
+    return [
+        DialogImpactItem(
+            news_id=summary.news_id,
+            model_name=str(summary.model_name),
+            impact=str(summary.impact),
+            confidence=summary.confidence,
+            explanation=summary.explanation,
+        )
+        for summary in request.impact_summaries
     ]
 
 
@@ -44,7 +62,7 @@ async def generate_dialog(
         generation = await use_case.execute(
             question=DialogQuestion(request.question),
             context=_to_domain_context(request),
-            impact_summaries=request.impact_summaries,
+            impact_summaries=_to_domain_impact_summaries(request),
             language=request.language,
         )
     except DialogGeneratorUnavailableError as error:

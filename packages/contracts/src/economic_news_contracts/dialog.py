@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from economic_news_contracts.analysis import AnalysisModelName, ImpactLabel
 
@@ -65,6 +65,16 @@ class GenerateDialogRequest(BaseModel):
         if len(normalized) < 2:
             raise ValueError("Language must be at least 2 characters")
         return normalized
+
+    @model_validator(mode="after")
+    def validate_impact_summaries_match_context(self) -> "GenerateDialogRequest":
+        context_ids = {item.id for item in self.context}
+        summary_ids = [summary.news_id for summary in self.impact_summaries]
+        if len(summary_ids) != len(set(summary_ids)):
+            raise ValueError("Impact summaries must be unique by news_id")
+        if not set(summary_ids).issubset(context_ids):
+            raise ValueError("Impact summary news_id must exist in context")
+        return self
 
 
 class GenerateDialogResponse(BaseModel):

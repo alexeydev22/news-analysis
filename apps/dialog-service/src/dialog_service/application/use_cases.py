@@ -1,7 +1,10 @@
-from typing import Any
-
 from dialog_service.application.ports import DialogGenerator
-from dialog_service.domain.model import DialogContextItem, DialogGeneration, DialogQuestion
+from dialog_service.domain.model import (
+    DialogContextItem,
+    DialogGeneration,
+    DialogImpactItem,
+    DialogQuestion,
+)
 
 
 class GenerateDialogAnswer:
@@ -12,7 +15,7 @@ class GenerateDialogAnswer:
         self,
         question: DialogQuestion,
         context: list[DialogContextItem],
-        impact_summaries: list[Any],
+        impact_summaries: list[DialogImpactItem],
         language: str,
     ) -> DialogGeneration:
         return await self._generator.generate(

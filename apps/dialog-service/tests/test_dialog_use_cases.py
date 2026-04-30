@@ -2,7 +2,12 @@ import inspect
 
 import pytest
 from dialog_service.application.use_cases import GenerateDialogAnswer
-from dialog_service.domain.model import DialogContextItem, DialogGeneration, DialogQuestion
+from dialog_service.domain.model import (
+    DialogContextItem,
+    DialogGeneration,
+    DialogImpactItem,
+    DialogQuestion,
+)
 
 
 class FakeGenerator:
@@ -38,6 +43,10 @@ def test_generate_dialog_answer_has_domain_boundary() -> None:
     assert module is not None
     assert "economic_news_contracts.dialog" not in inspect.getsource(module)
 
+    import dialog_service.application.ports as application_ports
+
+    assert "economic_news_contracts.dialog" not in inspect.getsource(application_ports)
+
 
 @pytest.mark.asyncio
 async def test_generate_dialog_answer_delegates_to_generator() -> None:
@@ -55,7 +64,15 @@ async def test_generate_dialog_answer_delegates_to_generator() -> None:
                 score=0.75,
             ),
         ],
-        impact_summaries=[],
+        impact_summaries=[
+            DialogImpactItem(
+                news_id="news-1",
+                model_name="tfidf-logreg",
+                impact="positive",
+                confidence=0.82,
+                explanation="Рост ВВП обычно поддерживает рынок.",
+            ),
+        ],
         language="ru",
     )
 

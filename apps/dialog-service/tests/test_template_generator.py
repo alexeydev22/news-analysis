@@ -1,8 +1,6 @@
 import pytest
-from dialog_service.domain.model import DialogContextItem, DialogQuestion
+from dialog_service.domain.model import DialogContextItem, DialogImpactItem, DialogQuestion
 from dialog_service.infrastructure.template_generator import TemplateDialogGenerator
-from economic_news_contracts.analysis import AnalysisModelName, ImpactLabel
-from economic_news_contracts.dialog import DialogImpactSummary
 
 
 @pytest.mark.asyncio
@@ -18,10 +16,10 @@ async def test_template_generator_builds_russian_answer_from_context_and_impacts
         ),
     ]
     summaries = [
-        DialogImpactSummary(
+        DialogImpactItem(
             news_id="news-1",
-            model_name=AnalysisModelName.TFIDF_LOGREG,
-            impact=ImpactLabel.POSITIVE,
+            model_name="tfidf-logreg",
+            impact="positive",
             confidence=0.82,
             explanation="Рост ВВП обычно поддерживает рынок.",
         ),

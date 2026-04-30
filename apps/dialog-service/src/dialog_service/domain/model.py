@@ -41,6 +41,21 @@ class DialogContextItem:
 
 
 @dataclass(frozen=True)
+class DialogImpactItem:
+    news_id: str
+    model_name: str
+    impact: str
+    confidence: float | None
+    explanation: str
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "news_id", _required_text(self.news_id, "news_id"))
+        object.__setattr__(self, "model_name", _required_text(self.model_name, "model_name"))
+        object.__setattr__(self, "impact", _required_text(self.impact, "impact"))
+        object.__setattr__(self, "explanation", _required_text(self.explanation, "explanation"))
+
+
+@dataclass(frozen=True)
 class DialogGeneration:
     answer: str
     used_context_ids: list[str]

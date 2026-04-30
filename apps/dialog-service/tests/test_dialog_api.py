@@ -91,3 +91,33 @@ def test_generate_dialog_endpoint_maps_generator_error_to_503() -> None:
 
     assert response.status_code == 503
     assert response.json() == {"detail": "dialog-service is unavailable"}
+
+
+def test_generate_dialog_endpoint_rejects_orphan_impact_summary() -> None:
+    with make_client(SuccessfulGenerator()) as client:
+        response = client.post(
+            "/api/v1/dialog/generate",
+            json={
+                "question": "Что значит рост ВВП?",
+                "context": [
+                    {
+                        "id": "news-1",
+                        "title": "GDP grows",
+                        "text": "GDP grew by 2 percent.",
+                        "source": "demo",
+                        "score": 0.75,
+                    },
+                ],
+                "impact_summaries": [
+                    {
+                        "news_id": "news-2",
+                        "model_name": "tfidf-logreg",
+                        "impact": "positive",
+                        "confidence": 0.82,
+                        "explanation": "Позитивное влияние.",
+                    },
+                ],
+            },
+        )
+
+    assert response.status_code == 422
