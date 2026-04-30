@@ -3,9 +3,31 @@ from dialog_service.application.use_cases import GenerateDialogAnswer
 from dialog_service.main.container import create_container
 from dialog_service.main.settings import DialogGeneratorKind, DialogServiceSettings
 from dishka import AsyncContainer
+from pydantic import ValidationError
+
+_DIALOG_ENV_KEYS = (
+    "DIALOG_SERVICE_NAME",
+    "DIALOG_VERSION",
+    "DIALOG_GENERATOR_KIND",
+    "DIALOG_GENERATOR_NAME",
+    "DIALOG_LLM_BASE_URL",
+    "DIALOG_LLM_MODEL",
+    "DIALOG_LLM_TIMEOUT_SECONDS",
+    "DIALOG_LLM_TEMPERATURE",
+    "DIALOG_LLM_MAX_TOKENS",
+)
 
 
-def test_dialog_settings_defaults_and_env_prefix(monkeypatch: pytest.MonkeyPatch) -> None:
+@pytest.fixture
+def clear_dialog_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    for key in _DIALOG_ENV_KEYS:
+        monkeypatch.delenv(key, raising=False)
+
+
+def test_dialog_settings_defaults_and_env_prefix(
+    clear_dialog_env: None,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setenv("DIALOG_GENERATOR_NAME", "custom-generator")
 
     settings = DialogServiceSettings()
@@ -14,7 +36,7 @@ def test_dialog_settings_defaults_and_env_prefix(monkeypatch: pytest.MonkeyPatch
     assert settings.generator_name == "custom-generator"
 
 
-def test_dialog_settings_include_llm_defaults() -> None:
+def test_dialog_settings_include_llm_defaults(clear_dialog_env: None) -> None:
     settings = DialogServiceSettings()
 
     assert settings.generator_kind == DialogGeneratorKind.TEMPLATE
@@ -24,6 +46,48 @@ def test_dialog_settings_include_llm_defaults() -> None:
     assert settings.llm_timeout_seconds == 30.0
     assert settings.llm_temperature == 0.2
     assert settings.llm_max_tokens == 512
+
+
+def test_dialog_settings_reject_blank_llm_model(clear_dialog_env: None) -> None:
+    with pytest.raises(ValidationError, match="llm_model must not be blank"):
+        DialogServiceSettings(llm_model="   ")
+
+
+def test_dialog_settings_trim_llm_model(clear_dialog_env: None) -> None:
+    settings = DialogServiceSettings(llm_model="  qwen3-0.6b  ")
+
+    assert settings.llm_model == "qwen3-0.6b"
+
+
+def test_dialog_settings_reject_invalid_generator_kind(
+    clear_dialog_env: None,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("DIALOG_GENERATOR_KIND", "invalid")
+
+    with pytest.raises(ValidationError):
+        DialogServiceSettings()
+
+
+def test_dialog_settings_reject_non_positive_llm_timeout(
+    clear_dialog_env: None,
+) -> None:
+    with pytest.raises(ValidationError):
+        DialogServiceSettings(llm_timeout_seconds=0)
+
+
+def test_dialog_settings_reject_llm_temperature_above_max(
+    clear_dialog_env: None,
+) -> None:
+    with pytest.raises(ValidationError):
+        DialogServiceSettings(llm_temperature=2.1)
+
+
+def test_dialog_settings_reject_non_positive_llm_max_tokens(
+    clear_dialog_env: None,
+) -> None:
+    with pytest.raises(ValidationError):
+        DialogServiceSettings(llm_max_tokens=0)
 
 
 def test_dialog_settings_read_prefixed_llm_env(
