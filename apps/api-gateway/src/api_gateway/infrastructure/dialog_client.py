@@ -3,6 +3,7 @@ from typing import Any
 
 from api_gateway.application.errors import DialogServiceUnavailableError
 from economic_news_contracts.dialog import GenerateDialogRequest, GenerateDialogResponse
+from pydantic import ValidationError
 from zapros import AsyncClient, AsyncStdNetworkHandler
 
 
@@ -29,7 +30,12 @@ class ZaprosDialogClient:
         response = await self._post(request.model_dump(mode="json"))
         if response.status >= 400:
             raise DialogServiceUnavailableError("dialog-service is unavailable")
-        return GenerateDialogResponse.model_validate(response.json)
+        try:
+            return GenerateDialogResponse.model_validate(response.json)
+        except ValidationError as error:
+            raise DialogServiceUnavailableError(
+                "dialog-service is unavailable",
+            ) from error
 
     async def _post(self, payload: dict[str, Any]) -> Any:
         url = f"{self._base_url}/api/v1/dialog/generate"

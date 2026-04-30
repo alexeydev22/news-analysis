@@ -165,6 +165,21 @@ async def test_zapros_dialog_client_maps_4xx_and_5xx_to_unavailable_error() -> N
 
 
 @pytest.mark.asyncio
+async def test_zapros_dialog_client_maps_malformed_success_response() -> None:
+    client = ZaprosDialogClient(
+        base_url="http://dialog-service:8000",
+        timeout_seconds=3.0,
+        client=FakeZaprosClient(Response(200, json={"detail": "bad"})),
+    )
+
+    with pytest.raises(
+        DialogServiceUnavailableError,
+        match="dialog-service is unavailable",
+    ):
+        await client.generate(dialog_request())
+
+
+@pytest.mark.asyncio
 async def test_zapros_dialog_client_maps_transport_error() -> None:
     client = ZaprosDialogClient(
         base_url="http://dialog-service:8000",

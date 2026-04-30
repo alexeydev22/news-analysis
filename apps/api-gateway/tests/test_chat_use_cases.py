@@ -107,8 +107,8 @@ async def test_chat_use_case_orchestrates_search_analysis_and_dialog() -> None:
         source="demo",
     )
     assert [request.text for request in analysis_client.requests] == [
-        "GDP grew by 2 percent.",
-        "Inflation slowed in April.",
+        "GDP grows\n\nGDP grew by 2 percent.",
+        "Inflation slows\n\nInflation slowed in April.",
     ]
     assert {request.analysis_model for request in analysis_client.requests} == {
         AnalysisModelName.EMBEDDING_LOGREG,

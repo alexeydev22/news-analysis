@@ -74,7 +74,7 @@ class ChatUseCase:
             )
             analysis_response = await self._analysis_client.analyze(
                 AnalyzeNewsRequest(
-                    text=result.text,
+                    text=f"{result.title}\n\n{result.text}",
                     analysis_model=request.analysis_model,
                 ),
             )
