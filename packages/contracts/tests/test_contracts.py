@@ -321,6 +321,29 @@ def test_generate_dialog_request_rejects_duplicate_impact_summaries() -> None:
         )
 
 
+def test_generate_dialog_request_rejects_duplicate_context_ids() -> None:
+    with pytest.raises(ValueError, match="Context items must be unique by id"):
+        GenerateDialogRequest(
+            question="Что значит рост ВВП?",
+            context=[
+                DialogContextNews(
+                    id="news-1",
+                    title="GDP grows",
+                    text="GDP grew by 2 percent.",
+                    source="demo",
+                    score=0.75,
+                ),
+                DialogContextNews(
+                    id="news-1",
+                    title="GDP keeps growing",
+                    text="GDP kept growing.",
+                    source="demo",
+                    score=0.7,
+                ),
+            ],
+        )
+
+
 def test_chat_request_trims_question_and_defaults_model() -> None:
     request = ChatRequest(question="  Что с инфляцией?  ")
 

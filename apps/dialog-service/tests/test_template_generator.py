@@ -1,4 +1,5 @@
 import pytest
+from dialog_service.domain.errors import DialogGeneratorUnavailableError
 from dialog_service.domain.model import DialogContextItem, DialogImpactItem, DialogQuestion
 from dialog_service.infrastructure.template_generator import TemplateDialogGenerator
 
@@ -54,3 +55,40 @@ async def test_template_generator_handles_empty_context() -> None:
 
     assert "релевантные новости не найдены" in result.answer
     assert result.used_context_ids == []
+
+
+@pytest.mark.asyncio
+async def test_template_generator_rejects_duplicate_impact_summaries() -> None:
+    generator = TemplateDialogGenerator(model_name="template-dialog-generator")
+    context = [
+        DialogContextItem(
+            id="news-1",
+            title="GDP grows",
+            text="GDP grew by 2 percent.",
+            source="demo",
+            score=0.75,
+        ),
+    ]
+
+    with pytest.raises(DialogGeneratorUnavailableError, match="duplicate impact summaries"):
+        await generator.generate(
+            question=DialogQuestion("Что значит рост ВВП?"),
+            context=context,
+            impact_summaries=[
+                DialogImpactItem(
+                    news_id="news-1",
+                    model_name="tfidf-logreg",
+                    impact="positive",
+                    confidence=0.82,
+                    explanation="Позитивное влияние.",
+                ),
+                DialogImpactItem(
+                    news_id="news-1",
+                    model_name="embedding-logreg",
+                    impact="neutral",
+                    confidence=0.64,
+                    explanation="Нейтральное влияние.",
+                ),
+            ],
+            language="ru",
+        )

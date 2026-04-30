@@ -68,11 +68,13 @@ class GenerateDialogRequest(BaseModel):
 
     @model_validator(mode="after")
     def validate_impact_summaries_match_context(self) -> "GenerateDialogRequest":
-        context_ids = {item.id for item in self.context}
+        context_ids = [item.id for item in self.context]
+        if len(context_ids) != len(set(context_ids)):
+            raise ValueError("Context items must be unique by id")
         summary_ids = [summary.news_id for summary in self.impact_summaries]
         if len(summary_ids) != len(set(summary_ids)):
             raise ValueError("Impact summaries must be unique by news_id")
-        if not set(summary_ids).issubset(context_ids):
+        if not set(summary_ids).issubset(set(context_ids)):
             raise ValueError("Impact summary news_id must exist in context")
         return self
 

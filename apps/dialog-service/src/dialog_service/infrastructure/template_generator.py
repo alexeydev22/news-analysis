@@ -1,3 +1,4 @@
+from dialog_service.domain.errors import DialogGeneratorUnavailableError
 from dialog_service.domain.model import (
     DialogContextItem,
     DialogGeneration,
@@ -47,7 +48,7 @@ class TemplateDialogGenerator:
             f'По вопросу "{question.value}" найденные новости дают следующий ориентир.',
             "Факторы влияния:",
         ]
-        summaries_by_news_id = {summary.news_id: summary for summary in impact_summaries}
+        summaries_by_news_id = self._summaries_by_news_id(impact_summaries)
         for item in context:
             summary = summaries_by_news_id.get(item.id)
             if summary is None:
@@ -70,3 +71,14 @@ class TemplateDialogGenerator:
             "финансовой рекомендацией.",
         )
         return "\n".join(lines)
+
+    def _summaries_by_news_id(
+        self,
+        impact_summaries: list[DialogImpactItem],
+    ) -> dict[str, DialogImpactItem]:
+        summaries_by_news_id: dict[str, DialogImpactItem] = {}
+        for summary in impact_summaries:
+            if summary.news_id in summaries_by_news_id:
+                raise DialogGeneratorUnavailableError("duplicate impact summaries")
+            summaries_by_news_id[summary.news_id] = summary
+        return summaries_by_news_id
