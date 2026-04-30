@@ -1,6 +1,7 @@
 from typing import Protocol
 
 from economic_news_contracts.analysis import AnalyzeNewsRequest, AnalyzeNewsResponse
+from economic_news_contracts.dialog import GenerateDialogRequest, GenerateDialogResponse
 from economic_news_contracts.retrieval import (
     IndexNewsRequest,
     IndexNewsResponse,
@@ -25,6 +26,11 @@ class RetrievalClient(Protocol):
 
     async def search(self, request: SearchNewsRequest) -> SearchNewsResponse:
         """Search economic news documents through retrieval-service."""
+
+
+class DialogClient(Protocol):
+    async def generate(self, request: GenerateDialogRequest) -> GenerateDialogResponse:
+        """Generate a dialog answer through dialog-service."""
 
 
 class StaticVersionProvider:
