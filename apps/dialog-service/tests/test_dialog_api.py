@@ -6,11 +6,20 @@ from dialog_service.application.ports import DialogGenerator
 from dialog_service.application.use_cases import GenerateDialogAnswer
 from dialog_service.domain.errors import DialogGeneratorUnavailableError
 from dialog_service.domain.model import DialogGeneration
+from dialog_service.main.app import create_app
 from dialog_service.presentation.router import router
 from dishka import Provider, Scope, make_async_container, provide
 from dishka.integrations.fastapi import FastapiProvider, setup_dishka
 from economic_news_framework.apps import create_service_app
 from fastapi.testclient import TestClient
+
+
+def test_dialog_service_health_endpoint_uses_production_app_factory() -> None:
+    with TestClient(create_app()) as client:
+        response = client.get("/health")
+
+    assert response.status_code == 200
+    assert response.json() == {"service": "dialog-service", "status": "ok"}
 
 
 class SuccessfulGenerator:
