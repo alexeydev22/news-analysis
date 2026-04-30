@@ -1,16 +1,23 @@
 from api_gateway.application.errors import (
     AnalysisServiceUnavailableError,
+    DialogServiceUnavailableError,
     RetrievalServiceUnavailableError,
 )
 from api_gateway.application.ports import VersionProvider
 from api_gateway.application.use_cases import (
     AnalyzeNewsUseCase,
+    ChatUseCase,
     IndexNewsUseCase,
     SearchNewsUseCase,
 )
-from api_gateway.presentation.errors import map_analysis_error, map_retrieval_error
+from api_gateway.presentation.errors import (
+    map_analysis_error,
+    map_dialog_error,
+    map_retrieval_error,
+)
 from dishka.integrations.fastapi import FromDishka, inject
 from economic_news_contracts.analysis import AnalyzeNewsRequest, AnalyzeNewsResponse
+from economic_news_contracts.chat import ChatRequest, ChatResponse
 from economic_news_contracts.retrieval import (
     IndexNewsRequest,
     IndexNewsResponse,
@@ -62,3 +69,19 @@ async def search_news(
         return await use_case.execute(request)
     except RetrievalServiceUnavailableError as error:
         raise map_retrieval_error(error) from error
+
+
+@router.post("/chat")
+@inject
+async def chat(
+    request: ChatRequest,
+    use_case: FromDishka[ChatUseCase],
+) -> ChatResponse:
+    try:
+        return await use_case.execute(request)
+    except AnalysisServiceUnavailableError as error:
+        raise map_analysis_error(error) from error
+    except RetrievalServiceUnavailableError as error:
+        raise map_retrieval_error(error) from error
+    except DialogServiceUnavailableError as error:
+        raise map_dialog_error(error) from error

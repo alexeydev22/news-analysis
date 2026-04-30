@@ -28,6 +28,11 @@ class UnavailableClient:
         raise AnalysisServiceUnavailableError("analysis-service is unavailable")
 
 
+class SensitiveUnavailableClient:
+    async def analyze(self, request: AnalyzeNewsRequest) -> AnalyzeNewsResponse:
+        raise AnalysisServiceUnavailableError("connection refused at 10.0.0.11")
+
+
 class AnalysisProvider(Provider):
     def __init__(self, analysis_client: AnalysisClient) -> None:
         super().__init__()
@@ -75,6 +80,14 @@ def test_analyze_endpoint_returns_analysis_response() -> None:
 
 def test_analyze_endpoint_maps_unavailable_error_to_503() -> None:
     with make_client(UnavailableClient()) as client:
+        response = client.post("/api/v1/analyze", json={"text": "Индекс снизился"})
+
+    assert response.status_code == 503
+    assert response.json() == {"detail": "analysis-service is unavailable"}
+
+
+def test_analyze_endpoint_does_not_expose_internal_error_detail() -> None:
+    with make_client(SensitiveUnavailableClient()) as client:
         response = client.post("/api/v1/analyze", json={"text": "Индекс снизился"})
 
     assert response.status_code == 503

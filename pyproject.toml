@@ -32,11 +32,13 @@ members = [
   "packages/contracts",
   "apps/api-gateway",
   "apps/analysis-service",
+  "apps/dialog-service",
   "apps/retrieval-service",
   "research",
 ]
 
 [tool.uv.sources]
+economic-news-dialog-service = { workspace = true }
 economic-news-research = { workspace = true }
 
 [tool.ruff]
@@ -59,6 +61,7 @@ pythonpath = [
   "packages/contracts/src",
   "apps/api-gateway/src",
   "apps/analysis-service/src",
+  "apps/dialog-service/src",
   "apps/retrieval-service/src",
   "research/scripts",
 ]

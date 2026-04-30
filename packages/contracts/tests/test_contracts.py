@@ -1,8 +1,16 @@
+import pytest
 from economic_news_contracts.analysis import (
     AnalysisModelName,
     AnalyzeNewsRequest,
     AnalyzeNewsResponse,
     ImpactLabel,
+)
+from economic_news_contracts.chat import ChatRequest, ChatResponse
+from economic_news_contracts.dialog import (
+    DialogContextNews,
+    DialogImpactSummary,
+    GenerateDialogRequest,
+    GenerateDialogResponse,
 )
 from economic_news_contracts.events import EventEnvelope
 from economic_news_contracts.health import HealthResponse
@@ -187,3 +195,193 @@ def test_search_news_request_limit_bounds_are_enforced() -> None:
             continue
 
         raise AssertionError(f"Expected limit validation error for {limit}")
+
+
+def test_generate_dialog_request_trims_question_and_serializes_context() -> None:
+    request = GenerateDialogRequest(
+        question="  Что значит рост ВВП?  ",
+        context=[
+            DialogContextNews(
+                id="news-1",
+                title="GDP grows",
+                text="GDP grew by 2 percent.",
+                source="demo",
+                score=0.75,
+            ),
+        ],
+        impact_summaries=[
+            DialogImpactSummary(
+                news_id="news-1",
+                model_name=AnalysisModelName.TFIDF_LOGREG,
+                impact=ImpactLabel.POSITIVE,
+                confidence=0.82,
+                explanation="Рост ВВП обычно поддерживает рынок.",
+            ),
+        ],
+    )
+
+    assert request.question == "Что значит рост ВВП?"
+    assert request.language == "ru"
+    assert request.model_dump(mode="json")["context"][0]["published_at"] is None
+
+
+def test_generate_dialog_request_rejects_empty_question() -> None:
+    with pytest.raises(ValueError, match="Question must not be empty"):
+        GenerateDialogRequest(question="   ")
+
+
+def test_generate_dialog_request_rejects_language_short_after_trim() -> None:
+    with pytest.raises(ValueError, match="Language must be at least 2 characters"):
+        GenerateDialogRequest(question="Что с рынком?", language=" r ")
+
+
+def test_generate_dialog_response_requires_answer_and_used_context() -> None:
+    response = GenerateDialogResponse(
+        answer="Рост ВВП выглядит позитивным фактором.",
+        used_context_ids=["news-1"],
+        model_name="template-dialog-generator",
+        metadata={"context_count": 1},
+    )
+
+    assert response.answer == "Рост ВВП выглядит позитивным фактором."
+    assert response.used_context_ids == ["news-1"]
+
+
+def test_generate_dialog_response_trims_and_rejects_empty_used_context_ids() -> None:
+    response = GenerateDialogResponse(
+        answer="Рост ВВП выглядит позитивным фактором.",
+        used_context_ids=[" news-1 "],
+        model_name="template-dialog-generator",
+    )
+
+    assert response.used_context_ids == ["news-1"]
+
+    with pytest.raises(ValueError, match="Used context id must not be empty"):
+        GenerateDialogResponse(
+            answer="Рост ВВП выглядит позитивным фактором.",
+            used_context_ids=["news-1", "   "],
+            model_name="template-dialog-generator",
+        )
+
+
+def test_generate_dialog_request_rejects_orphan_impact_summary() -> None:
+    with pytest.raises(ValueError, match="Impact summary news_id must exist in context"):
+        GenerateDialogRequest(
+            question="Что значит рост ВВП?",
+            context=[
+                DialogContextNews(
+                    id="news-1",
+                    title="GDP grows",
+                    text="GDP grew by 2 percent.",
+                    source="demo",
+                    score=0.75,
+                ),
+            ],
+            impact_summaries=[
+                DialogImpactSummary(
+                    news_id="news-2",
+                    model_name=AnalysisModelName.TFIDF_LOGREG,
+                    impact=ImpactLabel.POSITIVE,
+                    confidence=0.82,
+                    explanation="Позитивное влияние.",
+                ),
+            ],
+        )
+
+
+def test_generate_dialog_request_rejects_duplicate_impact_summaries() -> None:
+    with pytest.raises(ValueError, match="Impact summaries must be unique by news_id"):
+        GenerateDialogRequest(
+            question="Что значит рост ВВП?",
+            context=[
+                DialogContextNews(
+                    id="news-1",
+                    title="GDP grows",
+                    text="GDP grew by 2 percent.",
+                    source="demo",
+                    score=0.75,
+                ),
+            ],
+            impact_summaries=[
+                DialogImpactSummary(
+                    news_id="news-1",
+                    model_name=AnalysisModelName.TFIDF_LOGREG,
+                    impact=ImpactLabel.POSITIVE,
+                    confidence=0.82,
+                    explanation="Позитивное влияние.",
+                ),
+                DialogImpactSummary(
+                    news_id="news-1",
+                    model_name=AnalysisModelName.EMBEDDING_LOGREG,
+                    impact=ImpactLabel.NEUTRAL,
+                    confidence=0.64,
+                    explanation="Нейтральное влияние.",
+                ),
+            ],
+        )
+
+
+def test_generate_dialog_request_rejects_duplicate_context_ids() -> None:
+    with pytest.raises(ValueError, match="Context items must be unique by id"):
+        GenerateDialogRequest(
+            question="Что значит рост ВВП?",
+            context=[
+                DialogContextNews(
+                    id="news-1",
+                    title="GDP grows",
+                    text="GDP grew by 2 percent.",
+                    source="demo",
+                    score=0.75,
+                ),
+                DialogContextNews(
+                    id="news-1",
+                    title="GDP keeps growing",
+                    text="GDP kept growing.",
+                    source="demo",
+                    score=0.7,
+                ),
+            ],
+        )
+
+
+def test_chat_request_trims_question_and_defaults_model() -> None:
+    request = ChatRequest(question="  Что с инфляцией?  ")
+
+    assert request.question == "Что с инфляцией?"
+    assert request.analysis_model == AnalysisModelName.TFIDF_LOGREG
+    assert request.limit == 5
+    assert request.source is None
+
+
+def test_chat_request_limit_bounds_are_enforced() -> None:
+    with pytest.raises(ValueError):
+        ChatRequest(question="Что с рынком?", limit=0)
+    with pytest.raises(ValueError):
+        ChatRequest(question="Что с рынком?", limit=21)
+
+
+def test_chat_response_serializes_sources_and_summaries() -> None:
+    source = DialogContextNews(
+        id="news-1",
+        title="GDP grows",
+        text="GDP grew by 2 percent.",
+        source="demo",
+        score=0.75,
+    )
+    summary = DialogImpactSummary(
+        news_id="news-1",
+        model_name=AnalysisModelName.TFIDF_LOGREG,
+        impact=ImpactLabel.POSITIVE,
+        confidence=0.82,
+        explanation="Позитивное влияние.",
+    )
+    response = ChatResponse(
+        answer="Новость выглядит позитивной.",
+        sources=[source],
+        impact_summaries=[summary],
+        analysis_model=AnalysisModelName.TFIDF_LOGREG,
+        metadata={"used_context_count": 1},
+    )
+
+    assert response.model_dump(mode="json")["sources"][0]["id"] == "news-1"
+    assert response.model_dump(mode="json")["impact_summaries"][0]["impact"] == "positive"

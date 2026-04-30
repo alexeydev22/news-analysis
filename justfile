@@ -23,3 +23,6 @@ api-dev:
 
 analysis-dev:
     ANALYSIS_USE_STATIC_CLASSIFIER=true uv run --package economic-news-analysis-service granian analysis_service.main.app:app --interface asgi --host 0.0.0.0 --port 8001
+
+dialog:
+    uv run --package economic-news-dialog-service granian dialog_service.main.app:app --interface asgi --host 0.0.0.0 --port 8003

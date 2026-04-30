@@ -17,3 +17,5 @@ class ApiGatewaySettings(BaseServiceSettings):
     analysis_service_timeout_seconds: float = 3.0
     retrieval_service_url: AnyHttpUrl = AnyHttpUrl("http://retrieval-service:8000")
     retrieval_service_timeout_seconds: float = 3.0
+    dialog_service_url: AnyHttpUrl = AnyHttpUrl("http://dialog-service:8000")
+    dialog_service_timeout_seconds: float = 5.0
