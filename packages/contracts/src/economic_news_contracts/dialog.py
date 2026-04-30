@@ -61,7 +61,10 @@ class GenerateDialogRequest(BaseModel):
     @field_validator("language")
     @classmethod
     def normalize_language(cls, value: str) -> str:
-        return _normalize_required_text(value, "Language must not be empty")
+        normalized = _normalize_required_text(value, "Language must not be empty")
+        if len(normalized) < 2:
+            raise ValueError("Language must be at least 2 characters")
+        return normalized
 
 
 class GenerateDialogResponse(BaseModel):
@@ -76,3 +79,11 @@ class GenerateDialogResponse(BaseModel):
     @classmethod
     def normalize_required_fields(cls, value: str) -> str:
         return _normalize_required_text(value, "Value must not be empty")
+
+    @field_validator("used_context_ids")
+    @classmethod
+    def normalize_used_context_ids(cls, values: list[str]) -> list[str]:
+        return [
+            _normalize_required_text(value, "Used context id must not be empty")
+            for value in values
+        ]

@@ -230,6 +230,11 @@ def test_generate_dialog_request_rejects_empty_question() -> None:
         GenerateDialogRequest(question="   ")
 
 
+def test_generate_dialog_request_rejects_language_short_after_trim() -> None:
+    with pytest.raises(ValueError, match="Language must be at least 2 characters"):
+        GenerateDialogRequest(question="Что с рынком?", language=" r ")
+
+
 def test_generate_dialog_response_requires_answer_and_used_context() -> None:
     response = GenerateDialogResponse(
         answer="Рост ВВП выглядит позитивным фактором.",
@@ -240,6 +245,23 @@ def test_generate_dialog_response_requires_answer_and_used_context() -> None:
 
     assert response.answer == "Рост ВВП выглядит позитивным фактором."
     assert response.used_context_ids == ["news-1"]
+
+
+def test_generate_dialog_response_trims_and_rejects_empty_used_context_ids() -> None:
+    response = GenerateDialogResponse(
+        answer="Рост ВВП выглядит позитивным фактором.",
+        used_context_ids=[" news-1 "],
+        model_name="template-dialog-generator",
+    )
+
+    assert response.used_context_ids == ["news-1"]
+
+    with pytest.raises(ValueError, match="Used context id must not be empty"):
+        GenerateDialogResponse(
+            answer="Рост ВВП выглядит позитивным фактором.",
+            used_context_ids=["news-1", "   "],
+            model_name="template-dialog-generator",
+        )
 
 
 def test_chat_request_trims_question_and_defaults_model() -> None:
