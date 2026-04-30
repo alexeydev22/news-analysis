@@ -1,6 +1,7 @@
 import pytest
 from api_gateway.application.use_cases import (
     AnalyzeNewsUseCase,
+    ChatUseCase,
     IndexNewsUseCase,
     SearchNewsUseCase,
 )
@@ -35,6 +36,18 @@ async def test_container_resolves_retrieval_use_cases() -> None:
     assert isinstance(search_use_case, SearchNewsUseCase)
 
 
+@pytest.mark.asyncio
+async def test_container_resolves_chat_use_case() -> None:
+    container: AsyncContainer = create_container()
+
+    try:
+        use_case = await container.get(ChatUseCase)
+    finally:
+        await container.close()
+
+    assert isinstance(use_case, ChatUseCase)
+
+
 def test_api_gateway_settings_include_analysis_service_defaults() -> None:
     settings = ApiGatewaySettings()
 
@@ -47,6 +60,13 @@ def test_api_gateway_settings_include_retrieval_service_defaults() -> None:
 
     assert str(settings.retrieval_service_url) == "http://retrieval-service:8000/"
     assert settings.retrieval_service_timeout_seconds == 3.0
+
+
+def test_api_gateway_settings_include_dialog_service_defaults() -> None:
+    settings = ApiGatewaySettings()
+
+    assert str(settings.dialog_service_url) == "http://dialog-service:8000/"
+    assert settings.dialog_service_timeout_seconds == 5.0
 
 
 def test_api_gateway_settings_read_prefixed_analysis_service_env(
@@ -71,3 +91,15 @@ def test_api_gateway_settings_read_prefixed_retrieval_service_env(
 
     assert str(settings.retrieval_service_url) == "http://localhost:9100/"
     assert settings.retrieval_service_timeout_seconds == 5.5
+
+
+def test_api_gateway_settings_read_prefixed_dialog_service_env(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("API_GATEWAY_DIALOG_SERVICE_URL", "http://localhost:9200")
+    monkeypatch.setenv("API_GATEWAY_DIALOG_SERVICE_TIMEOUT_SECONDS", "6.5")
+
+    settings = ApiGatewaySettings()
+
+    assert str(settings.dialog_service_url) == "http://localhost:9200/"
+    assert settings.dialog_service_timeout_seconds == 6.5

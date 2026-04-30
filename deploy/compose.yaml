@@ -8,6 +8,7 @@ services:
     environment:
       API_GATEWAY_ANALYSIS_SERVICE_URL: "http://analysis-service:8000"
       API_GATEWAY_RETRIEVAL_SERVICE_URL: "http://retrieval-service:8000"
+      API_GATEWAY_DIALOG_SERVICE_URL: "http://dialog-service:8000"
     ports:
       - "8000:8000"
     depends_on:
@@ -16,6 +17,7 @@ services:
       - qdrant
       - analysis-service
       - retrieval-service
+      - dialog-service
 
   analysis-service:
     build:
@@ -40,6 +42,15 @@ services:
       - "8002:8000"
     depends_on:
       - qdrant
+
+  dialog-service:
+    build:
+      context: ..
+      dockerfile: deploy/docker/dialog-service.Dockerfile
+    env_file:
+      - ../.env.example
+    ports:
+      - "8003:8000"
 
   postgres:
     image: postgres:17-alpine
