@@ -7,6 +7,7 @@ from api_gateway.application.ports import (
 )
 from api_gateway.application.use_cases import (
     AnalyzeNewsUseCase,
+    ChatStreamUseCase,
     ChatUseCase,
     IndexNewsUseCase,
     SearchNewsUseCase,
@@ -69,6 +70,19 @@ class ApiGatewayProvider(Provider):
         dialog_client: DialogClient,
     ) -> ChatUseCase:
         return ChatUseCase(
+            retrieval_client=retrieval_client,
+            analysis_client=analysis_client,
+            dialog_client=dialog_client,
+        )
+
+    @provide(scope=Scope.APP)
+    def chat_stream_use_case(
+        self,
+        retrieval_client: RetrievalClient,
+        analysis_client: AnalysisClient,
+        dialog_client: DialogClient,
+    ) -> ChatStreamUseCase:
+        return ChatStreamUseCase(
             retrieval_client=retrieval_client,
             analysis_client=analysis_client,
             dialog_client=dialog_client,
