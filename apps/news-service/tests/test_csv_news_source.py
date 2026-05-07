@@ -83,6 +83,41 @@ async def test_csv_news_source_rejects_empty_required_row_value(tmp_path: Path) 
 
 
 @pytest.mark.asyncio
+async def test_csv_news_source_rejects_rows_with_extra_cells(tmp_path: Path) -> None:
+    csv_path = write_csv(
+        tmp_path / "news.csv",
+        "title,text,source\nGDP grows,GDP grew,demo,unexpected\n",
+    )
+    source = CsvNewsSource(csv_path)
+
+    with pytest.raises(NewsSourceValidationError, match="Invalid CSV row 2"):
+        await source.load()
+
+
+@pytest.mark.asyncio
+async def test_csv_news_source_preserves_internal_row_number(tmp_path: Path) -> None:
+    csv_path = write_csv(
+        tmp_path / "news.csv",
+        "title,text,source,row_number\nGDP grows,GDP grew,demo,external\n",
+    )
+    source = CsvNewsSource(csv_path)
+
+    documents = await source.load()
+
+    assert documents[0].metadata["row_number"] == 2
+
+
+@pytest.mark.asyncio
+async def test_csv_news_source_maps_decode_errors_to_validation_error(tmp_path: Path) -> None:
+    csv_path = tmp_path / "news.csv"
+    csv_path.write_bytes(b"title,text,source\n\xff,GDP grew,demo\n")
+    source = CsvNewsSource(csv_path)
+
+    with pytest.raises(NewsSourceValidationError, match="Invalid CSV data"):
+        await source.load()
+
+
+@pytest.mark.asyncio
 async def test_csv_news_source_maps_missing_file_to_unavailable_error(tmp_path: Path) -> None:
     source = CsvNewsSource(tmp_path / "missing.csv")
 
