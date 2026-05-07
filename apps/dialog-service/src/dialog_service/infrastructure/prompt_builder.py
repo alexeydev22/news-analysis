@@ -62,9 +62,9 @@ class DialogPromptBuilder:
             for item in context:
                 lines.extend(
                     [
-                        f"- id: {item.id}",
-                        f"  title: {item.title}",
-                        f"  source: {item.source}",
+                        f"- id: {self._escape_untrusted_text(item.id)}",
+                        f"  title: {self._escape_untrusted_text(item.title)}",
+                        f"  source: {self._escape_untrusted_text(item.source)}",
                         f"  score: {item.score:.2f}",
                         "  text: <NEWS_TEXT_DATA>",
                         self._escape_untrusted_text(item.text),
@@ -90,9 +90,9 @@ class DialogPromptBuilder:
                 )
                 lines.extend(
                     [
-                        f"- news_id: {summary.news_id}",
-                        f"  model_name: {summary.model_name}",
-                        f"  impact: {summary.impact}",
+                        f"- news_id: {self._escape_untrusted_text(summary.news_id)}",
+                        f"  model_name: {self._escape_untrusted_text(summary.model_name)}",
+                        f"  impact: {self._escape_untrusted_text(summary.impact)}",
                         f"  confidence: {confidence}",
                         "  explanation: <SUMMARY_EXPLANATION_DATA>",
                         self._escape_untrusted_text(summary.explanation),
