@@ -7,8 +7,25 @@ from api_gateway.application.errors import (
 )
 from api_gateway.application.use_cases import ChatStreamEvent
 
+ALLOWED_SSE_EVENT_NAMES = frozenset(
+    {
+        "chat_started",
+        "search_started",
+        "sources_found",
+        "analysis_started",
+        "analysis_completed",
+        "answer_started",
+        "answer_completed",
+        "done",
+        "error",
+    },
+)
+
 
 def format_sse_event(event: ChatStreamEvent) -> str:
+    if event.event not in ALLOWED_SSE_EVENT_NAMES:
+        raise ValueError("Invalid SSE event name")
+
     data = json.dumps(event.data, ensure_ascii=False, separators=(",", ":"))
     return f"event: {event.event}\ndata: {data}\n\n"
 

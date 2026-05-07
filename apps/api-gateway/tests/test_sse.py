@@ -1,5 +1,6 @@
 import json
 
+import pytest
 from api_gateway.application.errors import (
     AnalysisServiceUnavailableError,
     DialogServiceUnavailableError,
@@ -32,6 +33,11 @@ def test_format_sse_event_keeps_unicode_readable() -> None:
     )
 
     assert "Рост ВВП" in payload
+
+
+def test_format_sse_event_rejects_event_name_injection() -> None:
+    with pytest.raises(ValueError, match="^Invalid SSE event name$"):
+        format_sse_event(ChatStreamEvent(event="done\nevent: injected", data={}))
 
 
 def test_stream_error_event_maps_retrieval_error() -> None:
