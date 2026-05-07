@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+from typing import cast
 
 import pytest
 from api_gateway.application.errors import (
@@ -261,18 +262,20 @@ async def test_chat_stream_source_preview_is_json_stable_snapshot() -> None:
 
     sources_found = next(data for event, data in events if event == "sources_found")
     answer_completed = next(data for event, data in events if event == "answer_completed")
-    source_preview = sources_found["sources"][0]
+    source_previews = cast(list[dict[str, object]], sources_found["sources"])
+    source_preview = source_previews[0]
 
     assert isinstance(source_preview, dict)
     assert source_preview["published_at"] == "2026-05-07T09:30:00Z"
 
-    metadata = source_preview["metadata"]
+    metadata = cast(dict[str, object], source_preview["metadata"])
     assert isinstance(metadata, dict)
     metadata["sector"] = "mutated"
 
     assert dialog_client.request is not None
     assert dialog_client.request.context[0].metadata == {"sector": "macro"}
-    assert answer_completed["sources"][0]["metadata"] == {"sector": "macro"}
+    answer_sources = cast(list[dict[str, object]], answer_completed["sources"])
+    assert answer_sources[0]["metadata"] == {"sector": "macro"}
 
 
 @pytest.mark.asyncio
