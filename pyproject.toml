@@ -34,11 +34,13 @@ members = [
   "apps/analysis-service",
   "apps/dialog-service",
   "apps/retrieval-service",
+  "apps/news-service",
   "research",
 ]
 
 [tool.uv.sources]
 economic-news-dialog-service = { workspace = true }
+economic-news-news-service = { workspace = true }
 economic-news-research = { workspace = true }
 
 [tool.ruff]
@@ -63,6 +65,7 @@ pythonpath = [
   "apps/analysis-service/src",
   "apps/dialog-service/src",
   "apps/retrieval-service/src",
+  "apps/news-service/src",
   "research/scripts",
 ]
 asyncio_mode = "auto"

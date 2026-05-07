@@ -15,6 +15,7 @@ members = [
     "economic-news-dialog-service",
     "economic-news-dialog-system",
     "economic-news-framework",
+    "economic-news-news-service",
     "economic-news-research",
     "economic-news-retrieval-service",
 ]
@@ -815,6 +816,44 @@ requires-dist = [
     { name = "pydantic-settings", specifier = ">=2.6" },
     { name = "structlog", specifier = ">=24.4" },
 ]
+
+[[package]]
+name = "economic-news-news-service"
+version = "0.1.0"
+source = { editable = "apps/news-service" }
+dependencies = [
+    { name = "dishka" },
+    { name = "economic-news-contracts" },
+    { name = "economic-news-framework" },
+    { name = "fastapi" },
+    { name = "granian" },
+    { name = "pydantic-settings" },
+    { name = "structlog" },
+    { name = "zapros" },
+]
+
+[package.optional-dependencies]
+test = [
+    { name = "httpx" },
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "dishka", specifier = ">=1.4" },
+    { name = "economic-news-contracts", editable = "packages/contracts" },
+    { name = "economic-news-framework", editable = "packages/framework" },
+    { name = "fastapi", specifier = ">=0.115" },
+    { name = "granian", specifier = ">=1.7" },
+    { name = "httpx", marker = "extra == 'test'", specifier = ">=0.28" },
+    { name = "pydantic-settings", specifier = ">=2.6" },
+    { name = "pytest", marker = "extra == 'test'", specifier = ">=8.3" },
+    { name = "pytest-asyncio", marker = "extra == 'test'", specifier = ">=0.24" },
+    { name = "structlog", specifier = ">=24.4" },
+    { name = "zapros", specifier = ">=0.10" },
+]
+provides-extras = ["test"]
 
 [[package]]
 name = "economic-news-research"
