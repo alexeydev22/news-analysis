@@ -1,4 +1,5 @@
 import sys
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -6,6 +7,7 @@ import pytest
 sys.path.append(str(Path(__file__).resolve().parents[1] / "src"))
 
 from news_service.domain.errors import NewsSourceUnavailableError, NewsSourceValidationError
+from news_service.domain.model import stable_news_id
 from news_service.infrastructure.csv_news_source import CsvNewsSource
 
 
@@ -30,7 +32,7 @@ async def test_csv_news_source_reads_alias_columns_and_metadata(tmp_path: Path) 
     assert documents[0].title == "GDP grows"
     assert documents[0].text == "GDP grew by 2 percent"
     assert documents[0].source == "demo"
-    assert documents[0].published_at is not None
+    assert documents[0].published_at == datetime(2026, 5, 7, 9, 30, tzinfo=UTC)
     assert documents[0].metadata == {"row_number": 2, "impact": "positive"}
 
 
@@ -46,7 +48,7 @@ async def test_csv_news_source_generates_stable_id_when_id_is_missing(tmp_path: 
     second = await source.load()
 
     assert first[0].id == second[0].id
-    assert first[0].id.startswith("news-")
+    assert first[0].id == stable_news_id(source="demo", title="GDP grows", text="GDP grew")
 
 
 @pytest.mark.asyncio
@@ -83,6 +85,30 @@ async def test_csv_news_source_rejects_empty_required_row_value(tmp_path: Path) 
 @pytest.mark.asyncio
 async def test_csv_news_source_maps_missing_file_to_unavailable_error(tmp_path: Path) -> None:
     source = CsvNewsSource(tmp_path / "missing.csv")
+
+    with pytest.raises(NewsSourceUnavailableError, match="news source is unavailable"):
+        await source.load()
+
+
+@pytest.mark.asyncio
+async def test_csv_news_source_maps_os_error_to_unavailable_error(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    csv_path = write_csv(tmp_path / "news.csv", "title,text,source\nGDP grows,GDP grew,demo\n")
+    source = CsvNewsSource(csv_path)
+
+    def raise_os_error(
+        self: Path,
+        mode: str = "r",
+        buffering: int = -1,
+        encoding: str | None = None,
+        errors: str | None = None,
+        newline: str | None = None,
+    ) -> None:
+        raise OSError("permission denied")
+
+    monkeypatch.setattr(Path, "open", raise_os_error)
 
     with pytest.raises(NewsSourceUnavailableError, match="news source is unavailable"):
         await source.load()
