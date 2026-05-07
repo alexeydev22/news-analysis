@@ -100,6 +100,7 @@ def test_dialog_settings_reject_non_positive_llm_max_tokens(
 
 
 def test_dialog_settings_read_prefixed_llm_env(
+    isolate_dialog_settings: None,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setenv("DIALOG_GENERATOR_KIND", "llm")
