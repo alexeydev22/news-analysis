@@ -84,3 +84,8 @@ export DIALOG_LLM_MODEL=Qwen3-0.6B-Instruct-GGUF
 
 В Docker Compose `dialog-service` смотрит на host runtime через
 `http://host.docker.internal:8080`; сам контейнер с моделью в compose не запускается.
+Режим генерации в compose по умолчанию остается `template`. Чтобы включить LLM:
+
+```bash
+DIALOG_GENERATOR_KIND=llm docker compose -f deploy/compose.yaml up dialog-service api-gateway
+```

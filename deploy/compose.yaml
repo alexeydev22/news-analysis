@@ -50,9 +50,11 @@ services:
     env_file:
       - ../.env.example
     environment:
-      DIALOG_GENERATOR_KIND: "template"
-      DIALOG_LLM_BASE_URL: "http://host.docker.internal:8080"
-      DIALOG_LLM_MODEL: "Qwen3-0.6B-Instruct-GGUF"
+      DIALOG_GENERATOR_KIND: "${DIALOG_GENERATOR_KIND:-template}"
+      DIALOG_LLM_BASE_URL: "${DIALOG_LLM_BASE_URL:-http://host.docker.internal:8080}"
+      DIALOG_LLM_MODEL: "${DIALOG_LLM_MODEL:-Qwen3-0.6B-Instruct-GGUF}"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - "8003:8000"
 
