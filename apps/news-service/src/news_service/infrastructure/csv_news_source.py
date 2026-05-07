@@ -51,7 +51,7 @@ class CsvNewsSource:
             return []
 
         with self._path.open(encoding="utf-8", newline="") as csv_file:
-            reader = csv.DictReader(csv_file)
+            reader = csv.DictReader(csv_file, strict=True)
             columns = self._resolve_columns(reader.fieldnames or [])
 
             documents: list[NewsDocument] = []
