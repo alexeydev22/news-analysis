@@ -64,6 +64,22 @@ curl -X POST http://localhost:8001/api/v1/analyze \
   -d '{"text":"GDP growth beat expectations","analysis_model":"tfidf-logreg"}'
 ```
 
+## Chat SSE endpoint
+
+`api-gateway` exposes pipeline-progress streaming for the chat flow:
+
+```bash
+curl -N -X POST http://localhost:8000/api/v1/chat/stream \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: text/event-stream' \
+  -d '{"question":"Что значит рост ВВП?","analysis_model":"tfidf-logreg","limit":5}'
+```
+
+The stream emits stage events: `chat_started`, `search_started`, `sources_found`,
+`analysis_started`, `analysis_completed`, `answer_started`, `answer_completed`,
+and `done`. If a downstream service fails after streaming starts, the response emits
+one sanitized `error` event and closes the stream.
+
 ## Локальный LLM сервер для Dialog Service
 
 `dialog-service` по умолчанию запускается в режиме `template`, чтобы стек работал без
