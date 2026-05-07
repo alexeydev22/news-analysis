@@ -63,14 +63,7 @@ def _context_from_search_result(result: SearchNewsResult) -> DialogContextNews:
 
 
 def _source_preview(source: DialogContextNews) -> dict[str, Any]:
-    return {
-        "id": source.id,
-        "title": source.title,
-        "source": source.source,
-        "score": source.score,
-        "published_at": source.published_at,
-        "metadata": source.metadata,
-    }
+    return source.model_dump(mode="json", exclude={"text"})
 
 
 def _chat_response(

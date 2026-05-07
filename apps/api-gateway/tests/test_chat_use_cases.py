@@ -1,3 +1,5 @@
+from datetime import UTC, datetime
+
 import pytest
 from api_gateway.application.errors import (
     AnalysisServiceUnavailableError,
@@ -39,6 +41,7 @@ class FakeRetrievalClient:
                     title="GDP grows",
                     text="GDP grew by 2 percent.",
                     source="demo",
+                    published_at=datetime(2026, 5, 7, 9, 30, tzinfo=UTC),
                     metadata={"sector": "macro"},
                 ),
                 SearchNewsResult(
@@ -215,7 +218,7 @@ async def test_chat_stream_use_case_yields_pipeline_events() -> None:
                 "title": "GDP grows",
                 "source": "demo",
                 "score": 0.75,
-                "published_at": None,
+                "published_at": "2026-05-07T09:30:00Z",
                 "metadata": {"sector": "macro"},
             },
             {
@@ -240,6 +243,65 @@ async def test_chat_stream_use_case_yields_pipeline_events() -> None:
     assert events[6][1]["answer"] == "Рост ВВП выглядит позитивным фактором."
     assert events[6][1]["analysis_model"] == "embedding-logreg"
     assert events[7][1] == {"status": "ok"}
+
+
+@pytest.mark.asyncio
+async def test_chat_stream_source_preview_is_json_stable_snapshot() -> None:
+    dialog_client = FakeDialogClient()
+    use_case = ChatStreamUseCase(
+        retrieval_client=FakeRetrievalClient(),
+        analysis_client=FakeAnalysisClient(),
+        dialog_client=dialog_client,
+    )
+
+    events = await collect_stream_events(
+        use_case,
+        ChatRequest(question="Что значит рост ВВП?"),
+    )
+
+    sources_found = next(data for event, data in events if event == "sources_found")
+    answer_completed = next(data for event, data in events if event == "answer_completed")
+    source_preview = sources_found["sources"][0]
+
+    assert isinstance(source_preview, dict)
+    assert source_preview["published_at"] == "2026-05-07T09:30:00Z"
+
+    metadata = source_preview["metadata"]
+    assert isinstance(metadata, dict)
+    metadata["sector"] = "mutated"
+
+    assert dialog_client.request is not None
+    assert dialog_client.request.context[0].metadata == {"sector": "macro"}
+    assert answer_completed["sources"][0]["metadata"] == {"sector": "macro"}
+
+
+@pytest.mark.asyncio
+async def test_chat_stream_answer_completed_matches_chat_use_case_response() -> None:
+    request = ChatRequest(
+        question="Что значит рост ВВП?",
+        analysis_model=AnalysisModelName.EMBEDDING_LOGREG,
+        limit=2,
+        source="demo",
+    )
+    stream_events = await collect_stream_events(
+        ChatStreamUseCase(
+            retrieval_client=FakeRetrievalClient(),
+            analysis_client=FakeAnalysisClient(),
+            dialog_client=FakeDialogClient(),
+        ),
+        request,
+    )
+    response = await ChatUseCase(
+        retrieval_client=FakeRetrievalClient(),
+        analysis_client=FakeAnalysisClient(),
+        dialog_client=FakeDialogClient(),
+    ).execute(request)
+
+    answer_completed = next(
+        data for event, data in stream_events if event == "answer_completed"
+    )
+
+    assert answer_completed == response.model_dump(mode="json")
 
 
 @pytest.mark.asyncio
