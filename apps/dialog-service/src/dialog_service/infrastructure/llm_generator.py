@@ -19,6 +19,8 @@ class _ZaprosResponse(Protocol):
     status: int
     json: object
 
+    async def aread(self) -> bytes: ...
+
 
 def _make_zapros_client(timeout_seconds: float) -> Any:
     return AsyncClient(
@@ -60,6 +62,7 @@ class LlmDialogGenerator:
             raise DialogGeneratorUnavailableError(_UNAVAILABLE_MESSAGE)
 
         try:
+            await response.aread()
             content = self._parse_content(response.json)
         except DialogGeneratorUnavailableError:
             raise

@@ -7,13 +7,34 @@ from dialog_service.infrastructure.llm_generator import LlmDialogGenerator
 
 
 class FakeResponse:
-    def __init__(self, status: int, json: object) -> None:
+    def __init__(
+        self,
+        status: int,
+        json: object,
+        *,
+        require_read_before_json: bool = False,
+    ) -> None:
         self.status = status
-        self.json = json
+        self._json = json
+        self._require_read_before_json = require_read_before_json
+        self.read_count = 0
+
+    async def aread(self) -> bytes:
+        self.read_count += 1
+        return b""
+
+    @property
+    def json(self) -> object:
+        if self._require_read_before_json and self.read_count == 0:
+            raise RuntimeError("response body was not read")
+        return self._json
 
 
 class MalformedJsonResponse:
     status = 200
+
+    async def aread(self) -> bytes:
+        return b""
 
     @property
     def json(self) -> object:
@@ -181,6 +202,33 @@ async def test_llm_generator_passes_timeout_to_real_client_factory() -> None:
 
     assert factory.timeout_seconds == 4.5
     assert factory.context.client.calls
+
+
+@pytest.mark.asyncio
+async def test_llm_generator_reads_response_body_before_json() -> None:
+    response = FakeResponse(
+        200,
+        llm_payload("Ответ."),
+        require_read_before_json=True,
+    )
+    generator = LlmDialogGenerator(
+        base_url="http://llm.local:8080",
+        model_name="qwen3-0.6b",
+        timeout_seconds=4.5,
+        temperature=0.1,
+        max_tokens=384,
+        client=FakeZaprosClient(response),
+    )
+
+    generation = await generator.generate(
+        question=DialogQuestion("Что значит рост ВВП?"),
+        context=dialog_context(),
+        impact_summaries=[],
+        language="ru",
+    )
+
+    assert generation.answer == "Ответ."
+    assert response.read_count == 1
 
 
 @pytest.mark.asyncio
