@@ -15,6 +15,7 @@ sys.path.append(str(Path(__file__).resolve().parents[1] / "src"))
 from news_service.application.use_cases import IndexNewsDataset, PreviewNews
 from news_service.domain.errors import NewsSourceUnavailableError, NewsSourceValidationError
 from news_service.domain.model import NewsDocument
+from news_service.main.settings import NewsServiceSettings
 from news_service.presentation.errors import register_error_handlers
 from news_service.presentation.router import router
 
@@ -59,10 +60,16 @@ class StubIndexNewsDataset(IndexNewsDataset):
 
 
 class NewsProvider(Provider):
-    def __init__(self, preview: PreviewNews, index: IndexNewsDataset) -> None:
+    def __init__(
+        self,
+        preview: PreviewNews,
+        index: IndexNewsDataset,
+        settings: NewsServiceSettings,
+    ) -> None:
         super().__init__()
         self._preview = preview
         self._index = index
+        self._settings = settings
 
     @provide(scope=Scope.APP)
     def preview_news(self) -> PreviewNews:
@@ -72,11 +79,22 @@ class NewsProvider(Provider):
     def index_news_dataset(self) -> IndexNewsDataset:
         return self._index
 
+    @provide(scope=Scope.APP)
+    def settings(self) -> NewsServiceSettings:
+        return self._settings
 
-def make_client(preview: PreviewNews, index: IndexNewsDataset) -> TestClient:
+
+def make_client(
+    preview: PreviewNews,
+    index: IndexNewsDataset,
+    settings: NewsServiceSettings | None = None,
+) -> TestClient:
     app = create_service_app(service_name="news-service", routers=(router,), log_level="INFO")
     register_error_handlers(app)
-    container = make_async_container(NewsProvider(preview, index), FastapiProvider())
+    container = make_async_container(
+        NewsProvider(preview, index, settings or NewsServiceSettings()),
+        FastapiProvider(),
+    )
     setup_dishka(container=container, app=app)
 
     @asynccontextmanager
@@ -124,6 +142,20 @@ def test_index_endpoint_indexes_dataset() -> None:
         "indexed_count": 1,
         "collection_name": "economic_news",
     }
+
+
+def test_index_endpoint_uses_configured_default_limit_when_omitted() -> None:
+    index = StubIndexNewsDataset()
+
+    with make_client(
+        StubPreviewNews(),
+        index,
+        NewsServiceSettings(default_index_limit=25),
+    ) as client:
+        response = client.post("/api/v1/news/index", json={})
+
+    assert response.status_code == 200
+    assert index.limit == 25
 
 
 @pytest.mark.parametrize(

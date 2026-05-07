@@ -8,6 +8,7 @@ from economic_news_contracts.news import (
 from fastapi import APIRouter, Query
 
 from news_service.application.use_cases import IndexNewsDataset, PreviewNews
+from news_service.main.settings import NewsServiceSettings
 
 router = APIRouter(prefix="/api/v1/news")
 
@@ -40,5 +41,7 @@ async def preview_news(
 async def index_news(
     request: IndexNewsDatasetRequest,
     use_case: FromDishka[IndexNewsDataset],
+    settings: FromDishka[NewsServiceSettings],
 ) -> IndexNewsDatasetResponse:
-    return await use_case.execute(limit=request.limit)
+    limit = request.limit if "limit" in request.model_fields_set else settings.default_index_limit
+    return await use_case.execute(limit=limit)
