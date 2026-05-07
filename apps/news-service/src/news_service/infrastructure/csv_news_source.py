@@ -1,5 +1,5 @@
 import csv
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -51,6 +51,8 @@ class CsvNewsSource:
             return []
 
         with self._path.open(encoding="utf-8", newline="") as csv_file:
+            self._validate_quote_shape(csv_file)
+            csv_file.seek(0)
             reader = csv.DictReader(csv_file, strict=True)
             columns = self._resolve_columns(reader.fieldnames or [])
 
@@ -61,6 +63,53 @@ class CsvNewsSource:
                     break
 
             return documents
+
+    def _validate_quote_shape(self, lines: Iterable[str]) -> None:
+        for line in lines:
+            in_quotes = False
+            at_field_start = True
+            after_closing_quote = False
+            index = 0
+
+            while index < len(line):
+                char = line[index]
+                if char == '"':
+                    if in_quotes:
+                        next_index = index + 1
+                        if next_index < len(line) and line[next_index] == '"':
+                            index += 2
+                            continue
+                        in_quotes = False
+                        after_closing_quote = True
+                        index += 1
+                        continue
+                    if at_field_start:
+                        in_quotes = True
+                        at_field_start = False
+                        index += 1
+                        continue
+                    raise csv.Error("Stray quote in unquoted field")
+
+                if in_quotes:
+                    index += 1
+                    continue
+
+                if after_closing_quote:
+                    if char in {",", "\r", "\n"}:
+                        after_closing_quote = False
+                        at_field_start = char == ","
+                        index += 1
+                        continue
+                    raise csv.Error("Unexpected character after closing quote")
+
+                if char == ",":
+                    at_field_start = True
+                elif char not in {"\r", "\n"}:
+                    at_field_start = False
+                index += 1
+
+            if in_quotes:
+                raise csv.Error("Unclosed quoted field")
 
     def _resolve_columns(self, fieldnames: Sequence[str]) -> _CsvColumns:
         column_by_name = {

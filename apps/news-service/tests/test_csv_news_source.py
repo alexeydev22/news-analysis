@@ -126,6 +126,31 @@ async def test_csv_news_source_maps_malformed_quotes_to_validation_error(tmp_pat
 
 
 @pytest.mark.asyncio
+async def test_csv_news_source_rejects_stray_quotes_in_unquoted_fields(tmp_path: Path) -> None:
+    csv_path = write_csv(
+        tmp_path / "news.csv",
+        'title,text,source\nGDP "grows",GDP grew,demo\n',
+    )
+    source = CsvNewsSource(csv_path)
+
+    with pytest.raises(NewsSourceValidationError, match="Invalid CSV data"):
+        await source.load()
+
+
+@pytest.mark.asyncio
+async def test_csv_news_source_accepts_escaped_quotes_in_quoted_fields(tmp_path: Path) -> None:
+    csv_path = write_csv(
+        tmp_path / "news.csv",
+        'title,text,source\n"GDP ""grows""","GDP grew",demo\n',
+    )
+    source = CsvNewsSource(csv_path)
+
+    documents = await source.load()
+
+    assert documents[0].title == 'GDP "grows"'
+
+
+@pytest.mark.asyncio
 async def test_csv_news_source_maps_missing_file_to_unavailable_error(tmp_path: Path) -> None:
     source = CsvNewsSource(tmp_path / "missing.csv")
 
