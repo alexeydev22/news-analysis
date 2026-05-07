@@ -39,7 +39,13 @@ async def test_template_generator_builds_russian_answer_from_context_and_impacts
     assert "не является финансовой рекомендацией" in result.answer
     assert result.used_context_ids == ["news-1"]
     assert result.model_name == "template-dialog-generator"
-    assert result.metadata == {"context_count": 1, "impact_summary_count": 1, "language": "ru"}
+    assert result.metadata == {
+        "generator_kind": "template",
+        "model_name": "template-dialog-generator",
+        "context_count": 1,
+        "impact_summary_count": 1,
+        "language": "ru",
+    }
 
 
 @pytest.mark.asyncio

@@ -11,6 +11,7 @@ dependencies = [
   "granian>=1.7",
   "pydantic>=2.10",
   "pydantic-settings>=2.7",
+  "zapros>=0.10",
 ]
 
 [project.optional-dependencies]
