@@ -14,6 +14,12 @@ from economic_news_contracts.dialog import (
 )
 from economic_news_contracts.events import EventEnvelope
 from economic_news_contracts.health import HealthResponse
+from economic_news_contracts.news import (
+    IndexNewsDatasetRequest,
+    IndexNewsDatasetResponse,
+    NewsDocumentResponse,
+    PreviewNewsResponse,
+)
 from economic_news_contracts.retrieval import (
     IndexNewsRequest,
     IndexNewsResponse,
@@ -162,6 +168,120 @@ def test_index_news_response_reports_collection_and_count() -> None:
 
     assert response.indexed_count == 2
     assert response.collection_name == "economic_news"
+
+
+def test_news_document_response_trims_required_fields() -> None:
+    document = NewsDocumentResponse(
+        id=" news-1 ",
+        title=" GDP grows ",
+        text=" GDP grew by 2 percent. ",
+        source=" demo ",
+        metadata={"impact": "positive"},
+    )
+
+    assert document.id == "news-1"
+    assert document.title == "GDP grows"
+    assert document.text == "GDP grew by 2 percent."
+    assert document.source == "demo"
+    assert document.published_at is None
+    assert document.metadata == {"impact": "positive"}
+
+
+def test_news_document_response_rejects_empty_required_fields() -> None:
+    with pytest.raises(ValueError):
+        NewsDocumentResponse(id="news-1", title=" ", text="text", source="demo")
+
+
+def test_news_document_response_forbids_extra_fields() -> None:
+    with pytest.raises(ValueError):
+        NewsDocumentResponse(
+            id="news-1",
+            title="GDP grows",
+            text="GDP grew by 2 percent.",
+            source="demo",
+            unexpected="value",
+        )
+
+
+def test_preview_news_response_reports_documents_and_total_count() -> None:
+    response = PreviewNewsResponse(
+        documents=[
+            NewsDocumentResponse(
+                id="news-1",
+                title="GDP grows",
+                text="GDP grew by 2 percent.",
+                source="demo",
+            ),
+        ],
+        total_count=3,
+    )
+
+    assert response.model_dump(mode="json") == {
+        "documents": [
+            {
+                "id": "news-1",
+                "title": "GDP grows",
+                "text": "GDP grew by 2 percent.",
+                "source": "demo",
+                "published_at": None,
+                "metadata": {},
+            },
+        ],
+        "total_count": 3,
+    }
+
+
+def test_preview_news_response_rejects_negative_total_count() -> None:
+    with pytest.raises(ValueError):
+        PreviewNewsResponse(documents=[], total_count=-1)
+
+
+def test_index_news_dataset_request_defaults_and_bounds() -> None:
+    assert IndexNewsDatasetRequest().limit == 100
+
+    with pytest.raises(ValueError):
+        IndexNewsDatasetRequest(limit=0)
+
+    with pytest.raises(ValueError):
+        IndexNewsDatasetRequest(limit=1001)
+
+
+def test_index_news_dataset_request_forbids_extra_fields() -> None:
+    with pytest.raises(ValueError):
+        IndexNewsDatasetRequest(limit=100, unexpected="value")
+
+
+def test_index_news_dataset_response_serializes_counts() -> None:
+    response = IndexNewsDatasetResponse(
+        loaded_count=2,
+        indexed_count=2,
+        collection_name=" economic_news ",
+    )
+
+    assert response.model_dump(mode="json") == {
+        "loaded_count": 2,
+        "indexed_count": 2,
+        "collection_name": "economic_news",
+    }
+
+
+def test_index_news_dataset_response_rejects_invalid_counts_and_collection() -> None:
+    with pytest.raises(ValueError):
+        IndexNewsDatasetResponse(
+            loaded_count=-1,
+            indexed_count=0,
+            collection_name="economic_news",
+        )
+
+    with pytest.raises(ValueError):
+        IndexNewsDatasetResponse(
+            loaded_count=0,
+            indexed_count=-1,
+            collection_name="economic_news",
+        )
+
+    with pytest.raises(ValueError):
+        IndexNewsDatasetResponse(loaded_count=0, indexed_count=0, collection_name=" ")
 
 
 def test_news_document_payload_rejects_empty_required_text_fields() -> None:
