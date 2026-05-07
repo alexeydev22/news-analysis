@@ -80,6 +80,34 @@ The stream emits stage events: `chat_started`, `search_started`, `sources_found`
 and `done`. If a downstream service fails after streaming starts, the response emits
 one sanitized `error` event and closes the stream.
 
+## News Service ingestion
+
+`news-service` loads local CSV news and indexes them through `retrieval-service`.
+
+Expected CSV semantic columns:
+
+- title: `title` or `headline`
+- text: `text`, `content`, `body` or `description`
+- source: `source` or `publisher`
+
+Local preview:
+
+```bash
+NEWS_SERVICE_NEWS_DATASET_PATH=research/tests/fixtures/news_impact_sample.csv \
+  uv run --package economic-news-news-service granian news_service.main.app:app \
+  --interface asgi --host 0.0.0.0 --port 8004
+
+curl 'http://localhost:8004/api/v1/news/preview?limit=3'
+```
+
+Index through retrieval-service:
+
+```bash
+curl -X POST http://localhost:8004/api/v1/news/index \
+  -H 'Content-Type: application/json' \
+  -d '{"limit": 10}'
+```
+
 ## Локальный LLM сервер для Dialog Service
 
 `dialog-service` по умолчанию запускается в режиме `template`, чтобы стек работал без

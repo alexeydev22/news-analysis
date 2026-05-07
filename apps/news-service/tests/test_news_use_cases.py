@@ -1,11 +1,5 @@
-import sys
-from pathlib import Path
-
 import pytest
 from economic_news_contracts.retrieval import IndexNewsResponse
-
-sys.path.append(str(Path(__file__).resolve().parents[1] / "src"))
-
 from news_service.application.use_cases import IndexNewsDataset, PreviewNews
 from news_service.domain.model import NewsDocument
 

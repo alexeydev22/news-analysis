@@ -1,7 +1,5 @@
-import sys
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from pathlib import Path
 
 import pytest
 from dishka import Provider, Scope, make_async_container, provide
@@ -9,9 +7,6 @@ from dishka.integrations.fastapi import FastapiProvider, setup_dishka
 from economic_news_contracts.news import IndexNewsDatasetResponse
 from economic_news_framework.apps import create_service_app
 from fastapi.testclient import TestClient
-
-sys.path.append(str(Path(__file__).resolve().parents[1] / "src"))
-
 from news_service.application.use_cases import IndexNewsDataset, PreviewNews
 from news_service.domain.errors import NewsSourceUnavailableError, NewsSourceValidationError
 from news_service.domain.model import NewsDocument

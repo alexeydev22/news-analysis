@@ -194,12 +194,14 @@ def test_news_document_response_rejects_empty_required_fields() -> None:
 
 def test_news_document_response_forbids_extra_fields() -> None:
     with pytest.raises(ValueError):
-        NewsDocumentResponse(
-            id="news-1",
-            title="GDP grows",
-            text="GDP grew by 2 percent.",
-            source="demo",
-            unexpected="value",
+        NewsDocumentResponse.model_validate(
+            {
+                "id": "news-1",
+                "title": "GDP grows",
+                "text": "GDP grew by 2 percent.",
+                "source": "demo",
+                "unexpected": "value",
+            },
         )
 
 
@@ -248,7 +250,7 @@ def test_index_news_dataset_request_defaults_and_bounds() -> None:
 
 def test_index_news_dataset_request_forbids_extra_fields() -> None:
     with pytest.raises(ValueError):
-        IndexNewsDatasetRequest(limit=100, unexpected="value")
+        IndexNewsDatasetRequest.model_validate({"limit": 100, "unexpected": "value"})
 
 
 def test_index_news_dataset_response_serializes_counts() -> None:

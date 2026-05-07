@@ -1,11 +1,7 @@
-import sys
 from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
-
-sys.path.append(str(Path(__file__).resolve().parents[1] / "src"))
-
 from news_service.domain.errors import NewsSourceUnavailableError, NewsSourceValidationError
 from news_service.domain.model import stable_news_id
 from news_service.infrastructure.csv_news_source import CsvNewsSource

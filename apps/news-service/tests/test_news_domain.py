@@ -1,12 +1,7 @@
-import sys
 from datetime import UTC, datetime
-from pathlib import Path
 from typing import Any, cast
 
 import pytest
-
-sys.path.append(str(Path(__file__).resolve().parents[1] / "src"))
-
 from news_service.domain.errors import EmptyNewsFieldError
 from news_service.domain.model import NewsDocument, stable_news_id
 

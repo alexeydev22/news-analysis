@@ -1,11 +1,7 @@
-import sys
 from pathlib import Path
 
 import pytest
 from dishka import AsyncContainer
-
-sys.path.append(str(Path(__file__).resolve().parents[1] / "src"))
-
 from news_service.application.use_cases import IndexNewsDataset, PreviewNews
 from news_service.main.container import create_container
 from news_service.main.settings import NewsServiceSettings

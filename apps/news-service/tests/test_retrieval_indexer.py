@@ -1,10 +1,4 @@
-import sys
-from pathlib import Path
-
 import pytest
-
-sys.path.append(str(Path(__file__).resolve().parents[1] / "src"))
-
 from news_service.domain.errors import RetrievalIndexUnavailableError
 from news_service.domain.model import NewsDocument
 from news_service.infrastructure.retrieval_client import ZaprosRetrievalIndexer
