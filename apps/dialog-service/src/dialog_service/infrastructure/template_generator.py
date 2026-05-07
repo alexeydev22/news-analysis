@@ -25,6 +25,8 @@ class TemplateDialogGenerator:
             used_context_ids=used_context_ids,
             model_name=self._model_name,
             metadata={
+                "generator_kind": "template",
+                "model_name": self._model_name,
                 "context_count": len(context),
                 "impact_summary_count": len(impact_summaries),
                 "language": language,

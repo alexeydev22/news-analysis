@@ -1,9 +1,12 @@
 import pytest
+from dialog_service.application.ports import DialogGenerator
 from dialog_service.application.use_cases import GenerateDialogAnswer
+from dialog_service.infrastructure.llm_generator import LlmDialogGenerator
+from dialog_service.infrastructure.template_generator import TemplateDialogGenerator
 from dialog_service.main.container import create_container
 from dialog_service.main.settings import DialogGeneratorKind, DialogServiceSettings
 from dishka import AsyncContainer
-from pydantic import ValidationError
+from pydantic import AnyHttpUrl, ValidationError
 
 _DIALOG_ENV_KEYS = (
     "DIALOG_SERVICE_NAME",
@@ -122,3 +125,43 @@ async def test_container_resolves_generate_dialog_answer() -> None:
         await container.close()
 
     assert isinstance(use_case, GenerateDialogAnswer)
+
+
+@pytest.mark.asyncio
+async def test_container_resolves_template_generator_for_template_mode(
+    clear_dialog_env: None,
+) -> None:
+    settings = DialogServiceSettings(
+        generator_kind=DialogGeneratorKind.TEMPLATE,
+        generator_name="template-generator",
+    )
+    container: AsyncContainer = create_container(settings)
+
+    try:
+        generator = await container.get(DialogGenerator)
+    finally:
+        await container.close()
+
+    assert isinstance(generator, TemplateDialogGenerator)
+
+
+@pytest.mark.asyncio
+async def test_container_resolves_llm_generator_for_llm_mode(
+    clear_dialog_env: None,
+) -> None:
+    settings = DialogServiceSettings(
+        generator_kind=DialogGeneratorKind.LLM,
+        llm_base_url=AnyHttpUrl("http://llm.local:8080"),
+        llm_model="qwen3-0.6b",
+        llm_timeout_seconds=45.0,
+        llm_temperature=0.1,
+        llm_max_tokens=384,
+    )
+    container: AsyncContainer = create_container(settings)
+
+    try:
+        generator = await container.get(DialogGenerator)
+    finally:
+        await container.close()
+
+    assert isinstance(generator, LlmDialogGenerator)
