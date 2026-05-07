@@ -1,4 +1,5 @@
 import csv
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -57,7 +58,7 @@ class CsvNewsSource:
 
             return documents
 
-    def _resolve_columns(self, fieldnames: list[str]) -> _CsvColumns:
+    def _resolve_columns(self, fieldnames: Sequence[str]) -> _CsvColumns:
         column_by_name = {
             fieldname.strip(): fieldname
             for fieldname in fieldnames
