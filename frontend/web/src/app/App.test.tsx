@@ -1,9 +1,18 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { chatResponseFixture, previewFixture } from "../test/fixtures";
 import { App } from "./App";
+
+function deferredResponse() {
+  let resolve!: (response: Response) => void;
+  const promise = new Promise<Response>((resolvePromise) => {
+    resolve = resolvePromise;
+  });
+
+  return { promise, resolve };
+}
 
 function mockFetch() {
   return vi.fn(async (input: RequestInfo | URL) => {
@@ -193,6 +202,87 @@ describe("App", () => {
     expect(fetchMock).toHaveBeenCalledWith("/news-service/api/v1/news/datasets/macro/activate", {
       method: "POST",
     });
+  });
+
+  it("renders a disabled dataset placeholder instead of selectable demo option", async () => {
+    vi.stubGlobal("fetch", mockFetch());
+
+    render(<App />);
+
+    const select = await screen.findByLabelText("Загруженные датасеты");
+    expect(select).toHaveValue("");
+    expect(screen.queryByRole("option", { name: "demo CSV" })).not.toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Выберите датасет" })).toBeDisabled();
+  });
+
+  it("keeps uploaded active dataset when stale initial refresh resolves later", async () => {
+    const initialDatasets = deferredResponse();
+    const initialActive = deferredResponse();
+    let listCalls = 0;
+    let activeCalls = 0;
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+
+      if (url.includes("/api/v1/news/datasets/upload")) {
+        return Response.json({
+          dataset_id: "macro",
+          filename: "macro.csv",
+          size_bytes: 32,
+          uploaded_at: "2026-05-08T10:00:00Z",
+        });
+      }
+
+      if (url.includes("/api/v1/news/datasets/macro/activate")) {
+        return Response.json({
+          dataset_id: "macro",
+          filename: "macro.csv",
+          activated_at: "2026-05-08T10:01:00Z",
+        });
+      }
+
+      if (url.includes("/api/v1/news/datasets/active")) {
+        activeCalls += 1;
+        return activeCalls === 1 ? initialActive.promise : Response.json(null);
+      }
+
+      if (url.includes("/api/v1/news/datasets")) {
+        listCalls += 1;
+        return listCalls === 1
+          ? initialDatasets.promise
+          : Response.json({
+              datasets: [
+                {
+                  dataset_id: "macro",
+                  filename: "macro.csv",
+                  size_bytes: 32,
+                  uploaded_at: "2026-05-08T10:00:00Z",
+                },
+              ],
+            });
+      }
+
+      return Response.json({ detail: "not found" }, { status: 404 });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const user = userEvent.setup();
+
+    render(<App />);
+
+    await user.upload(
+      screen.getByLabelText("CSV датасет"),
+      new File(["id,title\n1,GDP"], "macro.csv", { type: "text/csv" }),
+    );
+    await waitFor(() => {
+      expect(screen.getByText("Активен: macro.csv")).toBeInTheDocument();
+    });
+
+    await act(async () => {
+      initialDatasets.resolve(Response.json({ datasets: [] }));
+      initialActive.resolve(Response.json(null));
+      await Promise.resolve();
+    });
+
+    expect(screen.getByText("Активен: macro.csv")).toBeInTheDocument();
   });
 
   it("renders stream error events as an alert", async () => {

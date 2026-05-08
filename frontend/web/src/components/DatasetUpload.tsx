@@ -50,7 +50,11 @@ export function DatasetUpload({
               }
             }}
           >
-            <option value="">demo CSV</option>
+            {!activeDataset ? (
+              <option value="" disabled>
+                Выберите датасет
+              </option>
+            ) : null}
             {datasets.map((dataset) => (
               <option key={dataset.dataset_id} value={dataset.dataset_id}>
                 {dataset.filename}

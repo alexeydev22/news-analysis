@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { streamChat } from "../api/chatStream";
 import { ApiError } from "../api/errors";
@@ -74,19 +74,30 @@ export function App() {
   const [isIndexLoading, setIndexLoading] = useState(false);
   const [isUploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const datasetRequestIdRef = useRef(0);
+
+  function nextDatasetRequestId(): number {
+    datasetRequestIdRef.current += 1;
+    return datasetRequestIdRef.current;
+  }
+
+  function isLatestDatasetRequest(requestId: number): boolean {
+    return datasetRequestIdRef.current === requestId;
+  }
 
   useEffect(() => {
     let isMounted = true;
 
     async function loadDatasets() {
+      const requestId = nextDatasetRequestId();
       try {
         const [datasetList, active] = await Promise.all([listDatasets(), getActiveDataset()]);
-        if (isMounted) {
+        if (isMounted && isLatestDatasetRequest(requestId)) {
           setDatasets(datasetList.datasets);
           setActiveDataset(active);
         }
       } catch {
-        if (isMounted) {
+        if (isMounted && isLatestDatasetRequest(requestId)) {
           setDatasets([]);
           setActiveDataset(null);
         }
@@ -97,6 +108,7 @@ export function App() {
 
     return () => {
       isMounted = false;
+      nextDatasetRequestId();
     };
   }, []);
 
@@ -172,27 +184,40 @@ export function App() {
   }
 
   async function handleUploadDataset(file: File) {
+    const requestId = nextDatasetRequestId();
     setUploading(true);
     setError(null);
     try {
       const uploaded = await uploadDataset(file);
       const active = await activateDataset(uploaded.dataset_id);
-      setActiveDataset(active);
+      if (isLatestDatasetRequest(requestId)) {
+        setActiveDataset(active);
+      }
       const datasetList = await listDatasets();
-      setDatasets(datasetList.datasets);
+      if (isLatestDatasetRequest(requestId)) {
+        setDatasets(datasetList.datasets);
+      }
     } catch (uploadError) {
-      setError(messageFromError(uploadError));
+      if (isLatestDatasetRequest(requestId)) {
+        setError(messageFromError(uploadError));
+      }
     } finally {
       setUploading(false);
     }
   }
 
   async function handleActivateDataset(datasetId: string) {
+    const requestId = nextDatasetRequestId();
     setError(null);
     try {
-      setActiveDataset(await activateDataset(datasetId));
+      const active = await activateDataset(datasetId);
+      if (isLatestDatasetRequest(requestId)) {
+        setActiveDataset(active);
+      }
     } catch (activateError) {
-      setError(messageFromError(activateError));
+      if (isLatestDatasetRequest(requestId)) {
+        setError(messageFromError(activateError));
+      }
     }
   }
 
