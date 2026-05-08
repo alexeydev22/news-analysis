@@ -27,6 +27,9 @@ analysis-dev:
 dialog:
     uv run --package economic-news-dialog-service granian dialog_service.main.app:app --interface asgi --host 0.0.0.0 --port 8003
 
+news-worker:
+    uv run --package economic-news-news-service taskiq worker news_service.workers.broker:broker news_service.workers.tasks --workers 1
+
 web-dev:
     npm --prefix frontend/web run dev -- --host 0.0.0.0 --port 5173
 

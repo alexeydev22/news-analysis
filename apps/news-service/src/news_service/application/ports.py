@@ -15,3 +15,9 @@ class RetrievalIndexer(Protocol):
     async def index(self, documents: list[NewsDocument]) -> IndexNewsResponse:
         """Index normalized news documents through retrieval-service."""
         ...
+
+
+class NewsIndexTaskQueue(Protocol):
+    async def enqueue(self, limit: int) -> str:
+        """Schedule dataset indexing and return an externally visible job id."""
+        ...

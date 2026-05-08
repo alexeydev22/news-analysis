@@ -5,8 +5,12 @@ from dishka import Provider, Scope, make_async_container, provide
 from dishka.integrations.fastapi import FastapiProvider
 from economic_news_contracts.retrieval import IndexNewsResponse
 
-from news_service.application.ports import NewsSource, RetrievalIndexer
-from news_service.application.use_cases import IndexNewsDataset, PreviewNews
+from news_service.application.ports import NewsIndexTaskQueue, NewsSource, RetrievalIndexer
+from news_service.application.use_cases import (
+    EnqueueIndexNewsDataset,
+    IndexNewsDataset,
+    PreviewNews,
+)
 from news_service.domain.model import NewsDocument
 from news_service.infrastructure.csv_news_source import CsvNewsSource
 from news_service.infrastructure.retrieval_client import ZaprosRetrievalIndexer
@@ -31,6 +35,11 @@ class FakeNewsSource:
 class FakeRetrievalIndexer:
     async def index(self, documents: list[NewsDocument]) -> IndexNewsResponse:
         return IndexNewsResponse(indexed_count=len(documents), collection_name="economic_news")
+
+
+class FakeNewsIndexTaskQueue:
+    async def enqueue(self, limit: int) -> str:
+        return f"fake-news-index-{limit}"
 
 
 class NewsServiceProvider(Provider):
@@ -63,6 +72,14 @@ class NewsServiceProvider(Provider):
             timeout_seconds=settings.retrieval_service_timeout_seconds,
         )
 
+    @provide(scope=Scope.APP, provides=NewsIndexTaskQueue)
+    def news_index_task_queue(self) -> NewsIndexTaskQueue:
+        if self._use_fake_components:
+            return FakeNewsIndexTaskQueue()
+        from news_service.infrastructure.taskiq_queue import TaskiqNewsIndexTaskQueue
+
+        return TaskiqNewsIndexTaskQueue()
+
     @provide(scope=Scope.APP)
     def preview_news(self, source: NewsSource) -> PreviewNews:
         return PreviewNews(source)
@@ -74,6 +91,17 @@ class NewsServiceProvider(Provider):
         indexer: RetrievalIndexer,
     ) -> IndexNewsDataset:
         return IndexNewsDataset(source, indexer)
+
+    @provide(scope=Scope.APP)
+    def enqueue_index_news_dataset(
+        self,
+        task_queue: NewsIndexTaskQueue,
+        settings: NewsServiceSettings,
+    ) -> EnqueueIndexNewsDataset:
+        return EnqueueIndexNewsDataset(
+            task_queue,
+            events_channel=settings.index_events_channel,
+        )
 
 
 def create_container(
