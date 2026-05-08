@@ -1,6 +1,9 @@
+import asyncio
+from typing import Any, cast
+
 import pytest
 from api_gateway.application.errors import DialogServiceUnavailableError
-from api_gateway.infrastructure.dialog_client import ZaprosDialogClient
+from api_gateway.infrastructure.dialog_client import ZaprosDialogClient, _make_zapros_client
 from economic_news_contracts.analysis import AnalysisModelName, ImpactLabel
 from economic_news_contracts.dialog import (
     DialogContextNews,
@@ -23,6 +26,12 @@ class FakeZaprosClient:
 class RaisingZaprosClient:
     async def post(self, url: str, json: dict[str, object]) -> Response:
         raise OSError("connection refused")
+
+
+class SlowZaprosClient:
+    async def post(self, url: str, json: dict[str, object]) -> Response:
+        await asyncio.sleep(0.05)
+        return Response(200, json=dialog_payload())
 
 
 class FakeZaprosClientContext:
@@ -77,6 +86,13 @@ def dialog_payload() -> dict[str, object]:
         "model_name": "template-dialog-generator",
         "metadata": {"context_count": 1},
     }
+
+
+def test_zapros_dialog_client_keeps_std_handler_timeout_disabled() -> None:
+    client = _make_zapros_client(timeout_seconds=5.0)
+    handler = cast(Any, client.handler)
+
+    assert handler.total_timeout is None
 
 
 @pytest.mark.asyncio
@@ -185,6 +201,21 @@ async def test_zapros_dialog_client_maps_transport_error() -> None:
         base_url="http://dialog-service:8000",
         timeout_seconds=3.0,
         client=RaisingZaprosClient(),
+    )
+
+    with pytest.raises(
+        DialogServiceUnavailableError,
+        match="dialog-service is unavailable",
+    ):
+        await client.generate(dialog_request())
+
+
+@pytest.mark.asyncio
+async def test_zapros_dialog_client_maps_timeout() -> None:
+    client = ZaprosDialogClient(
+        base_url="http://dialog-service:8000",
+        timeout_seconds=0.001,
+        client=SlowZaprosClient(),
     )
 
     with pytest.raises(

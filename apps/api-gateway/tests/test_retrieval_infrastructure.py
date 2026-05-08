@@ -1,6 +1,12 @@
+import asyncio
+from typing import Any, cast
+
 import pytest
 from api_gateway.application.errors import RetrievalServiceUnavailableError
-from api_gateway.infrastructure.retrieval_client import ZaprosRetrievalClient
+from api_gateway.infrastructure.retrieval_client import (
+    ZaprosRetrievalClient,
+    _make_zapros_client,
+)
 from economic_news_contracts.retrieval import (
     IndexNewsRequest,
     NewsDocumentPayload,
@@ -22,6 +28,12 @@ class FakeZaprosClient:
 class RaisingZaprosClient:
     async def post(self, url: str, json: dict[str, object]) -> Response:
         raise OSError("connection refused")
+
+
+class SlowZaprosClient:
+    async def post(self, url: str, json: dict[str, object]) -> Response:
+        await asyncio.sleep(0.05)
+        return Response(200, json={"results": []})
 
 
 class FakeZaprosClientContext:
@@ -56,6 +68,13 @@ def index_request() -> IndexNewsRequest:
             ),
         ],
     )
+
+
+def test_zapros_retrieval_client_keeps_std_handler_timeout_disabled() -> None:
+    client = _make_zapros_client(timeout_seconds=5.0)
+    handler = cast(Any, client.handler)
+
+    assert handler.total_timeout is None
 
 
 @pytest.mark.asyncio
@@ -181,3 +200,18 @@ async def test_retrieval_client_maps_transport_error() -> None:
         match="retrieval-service is unavailable",
     ):
         await client.index(index_request())
+
+
+@pytest.mark.asyncio
+async def test_retrieval_client_maps_timeout() -> None:
+    client = ZaprosRetrievalClient(
+        base_url="http://retrieval-service:8000",
+        timeout_seconds=0.001,
+        client=SlowZaprosClient(),
+    )
+
+    with pytest.raises(
+        RetrievalServiceUnavailableError,
+        match="retrieval-service is unavailable",
+    ):
+        await client.search(SearchNewsRequest(query="GDP"))

@@ -38,6 +38,7 @@ services:
       - ../.env.example
     environment:
       RETRIEVAL_QDRANT_URL: "http://qdrant:6333"
+      RETRIEVAL_USE_STATIC_EMBEDDINGS: "true"
     ports:
       - "8002:8000"
     depends_on:

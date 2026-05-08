@@ -120,6 +120,45 @@ The job is executed by `news-worker` through Taskiq and Redis. Status events are
 published through FastStream to the Redis channel configured by
 `NEWS_SERVICE_INDEX_EVENTS_CHANNEL`.
 
+## Demo scenario for coursework defense
+
+The repository includes a small economic news dataset at
+`data/raw/economic_news.csv`. It is intended for local demonstrations and keeps
+the defense scenario reproducible.
+
+Start the stack:
+
+```bash
+just demo-up
+```
+
+In another terminal, run the smoke check:
+
+```bash
+just demo-smoke
+```
+
+The smoke check verifies:
+
+- `api-gateway` and `news-service` health endpoints;
+- CSV preview through `news-service`;
+- deterministic indexing through `news-service`;
+- background indexing job creation through Taskiq/Redis;
+- chat SSE stream from `api-gateway`;
+- frontend HTML availability.
+
+For backend-only checks:
+
+```bash
+just demo-smoke-no-frontend
+```
+
+Stop the stack:
+
+```bash
+just demo-down
+```
+
 ## Frontend Chat Console
 
 The React UI is a real API client for the local backend.

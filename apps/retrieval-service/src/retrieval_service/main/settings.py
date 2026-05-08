@@ -17,3 +17,4 @@ class RetrievalServiceSettings(BaseServiceSettings):
     collection_name: str = "economic_news"
     embedding_model_name: str = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
     embedding_dimension: int = Field(default=384, ge=1)
+    use_static_embeddings: bool = False
