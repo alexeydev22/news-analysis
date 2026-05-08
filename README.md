@@ -18,6 +18,11 @@
 - `docs/` — пояснительная записка и презентация;
 - `deploy/` — Docker Compose и Dockerfiles.
 
+Подробные материалы:
+
+- [Архитектура проекта](docs/architecture.md);
+- [Demo guide и чеклист проверки](docs/demo.md).
+
 ## Ветки
 
 - `master` — стабильная основная ветка;
