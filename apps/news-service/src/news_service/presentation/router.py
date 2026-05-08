@@ -1,21 +1,47 @@
 from dishka.integrations.fastapi import FromDishka, inject
 from economic_news_contracts.news import (
+    ActiveDatasetResponse,
+    DatasetListResponse,
     EnqueueIndexNewsDatasetResponse,
     IndexNewsDatasetRequest,
     IndexNewsDatasetResponse,
     NewsDocumentResponse,
     PreviewNewsResponse,
+    UploadedDatasetResponse,
 )
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, File, Query, UploadFile, status
 
 from news_service.application.use_cases import (
+    ActivateNewsDataset,
     EnqueueIndexNewsDataset,
+    GetActiveNewsDataset,
     IndexNewsDataset,
+    ListNewsDatasets,
     PreviewNews,
+    UploadNewsDataset,
 )
+from news_service.domain.dataset import ActiveDataset, UploadedDataset
 from news_service.main.settings import NewsServiceSettings
 
 router = APIRouter(prefix="/api/v1/news")
+_UPLOAD_FILE = File(...)
+
+
+def _uploaded_dataset_response(dataset: UploadedDataset) -> UploadedDatasetResponse:
+    return UploadedDatasetResponse(
+        dataset_id=dataset.dataset_id,
+        filename=dataset.filename,
+        size_bytes=dataset.size_bytes,
+        uploaded_at=dataset.uploaded_at,
+    )
+
+
+def _active_dataset_response(dataset: ActiveDataset) -> ActiveDatasetResponse:
+    return ActiveDatasetResponse(
+        dataset_id=dataset.dataset_id,
+        filename=dataset.filename,
+        activated_at=dataset.activated_at,
+    )
 
 
 @router.get("/preview")
@@ -61,3 +87,47 @@ async def enqueue_index_news(
 ) -> EnqueueIndexNewsDatasetResponse:
     limit = request.limit if "limit" in request.model_fields_set else settings.default_index_limit
     return await use_case.execute(limit=limit)
+
+
+@router.post("/datasets/upload", status_code=status.HTTP_201_CREATED)
+@inject
+async def upload_dataset(
+    use_case: FromDishka[UploadNewsDataset],
+    file: UploadFile = _UPLOAD_FILE,
+) -> UploadedDatasetResponse:
+    content = await file.read()
+    dataset = await use_case.execute(
+        filename=file.filename or "dataset.csv",
+        content=content,
+    )
+    return _uploaded_dataset_response(dataset)
+
+
+@router.get("/datasets")
+@inject
+async def list_datasets(use_case: FromDishka[ListNewsDatasets]) -> DatasetListResponse:
+    datasets = await use_case.execute()
+    return DatasetListResponse(
+        datasets=[_uploaded_dataset_response(dataset) for dataset in datasets],
+    )
+
+
+@router.post("/datasets/{dataset_id}/activate")
+@inject
+async def activate_dataset(
+    dataset_id: str,
+    use_case: FromDishka[ActivateNewsDataset],
+) -> ActiveDatasetResponse:
+    active = await use_case.execute(dataset_id)
+    return _active_dataset_response(active)
+
+
+@router.get("/datasets/active")
+@inject
+async def get_active_dataset(
+    use_case: FromDishka[GetActiveNewsDataset],
+) -> ActiveDatasetResponse | None:
+    active = await use_case.execute()
+    if active is None:
+        return None
+    return _active_dataset_response(active)

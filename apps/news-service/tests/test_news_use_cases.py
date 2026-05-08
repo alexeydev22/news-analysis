@@ -1,10 +1,17 @@
+from pathlib import Path
+
 import pytest
 from economic_news_contracts.retrieval import IndexNewsResponse
 from news_service.application.use_cases import (
+    ActivateNewsDataset,
     EnqueueIndexNewsDataset,
+    GetActiveNewsDataset,
     IndexNewsDataset,
+    ListNewsDatasets,
     PreviewNews,
+    UploadNewsDataset,
 )
+from news_service.domain.dataset import ActiveDataset, UploadedDataset, utc_now
 from news_service.domain.model import NewsDocument
 
 
@@ -54,6 +61,45 @@ class FakeTaskQueue:
         return "job-1"
 
 
+class FakeDatasetStorage:
+    def __init__(self) -> None:
+        uploaded = UploadedDataset(
+            dataset_id="news",
+            filename="news.csv",
+            path=Path("data/uploads/news.csv"),
+            size_bytes=42,
+            uploaded_at=utc_now(),
+        )
+        self.saved_filename: str | None = None
+        self.saved_content: bytes | None = None
+        self.activated_dataset_id: str | None = None
+        self.uploaded = uploaded
+        self.active = ActiveDataset(
+            dataset_id=uploaded.dataset_id,
+            filename=uploaded.filename,
+            path=uploaded.path,
+            activated_at=utc_now(),
+        )
+
+    async def save_upload(self, *, filename: str, content: bytes) -> UploadedDataset:
+        self.saved_filename = filename
+        self.saved_content = content
+        return self.uploaded
+
+    async def list_datasets(self) -> list[UploadedDataset]:
+        return [self.uploaded]
+
+    async def activate(self, dataset_id: str) -> ActiveDataset:
+        self.activated_dataset_id = dataset_id
+        return self.active
+
+    async def get_active(self) -> ActiveDataset | None:
+        return self.active
+
+    async def get_active_path(self) -> Path | None:
+        return self.active.path
+
+
 @pytest.mark.asyncio
 async def test_preview_news_loads_documents_and_reports_total_count() -> None:
     source = FakeNewsSource()
@@ -92,3 +138,46 @@ async def test_enqueue_index_news_dataset_schedules_background_job() -> None:
     assert result.job_id == "job-1"
     assert result.status == "queued"
     assert result.events_channel == "news.index.events"
+
+
+@pytest.mark.asyncio
+async def test_upload_news_dataset_saves_upload() -> None:
+    storage = FakeDatasetStorage()
+    use_case = UploadNewsDataset(storage)
+
+    result = await use_case.execute(filename="news.csv", content=b"csv")
+
+    assert storage.saved_filename == "news.csv"
+    assert storage.saved_content == b"csv"
+    assert result == storage.uploaded
+
+
+@pytest.mark.asyncio
+async def test_list_news_datasets_returns_uploads() -> None:
+    storage = FakeDatasetStorage()
+    use_case = ListNewsDatasets(storage)
+
+    result = await use_case.execute()
+
+    assert result == [storage.uploaded]
+
+
+@pytest.mark.asyncio
+async def test_activate_news_dataset_activates_upload() -> None:
+    storage = FakeDatasetStorage()
+    use_case = ActivateNewsDataset(storage)
+
+    result = await use_case.execute("news")
+
+    assert storage.activated_dataset_id == "news"
+    assert result == storage.active
+
+
+@pytest.mark.asyncio
+async def test_get_active_news_dataset_returns_active_upload() -> None:
+    storage = FakeDatasetStorage()
+    use_case = GetActiveNewsDataset(storage)
+
+    result = await use_case.execute()
+
+    assert result == storage.active

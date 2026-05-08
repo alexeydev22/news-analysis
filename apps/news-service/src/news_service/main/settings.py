@@ -15,6 +15,9 @@ class NewsServiceSettings(BaseServiceSettings):
 
     service_name: str = "news-service"
     news_dataset_path: Path = Path("data/raw/economic_news.csv")
+    dataset_upload_dir: Path = Path("data/uploads")
+    active_dataset_file: Path = Path("data/uploads/active_dataset.json")
+    upload_max_bytes: int = Field(default=50 * 1024 * 1024, ge=1)
     retrieval_service_url: AnyHttpUrl = AnyHttpUrl("http://retrieval-service:8000")
     retrieval_service_timeout_seconds: float = Field(default=10.0, gt=0)
     default_index_limit: int = Field(default=100, ge=1, le=1000)

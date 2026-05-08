@@ -5,14 +5,24 @@ from dishka import Provider, Scope, make_async_container, provide
 from dishka.integrations.fastapi import FastapiProvider
 from economic_news_contracts.retrieval import IndexNewsResponse
 
-from news_service.application.ports import NewsIndexTaskQueue, NewsSource, RetrievalIndexer
+from news_service.application.ports import (
+    DatasetStorage,
+    NewsIndexTaskQueue,
+    NewsSource,
+    RetrievalIndexer,
+)
 from news_service.application.use_cases import (
+    ActivateNewsDataset,
     EnqueueIndexNewsDataset,
+    GetActiveNewsDataset,
     IndexNewsDataset,
+    ListNewsDatasets,
     PreviewNews,
+    UploadNewsDataset,
 )
 from news_service.domain.model import NewsDocument
 from news_service.infrastructure.csv_news_source import CsvNewsSource
+from news_service.infrastructure.local_dataset_storage import LocalDatasetStorage
 from news_service.infrastructure.retrieval_client import ZaprosRetrievalIndexer
 from news_service.main.settings import NewsServiceSettings
 
@@ -42,6 +52,16 @@ class FakeNewsIndexTaskQueue:
         return f"fake-news-index-{limit}"
 
 
+class ActiveDatasetCsvNewsSource:
+    def __init__(self, storage: DatasetStorage, fallback_path: Path) -> None:
+        self._storage = storage
+        self._fallback_path = fallback_path
+
+    async def load(self, limit: int | None = None) -> list[NewsDocument]:
+        active_path = await self._storage.get_active_path()
+        return await CsvNewsSource(active_path or self._fallback_path).load(limit=limit)
+
+
 class NewsServiceProvider(Provider):
     def __init__(
         self,
@@ -57,11 +77,19 @@ class NewsServiceProvider(Provider):
     def settings(self) -> NewsServiceSettings:
         return self._settings or NewsServiceSettings()
 
+    @provide(scope=Scope.APP, provides=DatasetStorage)
+    def dataset_storage(self, settings: NewsServiceSettings) -> DatasetStorage:
+        return LocalDatasetStorage(
+            upload_dir=settings.dataset_upload_dir,
+            active_dataset_file=settings.active_dataset_file,
+            max_upload_bytes=settings.upload_max_bytes,
+        )
+
     @provide(scope=Scope.APP, provides=NewsSource)
-    def news_source(self, settings: NewsServiceSettings) -> NewsSource:
+    def news_source(self, settings: NewsServiceSettings, storage: DatasetStorage) -> NewsSource:
         if self._use_fake_components:
             return FakeNewsSource()
-        return CsvNewsSource(Path(settings.news_dataset_path))
+        return ActiveDatasetCsvNewsSource(storage, Path(settings.news_dataset_path))
 
     @provide(scope=Scope.APP, provides=RetrievalIndexer)
     def retrieval_indexer(self, settings: NewsServiceSettings) -> RetrievalIndexer:
@@ -102,6 +130,22 @@ class NewsServiceProvider(Provider):
             task_queue,
             events_channel=settings.index_events_channel,
         )
+
+    @provide(scope=Scope.APP)
+    def upload_news_dataset(self, storage: DatasetStorage) -> UploadNewsDataset:
+        return UploadNewsDataset(storage)
+
+    @provide(scope=Scope.APP)
+    def list_news_datasets(self, storage: DatasetStorage) -> ListNewsDatasets:
+        return ListNewsDatasets(storage)
+
+    @provide(scope=Scope.APP)
+    def activate_news_dataset(self, storage: DatasetStorage) -> ActivateNewsDataset:
+        return ActivateNewsDataset(storage)
+
+    @provide(scope=Scope.APP)
+    def get_active_news_dataset(self, storage: DatasetStorage) -> GetActiveNewsDataset:
+        return GetActiveNewsDataset(storage)
 
 
 def create_container(

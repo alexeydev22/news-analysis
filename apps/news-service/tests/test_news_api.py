@@ -1,5 +1,7 @@
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from datetime import UTC, datetime
+from pathlib import Path
 
 import pytest
 from dishka import Provider, Scope, make_async_container, provide
@@ -8,10 +10,15 @@ from economic_news_contracts.news import EnqueueIndexNewsDatasetResponse, IndexN
 from economic_news_framework.apps import create_service_app
 from fastapi.testclient import TestClient
 from news_service.application.use_cases import (
+    ActivateNewsDataset,
     EnqueueIndexNewsDataset,
+    GetActiveNewsDataset,
     IndexNewsDataset,
+    ListNewsDatasets,
     PreviewNews,
+    UploadNewsDataset,
 )
+from news_service.domain.dataset import ActiveDataset, UploadedDataset
 from news_service.domain.errors import NewsSourceUnavailableError, NewsSourceValidationError
 from news_service.domain.model import NewsDocument
 from news_service.main.settings import NewsServiceSettings
@@ -70,18 +77,86 @@ class StubEnqueueIndexNewsDataset(EnqueueIndexNewsDataset):
         )
 
 
+class StubUploadNewsDataset(UploadNewsDataset):
+    def __init__(self) -> None:
+        self.filename: str | None = None
+        self.content: bytes | None = None
+
+    async def execute(self, *, filename: str, content: bytes) -> UploadedDataset:
+        self.filename = filename
+        self.content = content
+        return UploadedDataset(
+            dataset_id="news",
+            filename=filename,
+            path=Path("data/uploads/news.csv"),
+            size_bytes=len(content),
+            uploaded_at=datetime(2026, 5, 8, tzinfo=UTC),
+        )
+
+
+class StubListNewsDatasets(ListNewsDatasets):
+    def __init__(self) -> None:
+        pass
+
+    async def execute(self) -> list[UploadedDataset]:
+        return [
+            UploadedDataset(
+                dataset_id="news",
+                filename="news.csv",
+                path=Path("data/uploads/news.csv"),
+                size_bytes=42,
+                uploaded_at=datetime(2026, 5, 8, tzinfo=UTC),
+            ),
+        ]
+
+
+class StubActivateNewsDataset(ActivateNewsDataset):
+    def __init__(self) -> None:
+        self.dataset_id: str | None = None
+
+    async def execute(self, dataset_id: str) -> ActiveDataset:
+        self.dataset_id = dataset_id
+        return ActiveDataset(
+            dataset_id=dataset_id,
+            filename="news.csv",
+            path=Path("data/uploads/news.csv"),
+            activated_at=datetime(2026, 5, 8, tzinfo=UTC),
+        )
+
+
+class StubGetActiveNewsDataset(GetActiveNewsDataset):
+    def __init__(self) -> None:
+        pass
+
+    async def execute(self) -> ActiveDataset | None:
+        return ActiveDataset(
+            dataset_id="news",
+            filename="news.csv",
+            path=Path("data/uploads/news.csv"),
+            activated_at=datetime(2026, 5, 8, tzinfo=UTC),
+        )
+
+
 class NewsProvider(Provider):
     def __init__(
         self,
         preview: PreviewNews,
         index: IndexNewsDataset,
         enqueue: EnqueueIndexNewsDataset,
+        upload: UploadNewsDataset,
+        list_datasets: ListNewsDatasets,
+        activate: ActivateNewsDataset,
+        get_active: GetActiveNewsDataset,
         settings: NewsServiceSettings,
     ) -> None:
         super().__init__()
         self._preview = preview
         self._index = index
         self._enqueue = enqueue
+        self._upload = upload
+        self._list_datasets = list_datasets
+        self._activate = activate
+        self._get_active = get_active
         self._settings = settings
 
     @provide(scope=Scope.APP)
@@ -97,6 +172,22 @@ class NewsProvider(Provider):
         return self._enqueue
 
     @provide(scope=Scope.APP)
+    def upload_news_dataset(self) -> UploadNewsDataset:
+        return self._upload
+
+    @provide(scope=Scope.APP)
+    def list_news_datasets(self) -> ListNewsDatasets:
+        return self._list_datasets
+
+    @provide(scope=Scope.APP)
+    def activate_news_dataset(self) -> ActivateNewsDataset:
+        return self._activate
+
+    @provide(scope=Scope.APP)
+    def get_active_news_dataset(self) -> GetActiveNewsDataset:
+        return self._get_active
+
+    @provide(scope=Scope.APP)
     def settings(self) -> NewsServiceSettings:
         return self._settings
 
@@ -105,6 +196,10 @@ def make_client(
     preview: PreviewNews,
     index: IndexNewsDataset,
     enqueue: EnqueueIndexNewsDataset | None = None,
+    upload: UploadNewsDataset | None = None,
+    list_datasets: ListNewsDatasets | None = None,
+    activate: ActivateNewsDataset | None = None,
+    get_active: GetActiveNewsDataset | None = None,
     settings: NewsServiceSettings | None = None,
 ) -> TestClient:
     app = create_service_app(service_name="news-service", routers=(router,), log_level="INFO")
@@ -114,6 +209,10 @@ def make_client(
             preview,
             index,
             enqueue or StubEnqueueIndexNewsDataset(),
+            upload or StubUploadNewsDataset(),
+            list_datasets or StubListNewsDatasets(),
+            activate or StubActivateNewsDataset(),
+            get_active or StubGetActiveNewsDataset(),
             settings or NewsServiceSettings(),
         ),
         FastapiProvider(),
@@ -193,6 +292,70 @@ def test_enqueue_index_endpoint_schedules_dataset_indexing() -> None:
         "job_id": "job-1",
         "status": "queued",
         "events_channel": "news.index.events",
+    }
+
+
+def test_upload_dataset_endpoint_accepts_csv() -> None:
+    upload = StubUploadNewsDataset()
+
+    with make_client(StubPreviewNews(), StubIndexNewsDataset(), upload=upload) as client:
+        response = client.post(
+            "/api/v1/news/datasets/upload",
+            files={"file": ("news.csv", b"title,text,source\nA,B,C\n", "text/csv")},
+        )
+
+    assert response.status_code == 201
+    assert upload.filename == "news.csv"
+    assert upload.content == b"title,text,source\nA,B,C\n"
+    assert response.json() == {
+        "dataset_id": "news",
+        "filename": "news.csv",
+        "size_bytes": 24,
+        "uploaded_at": "2026-05-08T00:00:00Z",
+    }
+
+
+def test_list_datasets_endpoint_returns_uploads() -> None:
+    with make_client(StubPreviewNews(), StubIndexNewsDataset()) as client:
+        response = client.get("/api/v1/news/datasets")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "datasets": [
+            {
+                "dataset_id": "news",
+                "filename": "news.csv",
+                "size_bytes": 42,
+                "uploaded_at": "2026-05-08T00:00:00Z",
+            },
+        ],
+    }
+
+
+def test_activate_dataset_endpoint_returns_active_dataset() -> None:
+    activate = StubActivateNewsDataset()
+
+    with make_client(StubPreviewNews(), StubIndexNewsDataset(), activate=activate) as client:
+        response = client.post("/api/v1/news/datasets/news/activate")
+
+    assert response.status_code == 200
+    assert activate.dataset_id == "news"
+    assert response.json() == {
+        "dataset_id": "news",
+        "filename": "news.csv",
+        "activated_at": "2026-05-08T00:00:00Z",
+    }
+
+
+def test_get_active_dataset_endpoint_returns_active_dataset() -> None:
+    with make_client(StubPreviewNews(), StubIndexNewsDataset()) as client:
+        response = client.get("/api/v1/news/datasets/active")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "dataset_id": "news",
+        "filename": "news.csv",
+        "activated_at": "2026-05-08T00:00:00Z",
     }
 
 
