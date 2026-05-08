@@ -4,10 +4,14 @@ from contextlib import asynccontextmanager
 import pytest
 from dishka import Provider, Scope, make_async_container, provide
 from dishka.integrations.fastapi import FastapiProvider, setup_dishka
-from economic_news_contracts.news import IndexNewsDatasetResponse
+from economic_news_contracts.news import EnqueueIndexNewsDatasetResponse, IndexNewsDatasetResponse
 from economic_news_framework.apps import create_service_app
 from fastapi.testclient import TestClient
-from news_service.application.use_cases import IndexNewsDataset, PreviewNews
+from news_service.application.use_cases import (
+    EnqueueIndexNewsDataset,
+    IndexNewsDataset,
+    PreviewNews,
+)
 from news_service.domain.errors import NewsSourceUnavailableError, NewsSourceValidationError
 from news_service.domain.model import NewsDocument
 from news_service.main.settings import NewsServiceSettings
@@ -54,16 +58,30 @@ class StubIndexNewsDataset(IndexNewsDataset):
         )
 
 
+class StubEnqueueIndexNewsDataset(EnqueueIndexNewsDataset):
+    def __init__(self) -> None:
+        self.limit: int | None = None
+
+    async def execute(self, limit: int) -> EnqueueIndexNewsDatasetResponse:
+        self.limit = limit
+        return EnqueueIndexNewsDatasetResponse(
+            job_id="job-1",
+            events_channel="news.index.events",
+        )
+
+
 class NewsProvider(Provider):
     def __init__(
         self,
         preview: PreviewNews,
         index: IndexNewsDataset,
+        enqueue: EnqueueIndexNewsDataset,
         settings: NewsServiceSettings,
     ) -> None:
         super().__init__()
         self._preview = preview
         self._index = index
+        self._enqueue = enqueue
         self._settings = settings
 
     @provide(scope=Scope.APP)
@@ -75,6 +93,10 @@ class NewsProvider(Provider):
         return self._index
 
     @provide(scope=Scope.APP)
+    def enqueue_index_news_dataset(self) -> EnqueueIndexNewsDataset:
+        return self._enqueue
+
+    @provide(scope=Scope.APP)
     def settings(self) -> NewsServiceSettings:
         return self._settings
 
@@ -82,12 +104,18 @@ class NewsProvider(Provider):
 def make_client(
     preview: PreviewNews,
     index: IndexNewsDataset,
+    enqueue: EnqueueIndexNewsDataset | None = None,
     settings: NewsServiceSettings | None = None,
 ) -> TestClient:
     app = create_service_app(service_name="news-service", routers=(router,), log_level="INFO")
     register_error_handlers(app)
     container = make_async_container(
-        NewsProvider(preview, index, settings or NewsServiceSettings()),
+        NewsProvider(
+            preview,
+            index,
+            enqueue or StubEnqueueIndexNewsDataset(),
+            settings or NewsServiceSettings(),
+        ),
         FastapiProvider(),
     )
     setup_dishka(container=container, app=app)
@@ -145,12 +173,27 @@ def test_index_endpoint_uses_configured_default_limit_when_omitted() -> None:
     with make_client(
         StubPreviewNews(),
         index,
-        NewsServiceSettings(default_index_limit=25),
+        settings=NewsServiceSettings(default_index_limit=25),
     ) as client:
         response = client.post("/api/v1/news/index", json={})
 
     assert response.status_code == 200
     assert index.limit == 25
+
+
+def test_enqueue_index_endpoint_schedules_dataset_indexing() -> None:
+    enqueue = StubEnqueueIndexNewsDataset()
+
+    with make_client(StubPreviewNews(), StubIndexNewsDataset(), enqueue) as client:
+        response = client.post("/api/v1/news/index/jobs", json={"limit": 7})
+
+    assert response.status_code == 202
+    assert enqueue.limit == 7
+    assert response.json() == {
+        "job_id": "job-1",
+        "status": "queued",
+        "events_channel": "news.index.events",
+    }
 
 
 @pytest.mark.parametrize(

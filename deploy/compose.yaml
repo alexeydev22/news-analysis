@@ -74,6 +74,29 @@ services:
     depends_on:
       - retrieval-service
 
+  news-worker:
+    build:
+      context: ..
+      dockerfile: deploy/docker/news-service.Dockerfile
+    env_file:
+      - ../.env.example
+    environment:
+      NEWS_SERVICE_RETRIEVAL_SERVICE_URL: "http://retrieval-service:8000"
+      NEWS_SERVICE_NEWS_DATASET_PATH: "${NEWS_SERVICE_NEWS_DATASET_PATH:-data/raw/economic_news.csv}"
+      NEWS_SERVICE_REDIS_URL: "redis://redis:6379/0"
+    command:
+      - .venv/bin/taskiq
+      - worker
+      - news_service.workers.broker:broker
+      - news_service.workers.tasks
+      - --workers
+      - "1"
+    volumes:
+      - ../data:/app/data:ro
+    depends_on:
+      - redis
+      - retrieval-service
+
   frontend-web:
     build:
       context: ..

@@ -1,5 +1,6 @@
 from dishka.integrations.fastapi import FromDishka, inject
 from economic_news_contracts.news import (
+    EnqueueIndexNewsDatasetResponse,
     IndexNewsDatasetRequest,
     IndexNewsDatasetResponse,
     NewsDocumentResponse,
@@ -7,7 +8,11 @@ from economic_news_contracts.news import (
 )
 from fastapi import APIRouter, Query
 
-from news_service.application.use_cases import IndexNewsDataset, PreviewNews
+from news_service.application.use_cases import (
+    EnqueueIndexNewsDataset,
+    IndexNewsDataset,
+    PreviewNews,
+)
 from news_service.main.settings import NewsServiceSettings
 
 router = APIRouter(prefix="/api/v1/news")
@@ -43,5 +48,16 @@ async def index_news(
     use_case: FromDishka[IndexNewsDataset],
     settings: FromDishka[NewsServiceSettings],
 ) -> IndexNewsDatasetResponse:
+    limit = request.limit if "limit" in request.model_fields_set else settings.default_index_limit
+    return await use_case.execute(limit=limit)
+
+
+@router.post("/index/jobs", status_code=202)
+@inject
+async def enqueue_index_news(
+    request: IndexNewsDatasetRequest,
+    use_case: FromDishka[EnqueueIndexNewsDataset],
+    settings: FromDishka[NewsServiceSettings],
+) -> EnqueueIndexNewsDatasetResponse:
     limit = request.limit if "limit" in request.model_fields_set else settings.default_index_limit
     return await use_case.execute(limit=limit)

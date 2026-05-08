@@ -1,6 +1,10 @@
 import pytest
 from economic_news_contracts.retrieval import IndexNewsResponse
-from news_service.application.use_cases import IndexNewsDataset, PreviewNews
+from news_service.application.use_cases import (
+    EnqueueIndexNewsDataset,
+    IndexNewsDataset,
+    PreviewNews,
+)
 from news_service.domain.model import NewsDocument
 
 
@@ -41,6 +45,15 @@ class FakeRetrievalIndexer:
         )
 
 
+class FakeTaskQueue:
+    def __init__(self) -> None:
+        self.limit: int | None = None
+
+    async def enqueue(self, limit: int) -> str:
+        self.limit = limit
+        return "job-1"
+
+
 @pytest.mark.asyncio
 async def test_preview_news_loads_documents_and_reports_total_count() -> None:
     source = FakeNewsSource()
@@ -66,3 +79,16 @@ async def test_index_news_dataset_loads_limited_documents_and_indexes_them() -> 
     assert result.loaded_count == 1
     assert result.indexed_count == 1
     assert result.collection_name == "economic_news"
+
+
+@pytest.mark.asyncio
+async def test_enqueue_index_news_dataset_schedules_background_job() -> None:
+    queue = FakeTaskQueue()
+    use_case = EnqueueIndexNewsDataset(queue, events_channel="news.index.events")
+
+    result = await use_case.execute(limit=25)
+
+    assert queue.limit == 25
+    assert result.job_id == "job-1"
+    assert result.status == "queued"
+    assert result.events_channel == "news.index.events"

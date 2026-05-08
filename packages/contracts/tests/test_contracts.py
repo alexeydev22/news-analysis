@@ -15,8 +15,10 @@ from economic_news_contracts.dialog import (
 from economic_news_contracts.events import EventEnvelope
 from economic_news_contracts.health import HealthResponse
 from economic_news_contracts.news import (
+    EnqueueIndexNewsDatasetResponse,
     IndexNewsDatasetRequest,
     IndexNewsDatasetResponse,
+    IndexNewsJobStatus,
     NewsDocumentResponse,
     PreviewNewsResponse,
 )
@@ -284,6 +286,28 @@ def test_index_news_dataset_response_rejects_invalid_counts_and_collection() -> 
 
     with pytest.raises(ValueError):
         IndexNewsDatasetResponse(loaded_count=0, indexed_count=0, collection_name=" ")
+
+
+def test_enqueue_index_news_dataset_response_defaults_to_queued_status() -> None:
+    response = EnqueueIndexNewsDatasetResponse(
+        job_id="job-1",
+        events_channel="news.index.events",
+    )
+
+    assert response.status == IndexNewsJobStatus.QUEUED
+    assert response.model_dump(mode="json") == {
+        "job_id": "job-1",
+        "status": "queued",
+        "events_channel": "news.index.events",
+    }
+
+
+def test_enqueue_index_news_dataset_response_rejects_empty_text() -> None:
+    with pytest.raises(ValidationError):
+        EnqueueIndexNewsDatasetResponse(job_id=" ", events_channel="news.index.events")
+
+    with pytest.raises(ValidationError):
+        EnqueueIndexNewsDatasetResponse(job_id="job-1", events_channel=" ")
 
 
 def test_news_document_payload_rejects_empty_required_text_fields() -> None:

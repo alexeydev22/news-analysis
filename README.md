@@ -108,6 +108,18 @@ curl -X POST http://localhost:8004/api/v1/news/index \
   -d '{"limit": 10}'
 ```
 
+Queue the same indexing as a background job:
+
+```bash
+curl -X POST http://localhost:8004/api/v1/news/index/jobs \
+  -H 'Content-Type: application/json' \
+  -d '{"limit": 10}'
+```
+
+The job is executed by `news-worker` through Taskiq and Redis. Status events are
+published through FastStream to the Redis channel configured by
+`NEWS_SERVICE_INDEX_EVENTS_CHANNEL`.
+
 ## Frontend Chat Console
 
 The React UI is a real API client for the local backend.

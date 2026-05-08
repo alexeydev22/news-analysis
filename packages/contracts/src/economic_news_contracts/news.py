@@ -1,4 +1,5 @@
 from datetime import datetime
+from enum import StrEnum
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -46,6 +47,29 @@ class IndexNewsDatasetResponse(BaseModel):
     @field_validator("collection_name")
     @classmethod
     def normalize_collection_name(cls, value: str) -> str:
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("Value must not be empty")
+        return normalized
+
+
+class IndexNewsJobStatus(StrEnum):
+    QUEUED = "queued"
+    STARTED = "started"
+    SUCCEEDED = "succeeded"
+    FAILED = "failed"
+
+
+class EnqueueIndexNewsDatasetResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    job_id: str = Field(min_length=1)
+    status: IndexNewsJobStatus = IndexNewsJobStatus.QUEUED
+    events_channel: str = Field(min_length=1)
+
+    @field_validator("job_id", "events_channel")
+    @classmethod
+    def normalize_required_job_text(cls, value: str) -> str:
         normalized = value.strip()
         if not normalized:
             raise ValueError("Value must not be empty")
