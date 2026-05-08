@@ -3,12 +3,11 @@ from __future__ import annotations
 from pathlib import Path
 
 from docx import Document
-from docx.enum.section import WD_SECTION
 from docx.enum.table import WD_CELL_VERTICAL_ALIGNMENT, WD_TABLE_ALIGNMENT
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
-from docx.shared import Inches, Pt, RGBColor
+from docx.shared import Cm, Inches, Pt, RGBColor
 from PIL import Image, ImageDraw, ImageFont
 
 
@@ -17,12 +16,17 @@ FINAL_DIR = ROOT / "docs" / "final"
 ASSETS_DIR = FINAL_DIR / "assets"
 DOCX_PATH = FINAL_DIR / "coursework-explanatory-note.docx"
 
-BLUE = "1F4D78"
+UNIVERSITY = "Финансовый университет при Правительстве РФ"
+STUDENT = "Прудиев Алексей Сергеевич"
+GROUP = "ПМ23-4"
+YEAR = "2026"
+
+BLUE = "1F3A5F"
 ACCENT = "0F5132"
-LIGHT = "F3F7F5"
-INK = "17211D"
-MUTED = "5F6B66"
-GRID = "C8D8D1"
+INK = "111111"
+MUTED = "4F5B57"
+GRID = "B7C6C0"
+TABLE_HEADER = "E8EEF5"
 
 
 def font(size: int, bold: bool = False) -> ImageFont.FreeTypeFont:
@@ -64,19 +68,19 @@ def build_architecture_diagram() -> Path:
     small_font = font(18)
 
     draw.text((70, 50), "Архитектура диалоговой системы анализа экономических новостей", fill=f"#{INK}", font=title_font)
-    draw.text((72, 112), "Микросервисный стенд: поиск, анализ влияния, генерация ответа и UI", fill=f"#{MUTED}", font=body_font)
+    draw.text((72, 112), "Баланс ML/NLP pipeline и production backend: поиск, анализ влияния, генерация ответа и интерфейс", fill=f"#{MUTED}", font=body_font)
 
     boxes = {
-        "ui": (70, 220, 360, 360, "frontend-web", "React UI"),
+        "ui": (70, 220, 360, 360, "frontend-web", "React-интерфейс"),
         "news": (70, 520, 360, 660, "news-service", "CSV preview/index"),
         "gateway": (500, 260, 820, 400, "api-gateway", "FastAPI + SSE"),
-        "worker": (500, 560, 820, 700, "news-worker", "Taskiq background"),
-        "retrieval": (960, 170, 1270, 310, "retrieval-service", "Qdrant search"),
-        "analysis": (960, 390, 1270, 530, "analysis-service", "tfidf-logreg"),
+        "worker": (500, 560, 820, 700, "news-worker", "Taskiq worker"),
+        "retrieval": (960, 170, 1270, 310, "retrieval-service", "поиск в Qdrant"),
+        "analysis": (960, 390, 1270, 530, "analysis-service", "оценка влияния"),
         "dialog": (960, 610, 1270, 750, "dialog-service", "template / LLM"),
-        "qdrant": (1430, 170, 1710, 310, "Qdrant", "vector store"),
-        "redis": (1430, 450, 1710, 590, "Redis", "queue + events"),
-        "mlflow": (1430, 730, 1710, 870, "MLflow", "experiments"),
+        "qdrant": (1430, 170, 1710, 310, "Qdrant", "векторное хранилище"),
+        "redis": (1430, 450, 1710, 590, "Redis", "очередь и события"),
+        "mlflow": (1430, 730, 1710, 870, "MLflow", "эксперименты"),
     }
 
     for key, (x1, y1, x2, y2, title, subtitle) in boxes.items():
@@ -118,7 +122,7 @@ def build_architecture_diagram() -> Path:
     arrow_path([(820, 660), (1430, 520)], "queue")
     arrow_path([(1270, 460), (1350, 460), (1350, 800), (1430, 800)], "metrics")
 
-    footer = "Сценарий: CSV -> индексация -> retrieval -> анализ влияния -> ответ с источниками"
+    footer = "Сценарий: CSV -> текстовые признаки и embeddings -> retrieval -> классификация влияния -> ответ с источниками"
     draw.text((70, 940), footer, fill=f"#{MUTED}", font=body_font)
     img.save(path)
     return path
@@ -138,7 +142,7 @@ def build_ui_mock() -> Path:
     draw.line((380, 0, 380, 1050), fill="#D1DED8", width=2)
     draw.line((1330, 0, 1330, 1050), fill="#D1DED8", width=2)
 
-    draw.text((60, 70), "Economic News\nDialog", fill=f"#{INK}", font=title_font, spacing=8)
+    draw.text((60, 70), "Диалоговая\nсистема", fill=f"#{INK}", font=title_font, spacing=8)
     draw.text((60, 210), "Модель анализа", fill=f"#{MUTED}", font=body_font)
     rounded_rect(draw, (60, 248, 330, 300), "FFFFFF", "B9CAC2", radius=8)
     draw.text((82, 260), "tfidf-logreg", fill=f"#{INK}", font=body_font)
@@ -146,10 +150,10 @@ def build_ui_mock() -> Path:
     rounded_rect(draw, (60, 378, 330, 430), "FFFFFF", "B9CAC2", radius=8)
     draw.text((82, 390), "5", fill=f"#{INK}", font=body_font)
     rounded_rect(draw, (60, 490, 210, 545), ACCENT, ACCENT, radius=8)
-    draw.text((82, 505), "Preview CSV", fill="#FFFFFF", font=small_font)
+    draw.text((76, 505), "Предпросмотр", fill="#FFFFFF", font=small_font)
     rounded_rect(draw, (225, 490, 345, 545), ACCENT, ACCENT, radius=8)
-    draw.text((244, 505), "Index CSV", fill="#FFFFFF", font=small_font)
-    draw.text((60, 610), "Dataset", fill=f"#{INK}", font=h_font)
+    draw.text((242, 505), "Индекс", fill="#FFFFFF", font=small_font)
+    draw.text((60, 610), "Набор данных", fill=f"#{INK}", font=h_font)
     draw.text((60, 655), "5 русскоязычных\nэкономических новостей", fill=f"#{INK}", font=body_font, spacing=8)
 
     draw.text((430, 70), "Вопрос", fill=f"#{MUTED}", font=body_font)
@@ -209,8 +213,11 @@ def set_cell_text(cell, text: str, bold: bool = False) -> None:
     paragraph = cell.paragraphs[0]
     run = paragraph.add_run(text)
     run.bold = bold
-    run.font.name = "Calibri"
-    run.font.size = Pt(10)
+    run.font.name = "Times New Roman"
+    run._element.rPr.rFonts.set(qn("w:ascii"), "Times New Roman")
+    run._element.rPr.rFonts.set(qn("w:hAnsi"), "Times New Roman")
+    run._element.rPr.rFonts.set(qn("w:cs"), "Times New Roman")
+    run.font.size = Pt(12)
     cell.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
 
 
@@ -220,7 +227,7 @@ def add_table(doc: Document, headers: list[str], rows: list[list[str]]) -> None:
     table.style = "Table Grid"
     for index, header in enumerate(headers):
         set_cell_text(table.rows[0].cells[index], header, True)
-        set_cell_shading(table.rows[0].cells[index], "E8EEF5")
+        set_cell_shading(table.rows[0].cells[index], TABLE_HEADER)
     for row in rows:
         cells = table.add_row().cells
         for index, value in enumerate(row):
@@ -234,49 +241,73 @@ def add_bullets(doc: Document, items: list[str]) -> None:
 
 
 def add_numbers(doc: Document, items: list[str]) -> None:
-    for item in items:
-        doc.add_paragraph(item, style="List Number")
+    for index, item in enumerate(items, start=1):
+        paragraph = doc.add_paragraph()
+        paragraph.paragraph_format.first_line_indent = Cm(0)
+        paragraph.paragraph_format.left_indent = Cm(0.75)
+        paragraph.paragraph_format.line_spacing = 1.5
+        paragraph.paragraph_format.space_after = Pt(0)
+        run = paragraph.add_run(f"{index}. {item}")
+        run.font.name = "Times New Roman"
+        run._element.rPr.rFonts.set(qn("w:ascii"), "Times New Roman")
+        run._element.rPr.rFonts.set(qn("w:hAnsi"), "Times New Roman")
+        run._element.rPr.rFonts.set(qn("w:cs"), "Times New Roman")
+        run.font.size = Pt(14)
 
 
 def configure_doc(doc: Document) -> None:
     section = doc.sections[0]
-    section.top_margin = Inches(1)
-    section.bottom_margin = Inches(1)
-    section.left_margin = Inches(1)
-    section.right_margin = Inches(1)
-    section.header_distance = Inches(0.492)
-    section.footer_distance = Inches(0.492)
+    section.page_width = Cm(21)
+    section.page_height = Cm(29.7)
+    section.top_margin = Cm(2)
+    section.bottom_margin = Cm(2)
+    section.left_margin = Cm(3)
+    section.right_margin = Cm(1.5)
+    section.header_distance = Cm(1.25)
+    section.footer_distance = Cm(1.25)
 
     styles = doc.styles
     normal = styles["Normal"]
-    normal.font.name = "Calibri"
-    normal.font.size = Pt(11)
-    normal.paragraph_format.space_after = Pt(6)
-    normal.paragraph_format.line_spacing = 1.1
+    normal.font.name = "Times New Roman"
+    normal._element.rPr.rFonts.set(qn("w:ascii"), "Times New Roman")
+    normal._element.rPr.rFonts.set(qn("w:hAnsi"), "Times New Roman")
+    normal._element.rPr.rFonts.set(qn("w:cs"), "Times New Roman")
+    normal.font.size = Pt(14)
+    normal.paragraph_format.space_after = Pt(0)
+    normal.paragraph_format.first_line_indent = Cm(1.25)
+    normal.paragraph_format.line_spacing = 1.5
+    normal.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
 
     for name, size, color, before, after in [
-        ("Title", 22, INK, 0, 12),
-        ("Heading 1", 16, BLUE, 16, 8),
-        ("Heading 2", 13, BLUE, 12, 6),
-        ("Heading 3", 12, "1F4D78", 8, 4),
+        ("Title", 16, INK, 0, 12),
+        ("Heading 1", 14, INK, 18, 8),
+        ("Heading 2", 14, INK, 12, 6),
+        ("Heading 3", 14, INK, 10, 4),
     ]:
         style = styles[name]
-        style.font.name = "Calibri"
+        style.font.name = "Times New Roman"
+        style._element.rPr.rFonts.set(qn("w:ascii"), "Times New Roman")
+        style._element.rPr.rFonts.set(qn("w:hAnsi"), "Times New Roman")
+        style._element.rPr.rFonts.set(qn("w:cs"), "Times New Roman")
         style.font.size = Pt(size)
         style.font.color.rgb = RGBColor.from_string(color)
         style.font.bold = True
         style.paragraph_format.space_before = Pt(before)
         style.paragraph_format.space_after = Pt(after)
+        style.paragraph_format.first_line_indent = Cm(0)
+        style.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
     header = section.header.paragraphs[0]
-    header.text = "Курсовая работа | Диалоговая система анализа экономических новостей"
-    header.runs[0].font.size = Pt(9)
+    header.text = "Курсовая работа"
+    header.runs[0].font.name = "Times New Roman"
+    header.runs[0].font.size = Pt(10)
     header.runs[0].font.color.rgb = RGBColor.from_string(MUTED)
 
     footer = section.footer.paragraphs[0]
-    footer.text = "Проект news-analysis"
+    footer.text = f"{STUDENT}, {GROUP}"
     footer.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-    footer.runs[0].font.size = Pt(9)
+    footer.runs[0].font.name = "Times New Roman"
+    footer.runs[0].font.size = Pt(10)
     footer.runs[0].font.color.rgb = RGBColor.from_string(MUTED)
 
 
@@ -289,18 +320,47 @@ def build_docx() -> Path:
     doc = Document()
     configure_doc(doc)
 
-    title = doc.add_paragraph(style="Title")
-    title.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    title.add_run("Разработка автоматической диалоговой системы на основе языковой модели для анализа экономических новостей")
-    subtitle = doc.add_paragraph()
-    subtitle.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    subtitle.add_run("Пояснительная записка к курсовой работе").bold = True
+    org = doc.add_paragraph()
+    org.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    org.paragraph_format.first_line_indent = Cm(0)
+    org.add_run(UNIVERSITY).bold = True
+
+    for _ in range(7):
+        doc.add_paragraph()
+
+    work_type = doc.add_paragraph()
+    work_type.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    work_type.paragraph_format.first_line_indent = Cm(0)
+    work_type.add_run("КУРСОВАЯ РАБОТА").bold = True
+
+    discipline = doc.add_paragraph()
+    discipline.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    discipline.paragraph_format.first_line_indent = Cm(0)
+    discipline.add_run("по дисциплине: ____________________")
+
+    topic = doc.add_paragraph()
+    topic.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    topic.paragraph_format.first_line_indent = Cm(0)
+    topic.add_run("на тему: «Разработка автоматической диалоговой системы на основе языковой модели для анализа экономических новостей»").bold = True
+
+    for _ in range(5):
+        doc.add_paragraph()
+
     meta = doc.add_paragraph()
-    meta.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    meta.add_run("Студент: ____________________    Группа: ____________________\nРуководитель: ____________________\n2026")
+    meta.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+    meta.paragraph_format.first_line_indent = Cm(0)
+    meta.add_run(f"Выполнил: {STUDENT}\nГруппа: {GROUP}\nРуководитель: ____________________")
+
+    for _ in range(8):
+        doc.add_paragraph()
+
+    year = doc.add_paragraph()
+    year.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    year.paragraph_format.first_line_indent = Cm(0)
+    year.add_run(f"Москва, {YEAR}")
 
     doc.add_page_break()
-    doc.add_heading("Содержание", level=1)
+    doc.add_heading("СОДЕРЖАНИЕ", level=1)
     add_numbers(doc, [
         "Введение",
         "Анализ предметной области",
@@ -311,10 +371,11 @@ def build_docx() -> Path:
         "Список использованных источников",
     ])
 
-    doc.add_heading("Введение", level=1)
+    doc.add_heading("ВВЕДЕНИЕ", level=1)
     for para in [
         "Экономические новости ежедневно влияют на ожидания инвесторов, компаний, потребителей и государственных органов. Рост ВВП, изменение инфляции, решения центральных банков, динамика безработицы и торговые показатели могут менять оценку рыночных рисков.",
         "Автоматические диалоговые системы позволяют упростить работу с такими данными: пользователь формулирует вопрос естественным языком, а система находит релевантные источники, анализирует их и формирует краткий ответ.",
+        "Работа находится на стыке машинного обучения и backend-разработки. ML/NLP-часть отвечает за текстовое представление новостей, поиск релевантного контекста, классификацию влияния и подключение языковой модели. Инженерная часть отвечает за микросервисную архитектуру, асинхронную обработку, веб-интерфейс и воспроизводимый запуск.",
         "Объектом работы являются экономические новости. Предметом работы являются методы построения автоматической диалоговой системы для поиска, анализа и обобщения экономических новостей.",
         "Цель работы: разработать локальную автоматическую диалоговую систему, которая принимает вопрос пользователя, находит релевантные экономические новости, оценивает их влияние и формирует ответ на основе найденных источников.",
     ]:
@@ -322,6 +383,7 @@ def build_docx() -> Path:
     doc.add_paragraph("Для достижения цели поставлены задачи:")
     add_numbers(doc, [
         "Изучить предметную область анализа экономических новостей.",
+        "Определить ML/NLP pipeline: представление текста, поиск, классификация влияния и генерация ответа.",
         "Спроектировать микросервисную архитектуру диалоговой системы.",
         "Реализовать сервис загрузки и индексации новостей.",
         "Реализовать сервис векторного поиска релевантных новостей.",
@@ -331,18 +393,29 @@ def build_docx() -> Path:
         "Подготовить воспроизводимый сценарий запуска и проверки.",
     ])
 
-    doc.add_heading("1. Анализ предметной области", level=1)
+    doc.add_heading("1. АНАЛИЗ ПРЕДМЕТНОЙ ОБЛАСТИ", level=1)
     for para in [
         "Экономические новости представляют собой текстовые сообщения о событиях, которые могут влиять на рынок, отрасли и отдельные компании. Такие события часто связаны с макроэкономическими показателями, монетарной политикой, торговлей, занятостью и промышленностью.",
-        "Для автоматического анализа новостей применяются методы обработки естественного языка. В рамках работы используются поиск релевантных документов, классификация влияния новости и генерация итогового ответа.",
+        "С точки зрения машинного обучения задача включает несколько подзадач обработки естественного языка: нормализацию и представление текста, поиск релевантных документов, классификацию влияния новости и генерацию итогового ответа. Поэтому система должна не только отдавать HTTP-ответ, но и выполнять понятный ML/NLP pipeline.",
+        "Для классификации влияния новости применяется воспроизводимый baseline tfidf-logreg. Такой подход хорошо подходит для учебной защиты: он объясним, быстро запускается локально и показывает связь между текстовыми признаками и итоговым классом влияния. В архитектуре также предусмотрены режимы на embeddings и небольшой transformer-модели.",
         "Retrieval-подход позволяет сначала найти контекст, а затем формировать ответ на основе найденных документов. Это снижает риск абстрактного ответа и делает результат объяснимым для пользователя.",
     ]:
         doc.add_paragraph(para)
+    add_table(doc, ["ML/NLP-задача", "Роль в системе"], [
+        ["Текстовое представление", "TF-IDF и embeddings используются для поиска и классификации новостей."],
+        ["Retrieval", "Поиск релевантных документов формирует контекст для ответа."],
+        ["Классификация влияния", "Модель определяет позитивное, негативное или нейтральное влияние новости."],
+        ["Генерация ответа", "Dialog-service собирает ответ по найденным источникам через template или LLM-режим."],
+        ["ML tracking", "MLflow предусмотрен для фиксации экспериментов и артефактов моделей."],
+    ])
 
-    doc.add_heading("2. Проектирование диалоговой системы", level=1)
+    doc.add_heading("2. ПРОЕКТИРОВАНИЕ ДИАЛОГОВОЙ СИСТЕМЫ", level=1)
     doc.add_paragraph("Система построена как локальный микросервисный стенд. Такой подход разделяет ответственность компонентов и позволяет показать полный pipeline обработки вопроса.")
     doc.add_picture(str(arch), width=Inches(6.3))
     doc.paragraphs[-1].alignment = WD_ALIGN_PARAGRAPH.CENTER
+    caption = doc.add_paragraph("Рисунок 1 - Архитектура диалоговой системы")
+    caption.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    caption.paragraph_format.first_line_indent = Cm(0)
     add_table(doc, ["Компонент", "Ответственность"], [
         ["frontend-web", "Веб-интерфейс чата, предпросмотра CSV и отображения источников."],
         ["api-gateway", "Единая точка входа, оркестрация поиска, анализа и генерации ответа."],
@@ -352,48 +425,56 @@ def build_docx() -> Path:
         ["analysis-service", "Классификация влияния новости."],
         ["dialog-service", "Формирование итогового ответа через template или LLM-режим."],
     ])
-    doc.add_paragraph("Backend-сервисы используют слоистую архитектуру: domain, application, infrastructure, presentation и main. Интерфейсы портов описаны через Protocol, а зависимости собираются через Dishka.")
+    doc.add_paragraph("Backend-сервисы используют слоистую архитектуру: domain, application, infrastructure, presentation и main. Интерфейсы портов описаны через Protocol, а зависимости собираются через Dishka. Такое разделение сохраняет ясную границу между ML-логикой, доменными правилами и инфраструктурными адаптерами.")
 
-    doc.add_heading("3. Реализация программного проекта", level=1)
+    doc.add_heading("3. РЕАЛИЗАЦИЯ ПРОГРАММНОГО ПРОЕКТА", level=1)
     for para in [
         "Проект реализован в формате monorepo. Backend написан на Python с использованием FastAPI, asyncio и Granian. Межсервисные HTTP-вызовы выполняются через Zapros, настройки описываются через Pydantic Settings, структурные логи формируются через structlog.",
         "Фоновые задачи вынесены в news-worker. Taskiq ставит задачи индексации, Redis используется как backend очереди, а FastStream публикует события. Этот вариант легче RabbitMQ и подходит для локального стенда.",
         "Векторный поиск реализован через Qdrant. Для demo-режима поддерживаются статические embeddings, чтобы запуск не зависел от скачивания внешней модели.",
-        "Анализ новости выполняется в analysis-service. Основной demo-режим tfidf-logreg возвращает класс влияния, confidence score и объяснение на русском языке.",
+        "ML/NLP-часть выделена в отдельные контракты и сервисы. Analysis-service получает текст новости, применяет выбранный режим анализа и возвращает класс влияния, confidence score и краткое объяснение на русском языке.",
+        "Основной demo-режим tfidf-logreg выбран как объяснимый baseline. Он дополняется предусмотренными режимами embedding-logreg и tiny-transformer-classifier, чтобы в дальнейшем можно было сравнивать качество разных подходов без изменения внешнего API.",
         "Dialog-service поддерживает template fallback и LLM-режим через OpenAI-compatible локальный сервер. Для легкого локального варианта предусмотрена модель Qwen3-0.6B-Instruct-GGUF через llama.cpp.",
     ]:
         doc.add_paragraph(para)
     add_table(doc, ["Часть", "Технологии"], [
-        ["Backend", "FastAPI, asyncio, Granian"],
-        ["Архитектура", "DDD, слои, Protocol, Dishka"],
-        ["Фоновые задачи", "Taskiq, Redis, FastStream"],
-        ["Поиск", "Qdrant"],
+        ["ML: признаки текста", "TF-IDF, статические embeddings"],
+        ["ML: классификация", "Logistic Regression baseline, режимы embedding-logreg и tiny-transformer-classifier"],
+        ["NLP: retrieval/RAG", "Qdrant, поиск контекста, ответ по источникам"],
+        ["NLP: генерация", "Template fallback, OpenAI-compatible LLM через llama.cpp"],
         ["ML tracking", "MLflow"],
-        ["Frontend", "React"],
-        ["Запуск", "Docker Compose, Dockerfile, Justfile"],
+        ["Backend", "FastAPI, asyncio, Granian, Zapros"],
+        ["Архитектура", "DDD, слои, Protocol, Dishka"],
+        ["Фоновые задачи и события", "Taskiq, Redis, FastStream"],
+        ["Frontend и запуск", "React, Docker Compose, Dockerfile, Justfile"],
     ])
 
-    doc.add_heading("4. Тестирование и демонстрация результатов", level=1)
-    doc.add_paragraph("Для проверки проекта подготовлены unit-тесты, тесты контрактов, API-тесты, frontend-тесты и demo smoke-сценарий.")
+    doc.add_heading("4. ТЕСТИРОВАНИЕ И ДЕМОНСТРАЦИЯ РЕЗУЛЬТАТОВ", level=1)
+    doc.add_paragraph("Для проверки проекта подготовлены unit-тесты, тесты контрактов, API-тесты, frontend-тесты и demo smoke-сценарий. Проверка охватывает как инженерную связность сервисов, так и корректность ML/NLP-сценария: поиск источников, классификацию влияния и формирование ответа по найденному контексту.")
     add_table(doc, ["Проверка", "Назначение"], [
         ["git diff --check", "Проверка форматных ошибок в diff."],
         ["docker compose config --quiet", "Проверка корректности compose-конфигурации."],
         ["just demo-smoke", "Проверка health endpoints, CSV preview, индексации, фоновой задачи, SSE и frontend."],
         ["frontend tests", "Проверка React UI и клиентских API."],
+        ["ML/NLP demo", "Проверка найденных источников, score, класса влияния и итогового ответа."],
     ])
     doc.add_picture(str(ui), width=Inches(6.3))
     doc.paragraphs[-1].alignment = WD_ALIGN_PARAGRAPH.CENTER
+    caption = doc.add_paragraph("Рисунок 2 - Интерфейс демонстрационного сценария")
+    caption.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    caption.paragraph_format.first_line_indent = Cm(0)
     doc.add_paragraph("Ручной сценарий демонстрации: запустить just demo-up, открыть http://localhost:5173, выполнить предпросмотр CSV, индексировать новости и задать вопрос о росте ВВП и снижении инфляции.")
 
-    doc.add_heading("Заключение", level=1)
+    doc.add_heading("ЗАКЛЮЧЕНИЕ", level=1)
     for para in [
         "В ходе работы была разработана локальная микросервисная диалоговая система для анализа экономических новостей. Система принимает вопрос пользователя, ищет релевантные новости, классифицирует их влияние и формирует ответ с указанием источников.",
+        "Содержательно работа сбалансирована между машинным обучением и backend-разработкой. ML/NLP-результат включает retrieval pipeline, классификацию влияния, поддержку разных режимов анализа и LLM-адаптер. Инженерный результат включает микросервисную архитектуру, асинхронные сервисы, фоновые задачи, SSE-интерфейс и воспроизводимый Docker Compose запуск.",
         "Поставленная цель достигнута. Проект соответствует теме курсовой работы, поскольку реализует автоматический диалоговый сценарий на основе найденного контекста, анализа экономических новостей и подключаемой языковой модели.",
         "Дальнейшее развитие может включать подключение реальных новостных API, сохранение истории диалогов в PostgreSQL, обучение дополнительных моделей анализа и сравнение качества template и LLM-режимов.",
     ]:
         doc.add_paragraph(para)
 
-    doc.add_heading("Список использованных источников", level=1)
+    doc.add_heading("СПИСОК ИСПОЛЬЗОВАННЫХ ИСТОЧНИКОВ", level=1)
     add_numbers(doc, [
         "FastAPI Documentation. https://fastapi.tiangolo.com/",
         "Granian Documentation. https://github.com/emmett-framework/granian",
