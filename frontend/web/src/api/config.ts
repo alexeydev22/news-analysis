@@ -3,9 +3,9 @@ function trimTrailingSlash(value: string): string {
 }
 
 export const API_GATEWAY_URL = trimTrailingSlash(
-  import.meta.env.VITE_API_GATEWAY_URL ?? "http://localhost:8000",
+  import.meta.env.VITE_API_GATEWAY_URL ?? "/api-gateway",
 );
 
 export const NEWS_SERVICE_URL = trimTrailingSlash(
-  import.meta.env.VITE_NEWS_SERVICE_URL ?? "http://localhost:8004",
+  import.meta.env.VITE_NEWS_SERVICE_URL ?? "/news-service",
 );

@@ -16,18 +16,18 @@ export async function previewNews(
   options: ApiOptions = {},
 ): Promise<PreviewNewsResponse> {
   const fetcher = options.fetcher ?? fetch;
-  const url = new URL(`${normalizeBaseUrl(options.baseUrl ?? NEWS_SERVICE_URL)}/api/v1/news/preview`);
-  url.searchParams.set("limit", String(request.limit));
+  const params = new URLSearchParams({ limit: String(request.limit) });
+  const url = `${normalizeBaseUrl(options.baseUrl ?? NEWS_SERVICE_URL)}/api/v1/news/preview?${params}`;
 
   let response: Response;
   try {
-    response = await fetcher(url.toString());
+    response = await fetcher(url);
   } catch {
     throw connectionError();
   }
 
   if (!response.ok) {
-    throw await errorFromResponse(response, "news source is unavailable");
+    throw await errorFromResponse(response, "Не удалось загрузить предпросмотр новостей");
   }
 
   return (await response.json()) as PreviewNewsResponse;
@@ -51,7 +51,7 @@ export async function indexNewsDataset(
   }
 
   if (!response.ok) {
-    throw await errorFromResponse(response, "news indexing is unavailable");
+    throw await errorFromResponse(response, "Не удалось индексировать набор новостей");
   }
 
   return (await response.json()) as IndexNewsDatasetResponse;

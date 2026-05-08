@@ -103,7 +103,7 @@ describe("App", () => {
     expect(screen.getByText("GDP grows")).toBeInTheDocument();
     expect(screen.getByText("positive")).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:8000/api/v1/chat/stream",
+      "/api-gateway/api/v1/chat/stream",
       expect.objectContaining({
         method: "POST",
         body: JSON.stringify({
@@ -143,7 +143,7 @@ describe("App", () => {
     await user.click(screen.getByRole("button", { name: "Ask" }));
 
     await waitFor(() => {
-      expect(screen.getByRole("alert")).toHaveTextContent("retrieval service is unavailable");
+      expect(screen.getByRole("alert")).toHaveTextContent("Не удалось завершить потоковый ответ");
     });
     expect(screen.getByText("error")).toBeInTheDocument();
   });

@@ -116,9 +116,7 @@ Local development:
 
 ```bash
 npm --prefix frontend/web install
-VITE_API_GATEWAY_URL=http://localhost:8000 \
-VITE_NEWS_SERVICE_URL=http://localhost:8004 \
-  npm --prefix frontend/web run dev -- --host 0.0.0.0 --port 5173
+npm --prefix frontend/web run dev -- --host 0.0.0.0 --port 5173
 ```
 
 Open:
@@ -131,6 +129,9 @@ Expected backend services:
 
 - `api-gateway` on `http://localhost:8000`;
 - `news-service` on `http://localhost:8004`.
+
+Vite proxies `/api-gateway/*` and `/news-service/*` to those local services.
+The production nginx image uses the same relative paths inside Docker Compose.
 
 Checks:
 

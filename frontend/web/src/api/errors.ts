@@ -7,10 +7,7 @@ export class ApiError extends Error {
 
 export async function errorFromResponse(response: Response, fallback: string): Promise<ApiError> {
   try {
-    const payload = (await response.json()) as { detail?: unknown };
-    if (typeof payload.detail === "string" && payload.detail.trim()) {
-      return new ApiError(payload.detail);
-    }
+    await response.json();
   } catch {
     return new ApiError(fallback);
   }

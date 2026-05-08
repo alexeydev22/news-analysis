@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import { streamChat } from "../api/chatStream";
+import { ApiError } from "../api/errors";
 import { indexNewsDataset, previewNews } from "../api/news";
 import { ChatPanel } from "../components/ChatPanel";
 import { ControlsPanel } from "../components/ControlsPanel";
@@ -19,7 +20,7 @@ import type {
 import styles from "./App.module.css";
 
 function messageFromError(error: unknown): string {
-  return error instanceof Error ? error.message : "Не удалось выполнить действие";
+  return error instanceof ApiError ? error.message : "Не удалось выполнить действие";
 }
 
 function clampLimit(value: number): number {
@@ -39,6 +40,10 @@ function isSourcesFound(data: Record<string, unknown>): data is { sources: NewsD
 
 function isAnalysisCompleted(data: Record<string, unknown>): data is { impact_summaries: ImpactSummary[] } {
   return Array.isArray(data.impact_summaries);
+}
+
+function streamErrorMessage(): string {
+  return "Не удалось завершить потоковый ответ";
 }
 
 export function App() {
@@ -70,7 +75,7 @@ export function App() {
       setImpactSummaries(event.data.impact_summaries);
     }
     if (event.event === "error") {
-      setError(String(event.data.detail ?? "chat stream is unavailable"));
+      setError(streamErrorMessage());
     }
   }
 

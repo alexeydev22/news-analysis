@@ -116,7 +116,7 @@ export async function streamChat(
   }
 
   if (!response.ok) {
-    throw await errorFromResponse(response, "chat stream is unavailable");
+    throw await errorFromResponse(response, "Не удалось получить потоковый ответ");
   }
 
   return readStreamEvents(response, options.onEvent);
