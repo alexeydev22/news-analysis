@@ -65,6 +65,96 @@ def test_normalize_impact_maps_numeric_scores() -> None:
     assert normalize_impact(0.1, positive_threshold=0.2, negative_threshold=-0.2) == "neutral"
 
 
+def test_normalize_impact_rejects_missing_and_non_finite_values() -> None:
+    with pytest.raises(ValueError, match="Impact label is missing"):
+        normalize_impact(pd.NA, positive_threshold=0.2, negative_threshold=-0.2)
+
+    with pytest.raises(ValueError, match="Impact score must be finite"):
+        normalize_impact(float("inf"), positive_threshold=0.2, negative_threshold=-0.2)
+
+
+def test_prepare_dataset_rejects_missing_labels(tmp_path: Path) -> None:
+    input_path = tmp_path / "external.csv"
+    pd.DataFrame(
+        {
+            "title": ["Rates rise"],
+            "text": ["Central bank raised rates"],
+            "source": ["Reuters"],
+            "published_at": ["2026-05-01"],
+            "impact": [None],
+        },
+    ).to_csv(input_path, index=False)
+
+    with pytest.raises(ValueError, match="Impact label is missing"):
+        prepare_dataset(
+            input_path=input_path,
+            app_output_path=tmp_path / "app.csv",
+            train_output_path=tmp_path / "train.csv",
+            id_column=None,
+            title_column="title",
+            text_column="text",
+            source_column="source",
+            published_at_column="published_at",
+            label_column="impact",
+        )
+
+
+def test_prepare_dataset_normalizes_mixed_timezone_dates_to_utc(tmp_path: Path) -> None:
+    input_path = tmp_path / "external.csv"
+    app_output_path = tmp_path / "app.csv"
+    pd.DataFrame(
+        {
+            "title": ["Rates rise", "Stocks steady"],
+            "text": ["Central bank raised rates", "Market closed flat"],
+            "source": ["Reuters", "Bloomberg"],
+            "published_at": ["2026-05-01T12:00:00+03:00", "2026-05-01T12:00:00Z"],
+        },
+    ).to_csv(input_path, index=False)
+
+    prepare_dataset(
+        input_path=input_path,
+        app_output_path=app_output_path,
+        train_output_path=tmp_path / "train.csv",
+        id_column=None,
+        title_column="title",
+        text_column="text",
+        source_column="source",
+        published_at_column="published_at",
+        label_column=None,
+    )
+
+    app_frame = pd.read_csv(app_output_path)
+    assert app_frame["published_at"].to_list() == [
+        "2026-05-01T09:00:00Z",
+        "2026-05-01T12:00:00Z",
+    ]
+
+
+def test_prepare_dataset_rejects_duplicate_generated_ids(tmp_path: Path) -> None:
+    input_path = tmp_path / "external.csv"
+    pd.DataFrame(
+        {
+            "title": ["Rates rise", "Rates rise"],
+            "text": ["Central bank raised rates", "Central bank raised rates"],
+            "source": ["Reuters", "Reuters"],
+            "published_at": ["2026-05-01", "2026-05-02"],
+        },
+    ).to_csv(input_path, index=False)
+
+    with pytest.raises(ValueError, match="Generated article ids must be unique"):
+        prepare_dataset(
+            input_path=input_path,
+            app_output_path=tmp_path / "app.csv",
+            train_output_path=tmp_path / "train.csv",
+            id_column=None,
+            title_column="title",
+            text_column="text",
+            source_column="source",
+            published_at_column="published_at",
+            label_column=None,
+        )
+
+
 def test_prepare_dataset_validates_required_columns(tmp_path: Path) -> None:
     input_path = tmp_path / "external.csv"
     pd.DataFrame(

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import math
 from pathlib import Path
 from typing import Any
 
@@ -46,6 +47,9 @@ def normalize_impact(
     Raises:
         ValueError: Если значение нельзя преобразовать в поддерживаемую метку.
     """
+    if pd.isna(value):
+        raise ValueError("Impact label is missing")
+
     normalized_value = str(value).strip().lower()
     if normalized_value in LABEL_ALIASES:
         return LABEL_ALIASES[normalized_value]
@@ -54,6 +58,9 @@ def normalize_impact(
         score = float(normalized_value)
     except ValueError as error:
         raise ValueError(f"Unsupported impact value: {value!r}") from error
+
+    if not math.isfinite(score):
+        raise ValueError(f"Impact score must be finite: {value!r}")
 
     if score >= positive_threshold:
         return "positive"
@@ -163,11 +170,11 @@ def normalize_text_column(frame: pd.DataFrame, column: str) -> pd.Series:
 
 
 def normalize_published_at(values: pd.Series) -> pd.Series:
-    published_at = pd.to_datetime(values, errors="coerce", format="mixed")
+    published_at = pd.to_datetime(values, errors="coerce", format="mixed", utc=True)
     if published_at.isna().any():
         raise ValueError("published_at values must be parseable dates")
 
-    return published_at.dt.strftime("%Y-%m-%dT%H:%M:%S")
+    return published_at.dt.strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def normalize_ids(
@@ -188,7 +195,10 @@ def normalize_ids(
         stable_id(source_value, title_value, text_value)
         for source_value, title_value, text_value in zip(source, title, text, strict=True)
     ]
-    return pd.Series(generated_ids, index=frame.index)
+    ids = pd.Series(generated_ids, index=frame.index)
+    if ids.duplicated().any():
+        raise ValueError("Generated article ids must be unique")
+    return ids
 
 
 def build_train_frame(

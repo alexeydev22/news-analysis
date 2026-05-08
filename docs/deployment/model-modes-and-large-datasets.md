@@ -73,18 +73,33 @@ docker compose -f deploy/compose.yaml up --build
 
 ## 4. Подготовка обученных analysis-режимов
 
-Внешний CSV сначала нужно привести к двум схемам:
+Внешний CSV сначала нужно привести к двум схемам. Для CSV с уже совместимыми
+колонками:
 
 ```bash
 just prepare-dataset path/to/external.csv
 ```
 
-По умолчанию команда пишет:
+Для training CSV передайте label и, если нужно, названия внешних колонок:
+
+```bash
+just prepare-dataset path/to/external.csv \
+  --title-column headline \
+  --text-column body \
+  --source-column publisher \
+  --published-at-column date \
+  --label-column sentiment \
+  --positive-threshold 0.2 \
+  --negative-threshold -0.2 \
+  --limit 50000
+```
+
+Команда пишет:
 
 - `data/raw/economic_news.csv` для preview/index в news app;
 - `data/raw/news_impact.csv` для обучения research pipeline, если передан label.
 
-Если названия колонок отличаются, запустите CLI напрямую:
+Если нужны нестандартные output paths, запустите CLI напрямую:
 
 ```bash
 uv run python tools/prepare_dataset.py path/to/external.csv \
@@ -247,7 +262,8 @@ FNSPID хорошо подходит для большого retrieval и стр
 выглядит так:
 
 1. Подготовить внешний CSV через `just prepare-dataset path/to/external.csv`
-   или прямой запуск `tools/prepare_dataset.py` с явными колонками.
+   с нужными аргументами, например `--label-column sentiment`, или прямой
+   запуск `tools/prepare_dataset.py` с явными колонками.
 2. Обучить модели: `just train-baseline`, `just train-embedding`,
    `just train-transformer`.
 3. Сравнить результаты: `just compare-models`.

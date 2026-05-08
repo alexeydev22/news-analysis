@@ -54,8 +54,8 @@ web-test:
 web-build:
     npm --prefix frontend/web run build
 
-prepare-dataset input:
-    uv run python tools/prepare_dataset.py {{input}}
+prepare-dataset input +args='':
+    uv run python tools/prepare_dataset.py {{input}} {{args}}
 
 train-baseline:
     uv run --project research python -m economic_news_research.cli train-baseline --dataset data/raw/news_impact.csv --output-dir artifacts/models/baseline
