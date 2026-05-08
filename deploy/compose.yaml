@@ -26,9 +26,14 @@ services:
     env_file:
       - ../.env.example
     environment:
-      ANALYSIS_USE_STATIC_CLASSIFIER: "true"
+      ANALYSIS_USE_STATIC_CLASSIFIER: "${ANALYSIS_USE_STATIC_CLASSIFIER:-true}"
+      ANALYSIS_TFIDF_ARTIFACT_PATH: "${ANALYSIS_TFIDF_ARTIFACT_PATH:-artifacts/models/baseline/tfidf-logreg.joblib}"
+      ANALYSIS_EMBEDDING_ARTIFACT_PATH: "${ANALYSIS_EMBEDDING_ARTIFACT_PATH:-artifacts/models/embedding/embedding-logreg.joblib}"
+      ANALYSIS_TRANSFORMER_ARTIFACT_PATH: "${ANALYSIS_TRANSFORMER_ARTIFACT_PATH:-artifacts/models/transformer/tiny-transformer-classifier.joblib}"
     ports:
       - "8001:8000"
+    volumes:
+      - ../artifacts:/app/artifacts:ro
 
   retrieval-service:
     build:
@@ -38,7 +43,8 @@ services:
       - ../.env.example
     environment:
       RETRIEVAL_QDRANT_URL: "http://qdrant:6333"
-      RETRIEVAL_USE_STATIC_EMBEDDINGS: "true"
+      RETRIEVAL_USE_STATIC_EMBEDDINGS: "${RETRIEVAL_USE_STATIC_EMBEDDINGS:-true}"
+      RETRIEVAL_EMBEDDING_MODEL_NAME: "${RETRIEVAL_EMBEDDING_MODEL_NAME:-sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2}"
     ports:
       - "8002:8000"
     depends_on:

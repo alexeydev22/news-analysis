@@ -231,7 +231,7 @@ bulletList(slide, [
   "Сделать React UI с SSE timeline.",
   "Подготовить Docker Compose demo-сценарий.",
 ], 6.55, 2.38, 5.2, 2.4, 15.5);
-slide.addText("Баланс защиты: примерно 50% ML/NLP и 50% production backend", {
+slide.addText("Задачи сгруппированы по исследовательской и инженерной частям проекта", {
   x: 0.9, y: 5.55, w: 10.8, h: 0.35,
   fontFace: "Arial", fontSize: 15, bold: true, color: C.blue, margin: 0,
 });
