@@ -1,0 +1,183 @@
+:global(*) {
+  box-sizing: border-box;
+}
+
+:global(body) {
+  margin: 0;
+  min-width: 320px;
+  background: #f4f6f8;
+  color: #17202a;
+  font-family:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  min-height: 40px;
+  border: 1px solid #17202a;
+  border-radius: 6px;
+  background: #17202a;
+  color: #ffffff;
+  cursor: pointer;
+}
+
+input,
+select,
+textarea {
+  width: 100%;
+  border: 1px solid #c8d0d8;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #17202a;
+  padding: 10px 12px;
+}
+
+textarea {
+  resize: vertical;
+}
+
+.shell {
+  min-height: 100vh;
+  padding: 24px;
+}
+
+.workspace {
+  width: min(1180px, 100%);
+  margin: 0 auto;
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.header h1 {
+  margin: 4px 0 0;
+  font-size: clamp(28px, 3vw, 40px);
+  line-height: 1.1;
+  letter-spacing: 0;
+}
+
+.eyebrow {
+  margin: 0;
+  color: #53606d;
+  font-size: 14px;
+}
+
+.status {
+  border: 1px solid #d8dde3;
+  border-radius: 999px;
+  background: #ffffff;
+  padding: 8px 12px;
+  color: #53606d;
+  font-size: 13px;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(240px, 300px) minmax(0, 1fr) minmax(240px, 320px);
+  gap: 20px;
+  align-items: start;
+}
+
+.sidebar,
+.chat,
+.sources {
+  border: 1px solid #d8dde3;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.sidebar {
+  display: grid;
+  gap: 16px;
+  padding: 18px;
+}
+
+.field,
+.question {
+  display: grid;
+  gap: 8px;
+  color: #344250;
+  font-size: 14px;
+}
+
+.actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.chat {
+  display: grid;
+  min-height: 540px;
+  grid-template-rows: 1fr auto;
+}
+
+.sources {
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+}
+
+.sources h2 {
+  margin: 0;
+  font-size: 18px;
+  letter-spacing: 0;
+}
+
+.sources p {
+  margin: 0;
+  color: #6d7884;
+  font-size: 14px;
+}
+
+.messages {
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  color: #6d7884;
+  text-align: center;
+}
+
+.composer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 140px;
+  gap: 12px;
+  align-items: end;
+  border-top: 1px solid #d8dde3;
+  padding: 16px;
+}
+
+@media (max-width: 760px) {
+  .shell {
+    padding: 16px;
+  }
+
+  .header,
+  .layout,
+  .composer {
+    grid-template-columns: 1fr;
+  }
+
+  .header {
+    display: grid;
+  }
+
+  .status {
+    width: fit-content;
+  }
+
+  .actions {
+    grid-template-columns: 1fr;
+  }
+}
