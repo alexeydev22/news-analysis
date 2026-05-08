@@ -1,77 +1,164 @@
+import { useState } from "react";
+
+import { streamChat } from "../api/chatStream";
+import { indexNewsDataset, previewNews } from "../api/news";
+import { ChatPanel } from "../components/ChatPanel";
+import { ControlsPanel } from "../components/ControlsPanel";
+import { NewsPreview } from "../components/NewsPreview";
+import { SourcesPanel } from "../components/SourcesPanel";
+import { Timeline } from "../components/Timeline";
+import type {
+  AnalysisModelName,
+  ChatResponse,
+  ChatStreamEvent,
+  ImpactSummary,
+  IndexNewsDatasetResponse,
+  NewsDocument,
+  PreviewNewsResponse,
+} from "./types";
 import styles from "./App.module.css";
 
-const MODEL_OPTIONS = [
-  { label: "Qwen3 0.6B", value: "qwen3-0.6b" },
-  { label: "Llama 3.2 1B", value: "llama-3.2-1b" },
-];
+function messageFromError(error: unknown): string {
+  return error instanceof Error ? error.message : "Не удалось выполнить действие";
+}
+
+function clampLimit(value: number): number {
+  if (!Number.isFinite(value)) {
+    return 1;
+  }
+  return Math.min(20, Math.max(1, value));
+}
+
+function isChatResponse(data: Record<string, unknown>): data is ChatResponse {
+  return typeof data.answer === "string" && Array.isArray(data.sources);
+}
+
+function isSourcesFound(data: Record<string, unknown>): data is { sources: NewsDocument[] } {
+  return Array.isArray(data.sources);
+}
+
+function isAnalysisCompleted(data: Record<string, unknown>): data is { impact_summaries: ImpactSummary[] } {
+  return Array.isArray(data.impact_summaries);
+}
 
 export function App() {
+  const [analysisModel, setAnalysisModel] = useState<AnalysisModelName>("tfidf-logreg");
+  const [limit, setLimit] = useState("5");
+  const [source, setSource] = useState("");
+  const [question, setQuestion] = useState("");
+  const [events, setEvents] = useState<ChatStreamEvent[]>([]);
+  const [answer, setAnswer] = useState("");
+  const [sources, setSources] = useState<NewsDocument[]>([]);
+  const [impactSummaries, setImpactSummaries] = useState<ImpactSummary[]>([]);
+  const [preview, setPreview] = useState<PreviewNewsResponse | null>(null);
+  const [indexResult, setIndexResult] = useState<IndexNewsDatasetResponse | null>(null);
+  const [isStreaming, setStreaming] = useState(false);
+  const [isPreviewLoading, setPreviewLoading] = useState(false);
+  const [isIndexLoading, setIndexLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  function applyStreamEvent(event: ChatStreamEvent) {
+    if (event.event === "sources_found" && isSourcesFound(event.data)) {
+      setSources(event.data.sources);
+    }
+    if (event.event === "analysis_completed" && isAnalysisCompleted(event.data)) {
+      setImpactSummaries(event.data.impact_summaries);
+    }
+    if (event.event === "answer_completed" && isChatResponse(event.data)) {
+      setAnswer(event.data.answer);
+      setSources(event.data.sources);
+      setImpactSummaries(event.data.impact_summaries);
+    }
+    if (event.event === "error") {
+      setError(String(event.data.detail ?? "chat stream is unavailable"));
+    }
+  }
+
+  async function handleSubmit() {
+    setStreaming(true);
+    setError(null);
+    setEvents([]);
+    setAnswer("");
+    setSources([]);
+    setImpactSummaries([]);
+
+    try {
+      await streamChat(
+        {
+          question,
+          analysis_model: analysisModel,
+          limit: clampLimit(Number(limit)),
+          source: source.trim() || null,
+        },
+        {
+          onEvent: (event) => {
+            setEvents((currentEvents) => [...currentEvents, event]);
+            applyStreamEvent(event);
+          },
+        },
+      );
+    } catch (streamError) {
+      setError(messageFromError(streamError));
+    } finally {
+      setStreaming(false);
+    }
+  }
+
+  async function handlePreview() {
+    setPreviewLoading(true);
+    setError(null);
+    try {
+      setPreview(await previewNews({ limit: 5 }));
+    } catch (previewError) {
+      setError(messageFromError(previewError));
+    } finally {
+      setPreviewLoading(false);
+    }
+  }
+
+  async function handleIndex() {
+    setIndexLoading(true);
+    setError(null);
+    try {
+      setIndexResult(await indexNewsDataset({ limit: 100 }));
+    } catch (indexError) {
+      setError(messageFromError(indexError));
+    } finally {
+      setIndexLoading(false);
+    }
+  }
+
   return (
     <main className={styles.shell}>
-      <section className={styles.workspace} aria-labelledby="app-title">
-        <header className={styles.header}>
-          <div>
-            <p className={styles.eyebrow}>Анализ экономических новостей</p>
-            <h1 id="app-title">Economic News Dialog</h1>
-          </div>
-          <div className={styles.status}>API offline</div>
-        </header>
-
-        <div className={styles.layout}>
-          <aside className={styles.sidebar} aria-label="Настройки анализа">
-            <label className={styles.field}>
-              <span>Модель анализа</span>
-              <select defaultValue={MODEL_OPTIONS[0].value}>
-                {MODEL_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className={styles.field}>
-              <span>Лимит источников</span>
-              <input min="1" max="10" type="number" defaultValue="5" />
-            </label>
-
-            <label className={styles.field}>
-              <span>Источник</span>
-              <input type="text" defaultValue="data/news.csv" />
-            </label>
-
-            <div className={styles.actions}>
-              <button type="button">Preview CSV</button>
-              <button type="button">Index CSV</button>
-            </div>
-          </aside>
-
-          <section className={styles.chat} aria-label="Диалоговая система">
-            <div className={styles.messages}>
-              <p>Ответ появится после отправки вопроса.</p>
-            </div>
-
-            <form
-              aria-label="Форма вопроса"
-              className={styles.composer}
-              onSubmit={(event) => {
-                event.preventDefault();
-              }}
-            >
-              <label className={styles.question}>
-                <span>Вопрос</span>
-                <textarea rows={3} placeholder="Как новость повлияет на рынок?" />
-              </label>
-              <button type="submit">Отправить</button>
-            </form>
-          </section>
-
-          <aside className={styles.sources} aria-label="Источники анализа">
-            <h2>Sources</h2>
-            <p>Источники появятся после ответа.</p>
-          </aside>
-        </div>
-      </section>
+      <div className={styles.controls}>
+        <ControlsPanel
+          analysisModel={analysisModel}
+          limit={limit}
+          source={source}
+          isPreviewLoading={isPreviewLoading}
+          isIndexLoading={isIndexLoading}
+          onAnalysisModelChange={setAnalysisModel}
+          onLimitChange={setLimit}
+          onSourceChange={setSource}
+          onPreview={handlePreview}
+          onIndex={handleIndex}
+        />
+        <NewsPreview preview={preview} indexResult={indexResult} />
+      </div>
+      <div className={styles.chat}>
+        <ChatPanel
+          question={question}
+          answer={answer}
+          isStreaming={isStreaming}
+          error={error}
+          onQuestionChange={setQuestion}
+          onSubmit={handleSubmit}
+        />
+        <Timeline events={events} />
+      </div>
+      <div className={styles.sources}>
+        <SourcesPanel sources={sources} impactSummaries={impactSummaries} />
+      </div>
     </main>
   );
 }
