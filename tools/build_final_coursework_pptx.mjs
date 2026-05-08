@@ -217,20 +217,22 @@ slide.addText("ML/NLP-часть", {
 });
 bulletList(slide, [
   "Определить текстовое представление новостей.",
+  "Подготовить CSV и обучить классификаторы.",
   "Реализовать retrieval/RAG по источникам.",
   "Реализовать классификацию влияния новости.",
   "Поддержать template и LLM-режим ответа.",
-], 0.9, 2.38, 5.0, 2.4, 15.5);
+], 0.9, 2.38, 5.0, 2.4, 14.4);
 slide.addText("Backend-часть", {
   x: 6.55, y: 1.95, w: 4.7, h: 0.3,
   fontFace: "Arial", fontSize: 15, bold: true, color: C.green, margin: 0,
 });
 bulletList(slide, [
   "Спроектировать микросервисную DDD-архитектуру.",
+  "Реализовать CSV upload и активный датасет.",
   "Реализовать асинхронные сервисы и фоновые задачи.",
   "Сделать React UI с SSE timeline.",
   "Подготовить Docker Compose demo-сценарий.",
-], 6.55, 2.38, 5.2, 2.4, 15.5);
+], 6.55, 2.38, 5.2, 2.4, 14.4);
 slide.addText("Задачи сгруппированы по исследовательской и инженерной частям проекта", {
   x: 0.9, y: 5.55, w: 10.8, h: 0.35,
   fontFace: "Arial", fontSize: 15, bold: true, color: C.blue, margin: 0,
@@ -262,6 +264,7 @@ title(slide, "Методы и технологии", "Стек разделен 
 sectionLabel(slide, "Критерий: методы и результаты", 0.9, 1.22, 2.6);
 addTableLike(slide, [
   ["Часть", "Выбор"],
+  ["ML: подготовка CSV", "prepare_dataset + label-column"],
   ["ML: текстовые признаки", "TF-IDF, embeddings"],
   ["ML: классификация", "Logistic Regression, tiny transformer mode"],
   ["NLP: retrieval/RAG", "Qdrant + контекст источников"],
@@ -269,8 +272,8 @@ addTableLike(slide, [
   ["Backend", "FastAPI, asyncio, Granian, Zapros"],
   ["Архитектура", "DDD, слои, Protocol, Dishka"],
   ["Очереди и события", "Taskiq, Redis, FastStream, SSE"],
-  ["UI и запуск", "React, Docker Compose, Justfile"],
-], 0.9, 1.5, [3.35, 7.45], 0.5);
+  ["UI и запуск", "React, CSV upload, Docker Compose, Justfile"],
+], 0.9, 1.5, [3.35, 7.45], 0.46);
 
 slide = pptx.addSlide();
 title(slide, "ML/NLP-компоненты", "Анализ новости сделан как объяснимый baseline с расширяемыми режимами", 7);
@@ -283,8 +286,9 @@ bulletList(slide, [
   "Классы: positive, negative, neutral.",
   "Baseline: TF-IDF + Logistic Regression.",
   "Выход: impact, confidence, explanation.",
+  "Обучение: train-baseline / train-embedding / train-transformer.",
   "Расширение: embedding-logreg и tiny-transformer-classifier.",
-], 0.9, 2.27, 5.2, 2.35, 15.2);
+], 0.9, 2.27, 5.2, 2.55, 13.8);
 slide.addText("Retrieval и генерация", {
   x: 6.55, y: 1.9, w: 4.8, h: 0.28,
   fontFace: "Arial", fontSize: 15, bold: true, color: C.green, margin: 0,
@@ -295,13 +299,13 @@ bulletList(slide, [
   "Template generator дает стабильный demo.",
   "LLM-режим подключает Qwen3-0.6B-Instruct-GGUF через llama.cpp.",
 ], 6.55, 2.27, 5.4, 2.35, 15.2);
-slide.addText("MLflow используется как точка учета экспериментов, метрик и артефактов моделей.", {
+slide.addText("CSV готовится через prepare-dataset --label-column; MLflow используется для учета экспериментов, метрик и артефактов моделей.", {
   x: 0.9, y: 5.5, w: 10.8, h: 0.35,
-  fontFace: "Arial", fontSize: 14.5, bold: true, color: C.blue, margin: 0,
+  fontFace: "Arial", fontSize: 13.5, bold: true, color: C.blue, margin: 0,
 });
 
 slide = pptx.addSlide();
-title(slide, "Интерфейс приложения", "Пользователь видит ответ, источники и timeline обработки", 8);
+title(slide, "Интерфейс приложения", "Пользователь загружает CSV, видит активный датасет, ответ, источники и timeline", 8);
 sectionLabel(slide, "Критерий: методы и результаты", 0.55, 1.18, 2.6);
 slide.addImage({ path: path.join(assetsDir, "ui-demo-screenshot.png"), x: 0.55, y: 1.45, w: 12.2, h: 5.3 });
 
@@ -312,16 +316,21 @@ addTableLike(slide, [
   ["Проверка", "Результат"],
   ["api-gateway health", "ok"],
   ["news-service health", "ok"],
-  ["CSV preview", "5 документов"],
+  ["CSV upload / active dataset", "ok"],
+  ["CSV preview", "активный набор"],
   ["index CSV", "5 документов"],
   ["Taskiq job", "queued"],
   ["retrieval + analysis", "источники + impact"],
   ["chat SSE", "8 событий"],
   ["frontend HTML", "ok"],
-], 0.9, 1.5, [4.0, 5.5], 0.5);
+], 0.9, 1.5, [4.0, 5.5], 0.46);
 slide.addText("Команды: just demo-up → just demo-smoke → just demo-down", {
   x: 0.9, y: 6.25, w: 9.8, h: 0.35,
   fontFace: "Arial", fontSize: 15, bold: true, color: C.green, margin: 0,
+});
+slide.addText("Обученные режимы: prepare-dataset --label-column → train-* → compare-models → demo-up-trained", {
+  x: 0.9, y: 6.63, w: 10.8, h: 0.28,
+  fontFace: "Arial", fontSize: 11.5, bold: true, color: C.blue, margin: 0,
 });
 
 slide = pptx.addSlide();
@@ -331,9 +340,9 @@ addTableLike(slide, [
   ["Требование темы", "Что реализовано"],
   ["Автоматическая диалоговая система", "Web UI + chat SSE endpoint"],
   ["Языковая модель", "LLM-адаптер в dialog-service"],
-  ["ML-анализ новостей", "tfidf-logreg, impact, confidence, explanation"],
+  ["ML-анализ новостей", "prepare_dataset, train-*, impact, confidence"],
   ["Retrieval/RAG", "top-k источники, score, Qdrant"],
-  ["Production backend", "FastAPI, DDD, Dishka, Taskiq, Redis"],
+  ["Production backend", "FastAPI, CSV upload, DDD, Taskiq, Redis"],
   ["Воспроизводимый результат", "Docker Compose + smoke-сценарий"],
 ], 0.8, 1.65, [4.7, 6.5], 0.6);
 
@@ -346,20 +355,22 @@ slide.addText("ML/NLP-результат", {
 });
 bulletList(slide, [
   "Поиск релевантного контекста.",
+  "Подготовка датасета и обучение моделей.",
   "Классификация влияния новостей.",
   "Ответ по источникам с LLM-адаптером.",
   "MLflow для дальнейших экспериментов.",
-], 0.9, 2.2, 5.0, 2.45, 15.5);
+], 0.9, 2.2, 5.0, 2.45, 14.4);
 slide.addText("Backend-результат", {
   x: 6.55, y: 1.82, w: 4.6, h: 0.3,
   fontFace: "Arial", fontSize: 15, bold: true, color: C.green, margin: 0,
 });
 bulletList(slide, [
   "Микросервисы со слоистой DDD-структурой.",
+  "Загрузка CSV и выбор активного датасета.",
   "Асинхронные API, фоновые задачи и SSE.",
   "React UI и Docker Compose запуск.",
   "Smoke-сценарий для проверки стенда.",
-], 6.55, 2.2, 5.1, 2.45, 15.5);
+], 6.55, 2.2, 5.1, 2.45, 14.4);
 slide.addText("Дальнейшее развитие: реальные news API, расширение датасета, сравнение моделей и сохранение истории диалогов.", {
   x: 0.9, y: 5.45, w: 10.8, h: 0.42,
   fontFace: "Arial", fontSize: 14.2, bold: true, color: C.blue, margin: 0,
