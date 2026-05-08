@@ -74,6 +74,19 @@ services:
     depends_on:
       - retrieval-service
 
+  frontend-web:
+    build:
+      context: ..
+      dockerfile: deploy/docker/frontend-web.Dockerfile
+      args:
+        VITE_API_GATEWAY_URL: "${VITE_API_GATEWAY_URL:-http://localhost:8000}"
+        VITE_NEWS_SERVICE_URL: "${VITE_NEWS_SERVICE_URL:-http://localhost:8004}"
+    ports:
+      - "5173:80"
+    depends_on:
+      - api-gateway
+      - news-service
+
   postgres:
     image: postgres:17-alpine
     environment:
