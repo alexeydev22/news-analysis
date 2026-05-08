@@ -21,7 +21,11 @@
 Подробные материалы:
 
 - [Архитектура проекта](docs/architecture.md);
-- [Demo guide и чеклист проверки](docs/demo.md).
+- [Demo guide и чеклист проверки](docs/demo.md);
+- [Структура курсовой работы](docs/coursework/structure.md);
+- [Черновик пояснительной записки](docs/coursework/thesis-draft.md);
+- [Структура презентации](docs/presentation/outline.md);
+- [Заметки докладчика](docs/presentation/speaker-notes.md).
 
 ## Ветки
 
