@@ -1,0 +1,142 @@
+:global(*) {
+  box-sizing: border-box;
+}
+
+:global(body) {
+  margin: 0;
+  min-width: 320px;
+  background: #eef2ef;
+  color: #17201b;
+  font-family:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+:global(button),
+:global(input),
+:global(select),
+:global(textarea) {
+  font: inherit;
+}
+
+:global(button) {
+  min-height: 40px;
+  border: 0;
+  border-radius: 6px;
+  background: #123c2f;
+  color: #ffffff;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+
+:global(button:disabled) {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
+:global(label) {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 14px;
+  color: #34443b;
+  font-size: 0.9rem;
+}
+
+:global(input),
+:global(select),
+:global(textarea) {
+  width: 100%;
+  border: 1px solid #becbc4;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #17201b;
+  padding: 10px 12px;
+}
+
+:global(textarea) {
+  resize: vertical;
+}
+
+:global(article) {
+  border: 1px solid #d6dfda;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 14px;
+  margin-bottom: 10px;
+}
+
+:global(h1),
+:global(h2),
+:global(h3),
+:global(p) {
+  letter-spacing: 0;
+}
+
+:global(h1) {
+  margin: 0 0 20px;
+  font-size: 28px;
+  line-height: 1.1;
+}
+
+:global(h2) {
+  margin: 0 0 14px;
+  font-size: 18px;
+}
+
+:global(h3) {
+  margin: 0 0 8px;
+  font-size: 15px;
+}
+
+:global(p) {
+  margin: 0 0 10px;
+}
+
+:global(.controlActions) {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.shell {
+  display: grid;
+  min-height: 100vh;
+  grid-template-columns: minmax(260px, 320px) minmax(420px, 1fr) minmax(300px, 380px);
+  gap: 1px;
+  background: #cfd8d3;
+}
+
+.controls,
+.chat,
+.sources {
+  min-width: 0;
+  background: #f8faf8;
+  padding: 24px;
+}
+
+.controls {
+  display: grid;
+  align-content: start;
+  gap: 18px;
+}
+
+.chat {
+  display: grid;
+  align-content: start;
+  gap: 18px;
+}
+
+.sources {
+  overflow: auto;
+}
+
+@media (max-width: 1060px) {
+  .shell {
+    grid-template-columns: 1fr;
+  }
+
+  .controls,
+  .chat,
+  .sources {
+    padding: 18px;
+  }
+}

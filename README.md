@@ -108,6 +108,40 @@ curl -X POST http://localhost:8004/api/v1/news/index \
   -d '{"limit": 10}'
 ```
 
+## Frontend Chat Console
+
+The React UI is a real API client for the local backend.
+
+Local development:
+
+```bash
+npm --prefix frontend/web install
+npm --prefix frontend/web run dev -- --host 0.0.0.0 --port 5173
+```
+
+Open:
+
+```text
+http://localhost:5173
+```
+
+Expected backend services:
+
+- `api-gateway` on `http://localhost:8000`;
+- `news-service` on `http://localhost:8004`.
+
+Vite proxies `/api-gateway/*` and `/news-service/*` to those local services.
+The production nginx image uses the same relative paths inside Docker Compose.
+
+Checks:
+
+```bash
+npm --prefix frontend/web test -- --run
+npm --prefix frontend/web run lint
+npm --prefix frontend/web run typecheck
+npm --prefix frontend/web run build
+```
+
 ## Локальный LLM сервер для Dialog Service
 
 `dialog-service` по умолчанию запускается в режиме `template`, чтобы стек работал без
