@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 import pytest
@@ -65,6 +66,33 @@ async def test_storage_activates_and_returns_active_dataset(tmp_path: Path) -> N
     active_dataset = await storage.get_active()
     assert active_dataset is not None
     assert active_dataset.dataset_id == uploaded.dataset_id
+
+
+@pytest.mark.asyncio
+async def test_storage_rejects_active_dataset_path_outside_upload_dir(tmp_path: Path) -> None:
+    upload_dir = tmp_path / "uploads"
+    active_dataset_file = upload_dir / "active_dataset.json"
+    external_path = tmp_path / "external.csv"
+    external_path.write_bytes(CSV_BYTES)
+    active_dataset_file.parent.mkdir(parents=True)
+    active_dataset_file.write_text(
+        json.dumps(
+            {
+                "dataset_id": "external",
+                "filename": "external.csv",
+                "path": str(external_path),
+                "activated_at": "2026-05-07T09:30:00+00:00",
+            }
+        ),
+        encoding="utf-8",
+    )
+    storage = LocalDatasetStorage(
+        upload_dir=upload_dir,
+        active_dataset_file=active_dataset_file,
+        max_upload_bytes=1024,
+    )
+
+    assert await storage.get_active() is None
 
 
 @pytest.mark.asyncio

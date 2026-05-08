@@ -93,9 +93,19 @@ class LocalDatasetStorage:
             return None
 
         active = self._active_from_json(raw_active)
-        if active is None or not active.path.exists():
+        if active is None:
             return None
-        return active
+
+        dataset = await self._find_dataset(active.dataset_id)
+        if dataset is None:
+            return None
+
+        return ActiveDataset(
+            dataset_id=dataset.dataset_id,
+            filename=dataset.filename,
+            path=dataset.path,
+            activated_at=active.activated_at,
+        )
 
     async def get_active_path(self) -> Path | None:
         active = await self.get_active()
