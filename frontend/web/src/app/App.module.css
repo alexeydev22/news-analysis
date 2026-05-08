@@ -97,6 +97,19 @@
   gap: 8px;
 }
 
+:global(.datasetUpload) {
+  margin: 2px 0 14px;
+  padding-top: 14px;
+  border-top: 1px solid #d6dfda;
+}
+
+:global(.datasetUploadStatus) {
+  margin-bottom: 12px;
+  color: #17201b;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
 .shell {
   display: grid;
   min-height: 100vh;

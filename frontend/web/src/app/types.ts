@@ -50,3 +50,20 @@ export type IndexNewsDatasetResponse = {
   indexed_count: number;
   collection_name: string;
 };
+
+export type UploadedDataset = {
+  dataset_id: string;
+  filename: string;
+  size_bytes: number;
+  uploaded_at: string;
+};
+
+export type DatasetListResponse = {
+  datasets: UploadedDataset[];
+};
+
+export type ActiveDataset = {
+  dataset_id: string;
+  filename: string;
+  activated_at: string;
+};

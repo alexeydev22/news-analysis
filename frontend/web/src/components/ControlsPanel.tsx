@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 import type { AnalysisModelName } from "../app/types";
 
 type ControlsPanelProps = {
@@ -6,6 +8,7 @@ type ControlsPanelProps = {
   source: string;
   isPreviewLoading: boolean;
   isIndexLoading: boolean;
+  datasetUploadSlot: ReactNode;
   onAnalysisModelChange: (value: AnalysisModelName) => void;
   onLimitChange: (value: string) => void;
   onSourceChange: (value: string) => void;
@@ -25,6 +28,7 @@ export function ControlsPanel({
   source,
   isPreviewLoading,
   isIndexLoading,
+  datasetUploadSlot,
   onAnalysisModelChange,
   onLimitChange,
   onSourceChange,
@@ -72,6 +76,8 @@ export function ControlsPanel({
           onChange={(event) => onSourceChange(event.target.value)}
         />
       </label>
+
+      {datasetUploadSlot}
 
       <div className="controlActions">
         <button type="button" onClick={onPreview} disabled={isPreviewLoading}>

@@ -1,14 +1,23 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { streamChat } from "../api/chatStream";
 import { ApiError } from "../api/errors";
-import { indexNewsDataset, previewNews } from "../api/news";
+import {
+  activateDataset,
+  getActiveDataset,
+  indexNewsDataset,
+  listDatasets,
+  previewNews,
+  uploadDataset,
+} from "../api/news";
 import { ChatPanel } from "../components/ChatPanel";
 import { ControlsPanel } from "../components/ControlsPanel";
+import { DatasetUpload } from "../components/DatasetUpload";
 import { NewsPreview } from "../components/NewsPreview";
 import { SourcesPanel } from "../components/SourcesPanel";
 import { Timeline } from "../components/Timeline";
 import type {
+  ActiveDataset,
   AnalysisModelName,
   ChatResponse,
   ChatStreamEvent,
@@ -16,6 +25,7 @@ import type {
   IndexNewsDatasetResponse,
   NewsDocument,
   PreviewNewsResponse,
+  UploadedDataset,
 } from "./types";
 import styles from "./App.module.css";
 
@@ -57,10 +67,38 @@ export function App() {
   const [impactSummaries, setImpactSummaries] = useState<ImpactSummary[]>([]);
   const [preview, setPreview] = useState<PreviewNewsResponse | null>(null);
   const [indexResult, setIndexResult] = useState<IndexNewsDatasetResponse | null>(null);
+  const [datasets, setDatasets] = useState<UploadedDataset[]>([]);
+  const [activeDataset, setActiveDataset] = useState<ActiveDataset | null>(null);
   const [isStreaming, setStreaming] = useState(false);
   const [isPreviewLoading, setPreviewLoading] = useState(false);
   const [isIndexLoading, setIndexLoading] = useState(false);
+  const [isUploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadDatasets() {
+      try {
+        const [datasetList, active] = await Promise.all([listDatasets(), getActiveDataset()]);
+        if (isMounted) {
+          setDatasets(datasetList.datasets);
+          setActiveDataset(active);
+        }
+      } catch {
+        if (isMounted) {
+          setDatasets([]);
+          setActiveDataset(null);
+        }
+      }
+    }
+
+    void loadDatasets();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   function applyStreamEvent(event: ChatStreamEvent) {
     if (event.event === "sources_found" && isSourcesFound(event.data)) {
@@ -133,6 +171,31 @@ export function App() {
     }
   }
 
+  async function handleUploadDataset(file: File) {
+    setUploading(true);
+    setError(null);
+    try {
+      const uploaded = await uploadDataset(file);
+      const active = await activateDataset(uploaded.dataset_id);
+      setActiveDataset(active);
+      const datasetList = await listDatasets();
+      setDatasets(datasetList.datasets);
+    } catch (uploadError) {
+      setError(messageFromError(uploadError));
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function handleActivateDataset(datasetId: string) {
+    setError(null);
+    try {
+      setActiveDataset(await activateDataset(datasetId));
+    } catch (activateError) {
+      setError(messageFromError(activateError));
+    }
+  }
+
   return (
     <main className={styles.shell}>
       <div className={styles.controls}>
@@ -142,6 +205,19 @@ export function App() {
           source={source}
           isPreviewLoading={isPreviewLoading}
           isIndexLoading={isIndexLoading}
+          datasetUploadSlot={
+            <DatasetUpload
+              datasets={datasets}
+              activeDataset={activeDataset}
+              isUploading={isUploading}
+              onUpload={(file) => {
+                void handleUploadDataset(file);
+              }}
+              onActivate={(datasetId) => {
+                void handleActivateDataset(datasetId);
+              }}
+            />
+          }
           onAnalysisModelChange={setAnalysisModel}
           onLimitChange={setLimit}
           onSourceChange={setSource}

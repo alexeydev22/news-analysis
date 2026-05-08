@@ -9,6 +9,40 @@ function mockFetch() {
   return vi.fn(async (input: RequestInfo | URL) => {
     const url = String(input);
 
+    if (url.includes("/api/v1/news/datasets/upload")) {
+      return Response.json({
+        dataset_id: "macro",
+        filename: "macro.csv",
+        size_bytes: 32,
+        uploaded_at: "2026-05-08T10:00:00Z",
+      });
+    }
+
+    if (url.includes("/api/v1/news/datasets/macro/activate")) {
+      return Response.json({
+        dataset_id: "macro",
+        filename: "macro.csv",
+        activated_at: "2026-05-08T10:01:00Z",
+      });
+    }
+
+    if (url.includes("/api/v1/news/datasets/active")) {
+      return Response.json(null);
+    }
+
+    if (url.includes("/api/v1/news/datasets")) {
+      return Response.json({
+        datasets: [
+          {
+            dataset_id: "macro",
+            filename: "macro.csv",
+            size_bytes: 32,
+            uploaded_at: "2026-05-08T10:00:00Z",
+          },
+        ],
+      });
+    }
+
     if (url.includes("/api/v1/news/preview")) {
       return Response.json(previewFixture);
     }
@@ -134,6 +168,30 @@ describe("App", () => {
     await user.click(screen.getByRole("button", { name: "Индексировать CSV" }));
     await waitFor(() => {
       expect(screen.getByText("Проиндексировано 10 из 10 в economic_news")).toBeInTheDocument();
+    });
+  });
+
+  it("uploads a csv dataset and displays it as active", async () => {
+    const fetchMock = mockFetch();
+    vi.stubGlobal("fetch", fetchMock);
+    const user = userEvent.setup();
+
+    render(<App />);
+
+    await user.upload(
+      screen.getByLabelText("CSV датасет"),
+      new File(["id,title\n1,GDP"], "macro.csv", { type: "text/csv" }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Активен: macro.csv")).toBeInTheDocument();
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/news-service/api/v1/news/datasets/upload",
+      expect.objectContaining({ method: "POST", body: expect.any(FormData) }),
+    );
+    expect(fetchMock).toHaveBeenCalledWith("/news-service/api/v1/news/datasets/macro/activate", {
+      method: "POST",
     });
   });
 
