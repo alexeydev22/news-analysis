@@ -21,6 +21,9 @@ compose-down:
 demo-up:
     docker compose -f deploy/compose.yaml up --build
 
+demo-up-trained:
+    ANALYSIS_USE_STATIC_CLASSIFIER=false docker compose -f deploy/compose.yaml up --build
+
 demo-smoke:
     uv run python tools/demo_smoke.py
 
@@ -50,3 +53,18 @@ web-test:
 
 web-build:
     npm --prefix frontend/web run build
+
+prepare-dataset input:
+    uv run python tools/prepare_dataset.py {{input}}
+
+train-baseline:
+    uv run --project research python -m economic_news_research.cli train-baseline --dataset data/raw/news_impact.csv --output-dir artifacts/models/baseline
+
+train-embedding:
+    uv run --project research python -m economic_news_research.cli train-embedding --dataset data/raw/news_impact.csv --output-dir artifacts/models/embedding
+
+train-transformer:
+    uv run --project research python -m economic_news_research.cli train-transformer --dataset data/raw/news_impact.csv --output-dir artifacts/models/transformer
+
+compare-models:
+    uv run --project research python -m economic_news_research.cli compare-models

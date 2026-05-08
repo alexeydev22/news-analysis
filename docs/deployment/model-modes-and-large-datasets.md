@@ -73,6 +73,37 @@ docker compose -f deploy/compose.yaml up --build
 
 ## 4. Подготовка обученных analysis-режимов
 
+Внешний CSV сначала нужно привести к двум схемам:
+
+```bash
+just prepare-dataset path/to/external.csv
+```
+
+По умолчанию команда пишет:
+
+- `data/raw/economic_news.csv` для preview/index в news app;
+- `data/raw/news_impact.csv` для обучения research pipeline, если передан label.
+
+Если названия колонок отличаются, запустите CLI напрямую:
+
+```bash
+uv run python tools/prepare_dataset.py path/to/external.csv \
+  --app-output data/raw/economic_news.csv \
+  --train-output data/raw/news_impact.csv \
+  --title-column headline \
+  --text-column body \
+  --source-column publisher \
+  --published-at-column date \
+  --label-column sentiment \
+  --positive-threshold 0.2 \
+  --negative-threshold -0.2 \
+  --limit 50000
+```
+
+Если `--id-column` не задан или такой колонки нет во входном CSV, CLI
+сгенерирует стабильный `id`/`article_id` из `source`, `title` и `text`.
+`--label-column` можно опустить, если нужен только CSV для news app.
+
 Research pipeline ожидает размеченный CSV:
 
 ```text
@@ -91,25 +122,13 @@ article_id,text,impact,source,published_at
 positive,neutral,negative
 ```
 
-Команды обучения:
+Команды обучения и сравнения:
 
 ```bash
-uv run --project research python -m economic_news_research.cli validate \
-  --dataset data/raw/news_impact.csv
-
-uv run --project research python -m economic_news_research.cli train-baseline \
-  --dataset data/raw/news_impact.csv \
-  --output-dir artifacts/models/baseline
-
-uv run --project research python -m economic_news_research.cli train-embedding \
-  --dataset data/raw/news_impact.csv \
-  --output-dir artifacts/models/embedding
-
-uv run --project research python -m economic_news_research.cli train-transformer \
-  --dataset data/raw/news_impact.csv \
-  --output-dir artifacts/models/transformer
-
-uv run --project research python -m economic_news_research.cli compare-models
+just train-baseline
+just train-embedding
+just train-transformer
+just compare-models
 ```
 
 Ожидаемые артефакты:
@@ -123,8 +142,7 @@ artifacts/models/transformer/tiny-transformer-classifier.joblib
 После этого можно запустить compose с обученными моделями:
 
 ```bash
-ANALYSIS_USE_STATIC_CLASSIFIER=false \
-docker compose -f deploy/compose.yaml up --build
+just demo-up-trained
 ```
 
 `analysis-service` монтирует `../artifacts` в `/app/artifacts`, поэтому
@@ -225,14 +243,15 @@ FNSPID хорошо подходит для большого retrieval и стр
 
 ## 8. Что еще желательно автоматизировать
 
-Для полностью удобного production-like запуска стоит добавить отдельный этап
-после текущей ветки:
+После добавления CLI подготовки датасета основной production-like сценарий
+выглядит так:
 
-1. `tools/prepare_dataset.py` для конвертации FNSPID/FinSen в нужные CSV-схемы.
-2. `just train-models` для обучения трех analysis-режимов.
-3. `just demo-up-trained` для запуска compose с `ANALYSIS_USE_STATIC_CLASSIFIER=false`.
-4. `just index-large-dataset` для управляемой индексации большого CSV.
-5. Документированный лимит по памяти и времени индексации для Mac.
+1. Подготовить внешний CSV через `just prepare-dataset path/to/external.csv`
+   или прямой запуск `tools/prepare_dataset.py` с явными колонками.
+2. Обучить модели: `just train-baseline`, `just train-embedding`,
+   `just train-transformer`.
+3. Сравнить результаты: `just compare-models`.
+4. Запустить стенд с обученными артефактами: `just demo-up-trained`.
 
-Сейчас архитектура уже допускает такой сценарий, но подготовка внешнего
-датасета и обучение артефактов остаются отдельным шагом.
+Остается полезным отдельный будущий этап для управляемой индексации очень
+больших CSV и документирования лимитов по памяти и времени для Mac.
