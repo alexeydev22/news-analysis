@@ -160,6 +160,18 @@ artifacts/models/transformer/tiny-transformer-classifier.joblib
 just demo-up-trained
 ```
 
+Краткий сценарий после обучения:
+
+```bash
+just compare-models
+just demo-up-trained
+```
+
+В UI можно переключать обученные `tfidf-logreg`, `embedding-logreg` и
+`tiny-transformer-classifier`. Если выбранный артефакт отсутствует,
+`analysis-service` вернет управляемую ошибку недоступной модели, а не внутренний
+traceback.
+
 `analysis-service` монтирует `../artifacts` в `/app/artifacts`, поэтому
 артефакты из локальной папки будут доступны внутри контейнера.
 
