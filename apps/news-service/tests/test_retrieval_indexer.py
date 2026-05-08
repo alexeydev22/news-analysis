@@ -1,7 +1,13 @@
+import asyncio
+from typing import Any, cast
+
 import pytest
 from news_service.domain.errors import RetrievalIndexUnavailableError
 from news_service.domain.model import NewsDocument
-from news_service.infrastructure.retrieval_client import ZaprosRetrievalIndexer
+from news_service.infrastructure.retrieval_client import (
+    ZaprosRetrievalIndexer,
+    _make_zapros_client,
+)
 
 
 class FakeResponse:
@@ -23,6 +29,19 @@ class FakeZaprosClient:
 class RaisingZaprosClient:
     async def post(self, url: str, json: dict[str, object]) -> FakeResponse:
         raise OSError("connection refused")
+
+
+class SlowZaprosClient:
+    async def post(self, url: str, json: dict[str, object]) -> FakeResponse:
+        await asyncio.sleep(0.05)
+        return FakeResponse(200, {"indexed_count": 1, "collection_name": "economic_news"})
+
+
+def test_zapros_client_keeps_std_handler_timeout_disabled() -> None:
+    client = _make_zapros_client(timeout_seconds=5.0)
+    handler = cast(Any, client.handler)
+
+    assert handler.total_timeout is None
 
 
 @pytest.mark.asyncio
@@ -101,6 +120,23 @@ async def test_zapros_retrieval_indexer_maps_transport_error() -> None:
         base_url="http://retrieval-service:8000",
         timeout_seconds=5.0,
         client=RaisingZaprosClient(),
+    )
+
+    with pytest.raises(
+        RetrievalIndexUnavailableError,
+        match="retrieval-service is unavailable",
+    ):
+        await indexer.index(
+            [NewsDocument(id="news-1", title="GDP", text="Text", source="demo")],
+        )
+
+
+@pytest.mark.asyncio
+async def test_zapros_retrieval_indexer_maps_timeout() -> None:
+    indexer = ZaprosRetrievalIndexer(
+        base_url="http://retrieval-service:8000",
+        timeout_seconds=0.001,
+        client=SlowZaprosClient(),
     )
 
     with pytest.raises(

@@ -1,8 +1,12 @@
-from typing import Any
+import asyncio
+from typing import Any, cast
 
 import pytest
 from api_gateway.application.errors import AnalysisServiceUnavailableError
-from api_gateway.infrastructure.analysis_client import ZaprosAnalysisClient
+from api_gateway.infrastructure.analysis_client import (
+    ZaprosAnalysisClient,
+    _make_zapros_client,
+)
 from economic_news_contracts.analysis import (
     AnalysisModelName,
     AnalyzeNewsRequest,
@@ -38,6 +42,12 @@ class RaisingZaprosClient:
         raise OSError("connection refused")
 
 
+class SlowZaprosClient:
+    async def post(self, url: str, json: dict[str, object]) -> FakeResponse:
+        await asyncio.sleep(0.05)
+        return FakeResponse(status=200, payload=analysis_payload())
+
+
 class FakeZaprosClientContext:
     def __init__(self, response: FakeResponse) -> None:
         self._client = FakeZaprosClient(response)
@@ -67,6 +77,13 @@ def analysis_payload() -> dict[str, Any]:
         "explanation": "Позитивное влияние.",
         "metadata": {"source": "static"},
     }
+
+
+def test_zapros_analysis_client_keeps_std_handler_timeout_disabled() -> None:
+    client = _make_zapros_client(timeout_seconds=5.0)
+    handler = cast(Any, client.handler)
+
+    assert handler.total_timeout is None
 
 
 @pytest.mark.asyncio
@@ -145,6 +162,18 @@ async def test_zapros_analysis_client_maps_transport_error() -> None:
         base_url="http://analysis-service:8000",
         timeout_seconds=3.0,
         client=RaisingZaprosClient(),
+    )
+
+    with pytest.raises(AnalysisServiceUnavailableError):
+        await client.analyze(AnalyzeNewsRequest(text="Рынок снизился"))
+
+
+@pytest.mark.asyncio
+async def test_zapros_analysis_client_maps_timeout() -> None:
+    client = ZaprosAnalysisClient(
+        base_url="http://analysis-service:8000",
+        timeout_seconds=0.001,
+        client=SlowZaprosClient(),
     )
 
     with pytest.raises(AnalysisServiceUnavailableError):

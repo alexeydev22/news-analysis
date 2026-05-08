@@ -1,3 +1,4 @@
+import asyncio
 from collections.abc import Callable
 from typing import Any
 
@@ -9,7 +10,7 @@ from zapros import AsyncClient, AsyncStdNetworkHandler
 
 def _make_zapros_client(timeout_seconds: float) -> AsyncClient:
     return AsyncClient(
-        handler=AsyncStdNetworkHandler(total_timeout=timeout_seconds),
+        handler=AsyncStdNetworkHandler(),
     )
 
 
@@ -40,9 +41,10 @@ class ZaprosDialogClient:
     async def _post(self, payload: dict[str, Any]) -> Any:
         url = f"{self._base_url}/api/v1/dialog/generate"
         try:
-            if self._client is not None:
-                return await self._client.post(url, json=payload)
-            async with self._client_factory(self._timeout_seconds) as client:
-                return await client.post(url, json=payload)
+            async with asyncio.timeout(self._timeout_seconds):
+                if self._client is not None:
+                    return await self._client.post(url, json=payload)
+                async with self._client_factory(self._timeout_seconds) as client:
+                    return await client.post(url, json=payload)
         except Exception as error:
             raise DialogServiceUnavailableError("dialog-service is unavailable") from error

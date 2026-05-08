@@ -10,7 +10,6 @@ RUN pip install --no-cache-dir uv==0.11.8
 COPY pyproject.toml uv.lock ./
 COPY packages/framework ./packages/framework
 COPY packages/contracts ./packages/contracts
-COPY research ./research
 COPY apps/analysis-service ./apps/analysis-service
 
 RUN uv sync --frozen --package economic-news-analysis-service --no-dev

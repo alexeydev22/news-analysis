@@ -8,11 +8,13 @@ from retrieval_service.main.settings import RetrievalServiceSettings
 def test_retrieval_settings_defaults_and_env_prefix(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("RETRIEVAL_QDRANT_URL", "http://localhost:6333")
     monkeypatch.setenv("RETRIEVAL_COLLECTION_NAME", "test_news")
+    monkeypatch.setenv("RETRIEVAL_USE_STATIC_EMBEDDINGS", "true")
 
     settings = RetrievalServiceSettings()
 
     assert str(settings.qdrant_url) == "http://localhost:6333/"
     assert settings.collection_name == "test_news"
+    assert settings.use_static_embeddings is True
 
 
 @pytest.mark.asyncio

@@ -18,6 +18,18 @@ compose-up:
 compose-down:
     docker compose -f deploy/compose.yaml down
 
+demo-up:
+    docker compose -f deploy/compose.yaml up --build
+
+demo-smoke:
+    uv run python tools/demo_smoke.py
+
+demo-smoke-no-frontend:
+    uv run python tools/demo_smoke.py --skip-frontend
+
+demo-down:
+    docker compose -f deploy/compose.yaml down
+
 api-dev:
     uv run --package economic-news-api-gateway granian api_gateway.main.app:app --interface asgi --host 0.0.0.0 --port 8000
 

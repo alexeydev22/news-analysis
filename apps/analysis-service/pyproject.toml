@@ -6,7 +6,6 @@ requires-python = ">=3.12"
 dependencies = [
   "economic-news-framework",
   "economic-news-contracts",
-  "economic-news-research",
   "fastapi>=0.115",
   "granian>=1.7",
   "dishka>=1.4",
@@ -32,4 +31,3 @@ packages = ["src/analysis_service"]
 [tool.uv.sources]
 economic-news-framework = { workspace = true }
 economic-news-contracts = { workspace = true }
-economic-news-research = { workspace = true }

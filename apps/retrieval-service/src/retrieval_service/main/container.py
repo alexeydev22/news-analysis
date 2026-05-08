@@ -12,9 +12,16 @@ from retrieval_service.infrastructure.qdrant_repository import QdrantNewsReposit
 from retrieval_service.main.settings import RetrievalServiceSettings
 
 
-class FakeEmbeddingProvider:
+class StaticEmbeddingProvider:
+    def __init__(self, dimensions: int) -> None:
+        self._dimensions = dimensions
+
     async def embed(self, texts: list[str]) -> list[list[float]]:
-        return [[float((index + len(text)) % 7) for index in range(3)] for text in texts]
+        return [self._embed_text(text) for text in texts]
+
+    def _embed_text(self, text: str) -> list[float]:
+        base = sum(ord(char) for char in text)
+        return [float(((base + index * 31) % 1000) / 1000) for index in range(self._dimensions)]
 
 
 class FakeVectorRepository:
@@ -48,8 +55,8 @@ class RetrievalServiceProvider(Provider):
 
     @provide(scope=Scope.APP, provides=EmbeddingProvider)
     def embedding_provider(self, settings: RetrievalServiceSettings) -> EmbeddingProvider:
-        if self._use_fake_components:
-            return FakeEmbeddingProvider()
+        if self._use_fake_components or settings.use_static_embeddings:
+            return StaticEmbeddingProvider(dimensions=settings.embedding_dimension)
         return FastEmbedEmbeddingProvider(model_name=settings.embedding_model_name)
 
     @provide(scope=Scope.APP, provides=VectorRepository)
