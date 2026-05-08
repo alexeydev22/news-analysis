@@ -1,4 +1,4 @@
-# Economic News Dialog System
+# Диалоговая система анализа экономических новостей
 
 Локальная микросервисная диалоговая система для анализа экономических новостей.
 
@@ -24,7 +24,7 @@
 - `dev` — ветка разработки и интеграционного тестирования;
 - `feature/*` — ветки отдельных этапов.
 
-## Commit style
+## Стиль коммитов
 
 Коммиты пишутся на русском языке с conventional prefix:
 
@@ -54,19 +54,19 @@ curl http://localhost:8000/health
 {"service":"api-gateway","status":"ok"}
 ```
 
-Analysis Service local run:
+Локальный запуск Analysis Service:
 
 ```bash
 just analysis-dev
 curl http://localhost:8001/health
 curl -X POST http://localhost:8001/api/v1/analyze \
   -H 'Content-Type: application/json' \
-  -d '{"text":"GDP growth beat expectations","analysis_model":"tfidf-logreg"}'
+  -d '{"text":"ВВП вырос быстрее ожиданий","analysis_model":"tfidf-logreg"}'
 ```
 
 ## Chat SSE endpoint
 
-`api-gateway` exposes pipeline-progress streaming for the chat flow:
+`api-gateway` отдает поток событий выполнения диалогового сценария:
 
 ```bash
 curl -N -X POST http://localhost:8000/api/v1/chat/stream \
@@ -75,22 +75,23 @@ curl -N -X POST http://localhost:8000/api/v1/chat/stream \
   -d '{"question":"Что значит рост ВВП?","analysis_model":"tfidf-logreg","limit":5}'
 ```
 
-The stream emits stage events: `chat_started`, `search_started`, `sources_found`,
-`analysis_started`, `analysis_completed`, `answer_started`, `answer_completed`,
-and `done`. If a downstream service fails after streaming starts, the response emits
-one sanitized `error` event and closes the stream.
+Поток отправляет технические события этапов: `chat_started`, `search_started`,
+`sources_found`, `analysis_started`, `analysis_completed`, `answer_started`,
+`answer_completed` и `done`. Если нижестоящий сервис падает после старта
+streaming-ответа, gateway отправляет одно безопасное событие `error` и закрывает поток.
 
-## News Service ingestion
+## Загрузка новостей в News Service
 
-`news-service` loads local CSV news and indexes them through `retrieval-service`.
+`news-service` загружает локальные CSV-новости и индексирует их через
+`retrieval-service`.
 
-Expected CSV semantic columns:
+Ожидаемые смысловые колонки CSV:
 
 - title: `title` or `headline`
 - text: `text`, `content`, `body` or `description`
 - source: `source` or `publisher`
 
-Local preview:
+Локальный предпросмотр:
 
 ```bash
 NEWS_SERVICE_NEWS_DATASET_PATH=research/tests/fixtures/news_impact_sample.csv \
@@ -100,7 +101,7 @@ NEWS_SERVICE_NEWS_DATASET_PATH=research/tests/fixtures/news_impact_sample.csv \
 curl 'http://localhost:8004/api/v1/news/preview?limit=3'
 ```
 
-Index through retrieval-service:
+Индексация через `retrieval-service`:
 
 ```bash
 curl -X POST http://localhost:8004/api/v1/news/index \
@@ -108,7 +109,7 @@ curl -X POST http://localhost:8004/api/v1/news/index \
   -d '{"limit": 10}'
 ```
 
-Queue the same indexing as a background job:
+Постановка той же индексации в фоновую задачу:
 
 ```bash
 curl -X POST http://localhost:8004/api/v1/news/index/jobs \
@@ -116,75 +117,74 @@ curl -X POST http://localhost:8004/api/v1/news/index/jobs \
   -d '{"limit": 10}'
 ```
 
-The job is executed by `news-worker` through Taskiq and Redis. Status events are
-published through FastStream to the Redis channel configured by
-`NEWS_SERVICE_INDEX_EVENTS_CHANNEL`.
+Задача выполняется `news-worker` через Taskiq и Redis. Статусные события
+публикуются через FastStream в Redis-канал из `NEWS_SERVICE_INDEX_EVENTS_CHANNEL`.
 
-## Demo scenario for coursework defense
+## Демо-сценарий для защиты курсовой
 
-The repository includes a small economic news dataset at
-`data/raw/economic_news.csv`. It is intended for local demonstrations and keeps
-the defense scenario reproducible.
+В репозитории есть небольшой русскоязычный набор экономических новостей:
+`data/raw/economic_news.csv`. Он нужен для локальной демонстрации и делает
+сценарий защиты воспроизводимым.
 
-Start the stack:
+Запуск всего стека:
 
 ```bash
 just demo-up
 ```
 
-In another terminal, run the smoke check:
+Во втором терминале запустите smoke-проверку:
 
 ```bash
 just demo-smoke
 ```
 
-The smoke check verifies:
+Smoke-проверка подтверждает:
 
-- `api-gateway` and `news-service` health endpoints;
-- CSV preview through `news-service`;
-- deterministic indexing through `news-service`;
-- background indexing job creation through Taskiq/Redis;
-- chat SSE stream from `api-gateway`;
-- frontend HTML availability.
+- health endpoints `api-gateway` и `news-service`;
+- предпросмотр CSV через `news-service`;
+- детерминированную индексацию через `news-service`;
+- создание фоновой задачи индексации через Taskiq/Redis;
+- SSE-поток диалога из `api-gateway`;
+- доступность frontend HTML.
 
-For backend-only checks:
+Проверка только backend-части:
 
 ```bash
 just demo-smoke-no-frontend
 ```
 
-Stop the stack:
+Остановка стека:
 
 ```bash
 just demo-down
 ```
 
-## Frontend Chat Console
+## Frontend-чат
 
-The React UI is a real API client for the local backend.
+React UI является реальным API-клиентом локального backend.
 
-Local development:
+Локальная разработка:
 
 ```bash
 npm --prefix frontend/web install
 npm --prefix frontend/web run dev -- --host 0.0.0.0 --port 5173
 ```
 
-Open:
+Открыть:
 
 ```text
 http://localhost:5173
 ```
 
-Expected backend services:
+Ожидаемые backend-сервисы:
 
 - `api-gateway` on `http://localhost:8000`;
 - `news-service` on `http://localhost:8004`.
 
-Vite proxies `/api-gateway/*` and `/news-service/*` to those local services.
-The production nginx image uses the same relative paths inside Docker Compose.
+Vite проксирует `/api-gateway/*` и `/news-service/*` в локальные сервисы.
+Production nginx image использует те же относительные пути внутри Docker Compose.
 
-Checks:
+Проверки:
 
 ```bash
 npm --prefix frontend/web test -- --run

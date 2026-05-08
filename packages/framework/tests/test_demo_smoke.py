@@ -46,3 +46,12 @@ def test_parse_sse_events_rejects_malformed_json() -> None:
         return
 
     raise AssertionError("Expected malformed SSE JSON error")
+
+
+def test_demo_dataset_is_russian_language() -> None:
+    root = Path(__file__).resolve().parents[3]
+    dataset = (root / "data" / "raw" / "economic_news.csv").read_text(encoding="utf-8")
+
+    assert "ВВП" in dataset
+    assert "Центральный банк" in dataset
+    assert "GDP grows" not in dataset

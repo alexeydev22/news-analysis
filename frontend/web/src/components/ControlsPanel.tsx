@@ -33,8 +33,8 @@ export function ControlsPanel({
 }: ControlsPanelProps) {
   return (
     <aside aria-label="Настройки анализа">
-      <p>Local RAG pipeline</p>
-      <h1>Economic News Dialog</h1>
+      <p>Локальный RAG-конвейер</p>
+      <h1>Диалоговая система анализа экономических новостей</h1>
 
       <label>
         <span>Модель анализа</span>
@@ -68,17 +68,17 @@ export function ControlsPanel({
         <input
           aria-label="Источник"
           value={source}
-          placeholder="all sources"
+          placeholder="все источники"
           onChange={(event) => onSourceChange(event.target.value)}
         />
       </label>
 
       <div className="controlActions">
         <button type="button" onClick={onPreview} disabled={isPreviewLoading}>
-          {isPreviewLoading ? "Loading preview" : "Preview CSV"}
+          {isPreviewLoading ? "Загрузка предпросмотра" : "Предпросмотр CSV"}
         </button>
         <button type="button" onClick={onIndex} disabled={isIndexLoading}>
-          {isIndexLoading ? "Indexing" : "Index CSV"}
+          {isIndexLoading ? "Индексация" : "Индексировать CSV"}
         </button>
       </div>
     </aside>

@@ -1,55 +1,56 @@
-# E2E Demo Scenario Design
+# Дизайн E2E demo-сценария
 
-## Goal
+## Цель
 
-Add a lean, reproducible demo scenario for coursework defense that proves the
-microservice stack can load economic news, index them, stream a dialog answer,
-and serve the React console.
+Добавить компактный воспроизводимый demo-сценарий для защиты курсовой, который
+показывает, что микросервисный стек загружает экономические новости,
+индексирует их, формирует потоковый диалоговый ответ и обслуживает React UI.
 
-## Scope
+## Границы
 
-This slice adds demo data, local commands, and a smoke script. It does not add
-new business logic, authentication, synthetic monitoring, or a separate
+Этот срез добавляет demo-данные, локальные команды и smoke-скрипт. Он не
+добавляет новую бизнес-логику, авторизацию, synthetic monitoring или отдельный
 orchestrator service.
 
-## Architecture
+## Архитектура
 
-The demo remains outside service internals:
+Demo остается вне внутренней логики сервисов:
 
-- `data/raw/economic_news.csv` provides a small stable dataset for local runs.
-- `tools/demo_smoke.py` is a CLI smoke checker that calls already existing HTTP
-  endpoints and parses SSE events from `api-gateway`.
-- `justfile` exposes `demo-up`, `demo-smoke`, and `demo-down` commands.
-- `README.md` documents a single defense-ready demo flow.
+- `data/raw/economic_news.csv` содержит небольшой стабильный русскоязычный
+  набор данных для локального запуска.
+- `tools/demo_smoke.py` является CLI smoke-проверкой: вызывает существующие HTTP
+  endpoints и парсит SSE-события из `api-gateway`.
+- `justfile` предоставляет команды `demo-up`, `demo-smoke` и `demo-down`.
+- `README.md` описывает единый сценарий демонстрации для защиты.
 
-The script uses only Python standard library HTTP APIs so it does not expand the
-runtime stack.
+Скрипт использует только HTTP API из стандартной библиотеки Python, поэтому не
+расширяет runtime stack.
 
 ## Demo Flow
 
-1. Start Docker Compose with all services.
-2. Check `api-gateway` and `news-service` health.
-3. Preview news from `news-service`.
-4. Index demo news synchronously through `POST /api/v1/news/index` so the chat
-   path is deterministic.
-5. Queue background indexing through `POST /api/v1/news/index/jobs` to verify
-   Taskiq/Redis wiring.
-6. Call `POST /api/v1/chat/stream` and verify key SSE events are present.
-7. Optionally verify the frontend URL returns HTML.
+1. Запустить Docker Compose со всеми сервисами.
+2. Проверить health endpoints `api-gateway` и `news-service`.
+3. Получить предпросмотр новостей из `news-service`.
+4. Синхронно проиндексировать demo-новости через `POST /api/v1/news/index`,
+   чтобы chat path был детерминированным.
+5. Поставить фоновую индексацию через `POST /api/v1/news/index/jobs`, чтобы
+   проверить связку Taskiq/Redis.
+6. Вызвать `POST /api/v1/chat/stream` и проверить наличие ключевых SSE-событий.
+7. При необходимости проверить, что frontend URL возвращает HTML.
 
-## Error Handling
+## Обработка ошибок
 
-The smoke script fails fast with a clear message:
+Smoke-скрипт быстро завершается с понятным сообщением при:
 
-- non-2xx HTTP response;
-- malformed JSON response;
-- missing expected SSE event;
-- connection failure or timeout.
+- HTTP-ответе вне 2xx;
+- некорректном JSON response;
+- отсутствии ожидаемого SSE-события;
+- ошибке соединения или timeout.
 
-The script prints concise progress lines suitable for terminal demos.
+Скрипт печатает короткие строки прогресса, удобные для демонстрации в терминале.
 
-## Testing
+## Тестирование
 
-Unit tests cover URL joining and SSE parsing helpers without requiring Docker.
-Final verification includes repository tests, frontend tests, compose config,
-and Docker image build for the services affected by the demo flow.
+Unit-тесты покрывают сборку URL и парсинг SSE без Docker. Финальная проверка
+включает тесты репозитория, frontend tests, compose config и Docker image build
+для сервисов, задействованных в demo flow.

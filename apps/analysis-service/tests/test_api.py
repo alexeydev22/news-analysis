@@ -33,7 +33,7 @@ def test_analyze_endpoint_returns_prediction() -> None:
         "model_name": "tfidf-logreg",
         "impact": "neutral",
         "confidence": None,
-        "explanation": "Model classified the news text as neutral.",
+        "explanation": "Модель классифицировала влияние новости как нейтральное.",
         "metadata": {"source": "static"},
     }
 

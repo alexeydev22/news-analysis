@@ -30,7 +30,7 @@ export function ChatPanel({
         />
       </label>
       <button type="button" onClick={onSubmit} disabled={isStreaming || !question.trim()}>
-        {isStreaming ? "Streaming" : "Ask"}
+        {isStreaming ? "Формируется ответ" : "Спросить"}
       </button>
       {error ? (
         <div role="alert">

@@ -6,6 +6,12 @@ from dialog_service.domain.model import (
     DialogQuestion,
 )
 
+IMPACT_LABELS_RU = {
+    "positive": "позитивное",
+    "negative": "негативное",
+    "neutral": "нейтральное",
+}
+
 
 class TemplateDialogGenerator:
     def __init__(self, model_name: str) -> None:
@@ -55,17 +61,15 @@ class TemplateDialogGenerator:
             summary = summaries_by_news_id.get(item.id)
             if summary is None:
                 lines.append(
-                    f"- {item.title}: источник {item.source}, "
-                    f"релевантность {item.score:.2f}.",
+                    f"- {item.title}: источник {item.source}, релевантность {item.score:.2f}.",
                 )
             else:
                 confidence = (
-                    "нет оценки"
-                    if summary.confidence is None
-                    else f"{summary.confidence:.2f}"
+                    "нет оценки" if summary.confidence is None else f"{summary.confidence:.2f}"
                 )
+                impact = IMPACT_LABELS_RU.get(summary.impact, summary.impact)
                 lines.append(
-                    f"- {item.title}: impact={summary.impact}, confidence={confidence}. "
+                    f"- {item.title}: влияние={impact}, уверенность={confidence}. "
                     f"{summary.explanation}",
                 )
         lines.append(

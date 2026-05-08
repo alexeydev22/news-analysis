@@ -23,7 +23,7 @@ def test_impact_prediction_builds_default_explanation() -> None:
         impact=ImpactLabel.POSITIVE,
     )
 
-    assert prediction.explanation == "Model classified the news text as positive."
+    assert prediction.explanation == "Модель классифицировала влияние новости как позитивное."
     assert prediction.confidence is None
     assert prediction.metadata == {}
 
