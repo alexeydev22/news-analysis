@@ -71,12 +71,16 @@ describe("App", () => {
   it("renders the chat console controls and empty state", () => {
     render(<App />);
 
-    expect(screen.getByRole("heading", { name: "Economic News Dialog" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", {
+        name: "Диалоговая система анализа экономических новостей",
+      }),
+    ).toBeInTheDocument();
     expect(screen.getByLabelText("Модель анализа")).toBeInTheDocument();
     expect(screen.getByLabelText("Лимит источников")).toBeInTheDocument();
     expect(screen.getByLabelText("Источник")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Preview CSV" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Index CSV" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Предпросмотр CSV" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Индексировать CSV" })).toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: "Вопрос" })).toBeInTheDocument();
     expect(screen.getByText("Ответ появится после отправки вопроса.")).toBeInTheDocument();
     expect(screen.getByRole("complementary", { name: "Источники анализа" })).toBeInTheDocument();
@@ -94,14 +98,14 @@ describe("App", () => {
     await user.clear(screen.getByLabelText("Лимит источников"));
     await user.type(screen.getByLabelText("Лимит источников"), "3");
     await user.type(screen.getByRole("textbox", { name: "Вопрос" }), "Что с ВВП?");
-    await user.click(screen.getByRole("button", { name: "Ask" }));
+    await user.click(screen.getByRole("button", { name: "Спросить" }));
 
     await waitFor(() => {
       expect(screen.getByText("Рост ВВП обычно поддерживает рынок.")).toBeInTheDocument();
     });
-    expect(screen.getByText("answer_completed")).toBeInTheDocument();
-    expect(screen.getByText("GDP grows")).toBeInTheDocument();
-    expect(screen.getByText("positive")).toBeInTheDocument();
+    expect(screen.getByText("ответ сформирован")).toBeInTheDocument();
+    expect(screen.getByText("ВВП вырос")).toBeInTheDocument();
+    expect(screen.getByText("позитивное")).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledWith(
       "/api-gateway/api/v1/chat/stream",
       expect.objectContaining({
@@ -122,14 +126,14 @@ describe("App", () => {
 
     render(<App />);
 
-    await user.click(screen.getByRole("button", { name: "Preview CSV" }));
+    await user.click(screen.getByRole("button", { name: "Предпросмотр CSV" }));
     await waitFor(() => {
-      expect(screen.getByText("Preview: 1 / 1")).toBeInTheDocument();
+      expect(screen.getByText("Предпросмотр: 1 / 1")).toBeInTheDocument();
     });
 
-    await user.click(screen.getByRole("button", { name: "Index CSV" }));
+    await user.click(screen.getByRole("button", { name: "Индексировать CSV" }));
     await waitFor(() => {
-      expect(screen.getByText("Indexed 10 of 10 into economic_news")).toBeInTheDocument();
+      expect(screen.getByText("Проиндексировано 10 из 10 в economic_news")).toBeInTheDocument();
     });
   });
 
@@ -140,11 +144,11 @@ describe("App", () => {
     render(<App />);
 
     await user.type(screen.getByRole("textbox", { name: "Вопрос" }), "Что с ВВП?");
-    await user.click(screen.getByRole("button", { name: "Ask" }));
+    await user.click(screen.getByRole("button", { name: "Спросить" }));
 
     await waitFor(() => {
       expect(screen.getByRole("alert")).toHaveTextContent("Не удалось завершить потоковый ответ");
     });
-    expect(screen.getByText("error")).toBeInTheDocument();
+    expect(screen.getByText("ошибка")).toBeInTheDocument();
   });
 });

@@ -8,8 +8,14 @@ type NewsPreviewProps = {
 export function NewsPreview({ preview, indexResult }: NewsPreviewProps) {
   return (
     <section>
-      <h2>Dataset</h2>
-      {preview ? <p>Preview: {preview.documents.length} / {preview.total_count}</p> : <p>Preview is empty.</p>}
+      <h2>Набор данных</h2>
+      {preview ? (
+        <p>
+          Предпросмотр: {preview.documents.length} / {preview.total_count}
+        </p>
+      ) : (
+        <p>Предпросмотр пока пуст.</p>
+      )}
       {preview?.documents.map((document) => (
         <article key={document.id}>
           <h3>{document.title}</h3>
@@ -18,7 +24,7 @@ export function NewsPreview({ preview, indexResult }: NewsPreviewProps) {
       ))}
       {indexResult ? (
         <p>
-          Indexed {indexResult.indexed_count} of {indexResult.loaded_count} into{" "}
+          Проиндексировано {indexResult.indexed_count} из {indexResult.loaded_count} в{" "}
           {indexResult.collection_name}
         </p>
       ) : null}

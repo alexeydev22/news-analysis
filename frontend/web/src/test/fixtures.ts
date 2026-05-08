@@ -2,9 +2,9 @@ import type { ChatResponse, NewsDocument, PreviewNewsResponse } from "../app/typ
 
 export const sourceFixture: NewsDocument = {
   id: "news-1",
-  title: "GDP grows",
-  text: "GDP grew by 2 percent.",
-  source: "demo",
+  title: "ВВП вырос",
+  text: "ВВП вырос на 2 процента.",
+  source: "Демо",
   score: 0.75,
   published_at: null,
   metadata: { sector: "macro" },
@@ -34,9 +34,9 @@ export const previewFixture: PreviewNewsResponse = {
   documents: [
     {
       id: "news-1",
-      title: "GDP grows",
-      text: "GDP grew by 2 percent.",
-      source: "demo",
+      title: "ВВП вырос",
+      text: "ВВП вырос на 2 процента.",
+      source: "Демо",
       published_at: null,
       metadata: { row_number: 2 },
     },

@@ -7,6 +7,12 @@ from economic_news_contracts.analysis import AnalysisModelName, ImpactLabel
 
 from analysis_service.domain.errors import EmptyNewsTextError, InvalidPredictionConfidenceError
 
+IMPACT_LABELS_RU = {
+    ImpactLabel.POSITIVE: "позитивное",
+    ImpactLabel.NEGATIVE: "негативное",
+    ImpactLabel.NEUTRAL: "нейтральное",
+}
+
 
 @dataclass(frozen=True)
 class NewsText:
@@ -35,6 +41,6 @@ class ImpactPrediction:
             object.__setattr__(
                 self,
                 "explanation",
-                f"Model classified the news text as {self.impact.value}.",
+                f"Модель классифицировала влияние новости как {IMPACT_LABELS_RU[self.impact]}.",
             )
         object.__setattr__(self, "metadata", MappingProxyType(dict(self.metadata)))

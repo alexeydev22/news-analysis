@@ -1,11 +1,11 @@
 title,text,source,published_at,impact
-GDP growth beats expectations,"US GDP grew faster than analysts expected, supporting investor demand for cyclical stocks.",Reuters,2026-04-18T09:30:00Z,positive
-Inflation slows in April,"Consumer inflation slowed for the second month, increasing expectations of a softer monetary policy path.",Bloomberg,2026-04-21T11:00:00Z,positive
-Central bank keeps key rate unchanged,"The central bank kept the policy rate unchanged and warned that price pressure remains elevated.",Central Bank Brief,2026-04-25T13:00:00Z,neutral
-Oil prices decline after inventory report,"Oil prices fell after inventories rose more than expected, weighing on energy exporters.",MarketWatch,2026-04-26T08:45:00Z,negative
-Retail sales rise moderately,"Retail sales increased moderately as households continued spending on services and durable goods.",Reuters,2026-04-28T10:15:00Z,positive
-Manufacturing PMI weakens,"Manufacturing PMI moved below the neutral threshold, signaling weaker industrial activity.",S&P Global,2026-04-29T07:50:00Z,negative
-Currency stabilizes after intervention,"The national currency stabilized after the regulator announced additional liquidity operations.",Financial Times,2026-05-01T12:20:00Z,neutral
-Unemployment rate remains low,"The unemployment rate stayed near historical lows, supporting wage growth and domestic demand.",Labor Statistics,2026-05-03T09:00:00Z,positive
-Export orders contract,"Export orders declined as external demand weakened across major trading partners.",Trade Monitor,2026-05-04T14:40:00Z,negative
-Bond yields fall on rate expectations,"Government bond yields declined as investors priced in potential rate cuts later this year.",Bloomberg,2026-05-06T16:10:00Z,positive
+ВВП вырос быстрее ожиданий,"ВВП вырос быстрее прогнозов аналитиков, что поддержало спрос инвесторов на циклические акции.",Рейтер,2026-04-18T09:30:00Z,positive
+Инфляция замедлилась в апреле,"Потребительская инфляция замедлилась второй месяц подряд, усилив ожидания более мягкой денежно-кредитной политики.",Блумберг,2026-04-21T11:00:00Z,positive
+Центральный банк сохранил ключевую ставку,"Центральный банк оставил ключевую ставку без изменений и предупредил, что ценовое давление остается повышенным.",Вестник ЦБ,2026-04-25T13:00:00Z,neutral
+Цены на нефть снизились после отчета о запасах,"Цены на нефть снизились после роста запасов выше ожиданий, что оказало давление на экспортеров энергоресурсов.",Обзор рынка,2026-04-26T08:45:00Z,negative
+Розничные продажи умеренно выросли,"Розничные продажи умеренно увеличились, поскольку домохозяйства продолжили тратить средства на услуги и товары длительного пользования.",Рейтер,2026-04-28T10:15:00Z,positive
+Индекс PMI в промышленности ослаб,"Промышленный PMI опустился ниже нейтрального порога, указывая на замедление деловой активности в секторе.",S&P Global,2026-04-29T07:50:00Z,negative
+Курс валюты стабилизировался после интервенции,"Национальная валюта стабилизировалась после объявления регулятором дополнительных операций по поддержанию ликвидности.",Финансовая газета,2026-05-01T12:20:00Z,neutral
+Безработица остается низкой,"Уровень безработицы остался около исторических минимумов, поддерживая рост зарплат и внутренний спрос.",Статистика труда,2026-05-03T09:00:00Z,positive
+Экспортные заказы сократились,"Экспортные заказы снизились на фоне ослабления внешнего спроса со стороны ключевых торговых партнеров.",Торговый монитор,2026-05-04T14:40:00Z,negative
+Доходности облигаций снизились на ожиданиях смягчения политики,"Доходности государственных облигаций снизились, поскольку инвесторы заложили в цены возможное снижение ставок позднее в этом году.",Блумберг,2026-05-06T16:10:00Z,positive

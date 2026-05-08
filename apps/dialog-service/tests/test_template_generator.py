@@ -35,7 +35,7 @@ async def test_template_generator_builds_russian_answer_from_context_and_impacts
 
     assert "Что значит рост ВВП?" in result.answer
     assert "GDP grows" in result.answer
-    assert "positive" in result.answer
+    assert "позитивное" in result.answer
     assert "не является финансовой рекомендацией" in result.answer
     assert result.used_context_ids == ["news-1"]
     assert result.model_name == "template-dialog-generator"

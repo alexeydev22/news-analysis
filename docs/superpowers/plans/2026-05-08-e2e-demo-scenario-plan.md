@@ -1,12 +1,12 @@
-# E2E Demo Scenario Implementation Plan
+# План реализации E2E demo-сценария
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Add a reproducible local demo scenario for coursework defense.
+**Goal:** Добавить воспроизводимый локальный demo-сценарий для защиты курсовой.
 
-**Architecture:** Demo assets live outside service internals. A standard-library Python smoke script calls existing HTTP endpoints and parses SSE events. Just commands and README wire the flow for local use.
+**Architecture:** Demo-артефакты находятся вне внутренней логики сервисов. Python smoke-скрипт на стандартной библиотеке вызывает существующие HTTP endpoints и парсит SSE-события. Just-команды и README связывают flow для локального запуска.
 
-**Tech Stack:** Python standard library, pytest, Docker Compose, Just, existing FastAPI/SSE endpoints, React frontend.
+**Tech Stack:** Python standard library, pytest, Docker Compose, Just, существующие FastAPI/SSE endpoints, React frontend.
 
 ---
 
@@ -15,13 +15,13 @@
 **Files:**
 - Create: `data/raw/economic_news.csv`
 
-- [ ] **Step 1: Add a small stable CSV dataset**
+- [ ] **Step 1: Добавить небольшой стабильный CSV dataset**
 
-Use columns accepted by `news-service`: `title`, `text`, `source`, `published_at`, `impact`.
+Использовать колонки, которые принимает `news-service`: `title`, `text`, `source`, `published_at`, `impact`.
 
-- [ ] **Step 2: Verify preview can parse the dataset through existing tests or smoke script**
+- [ ] **Step 2: Проверить, что preview парсит dataset через существующие тесты или smoke-скрипт**
 
-Run focused news-service tests after the script exists.
+Запустить focused news-service tests после появления скрипта.
 
 ### Task 2: Smoke Script
 
@@ -29,41 +29,41 @@ Run focused news-service tests after the script exists.
 - Create: `tools/demo_smoke.py`
 - Test: `packages/framework/tests/test_demo_smoke.py`
 
-- [ ] **Step 1: Write failing tests for URL joining and SSE parsing**
+- [ ] **Step 1: Написать failing tests для сборки URL и SSE parsing**
 
-Tests should import the script by path and verify helper behavior without Docker.
+Тесты должны импортировать скрипт по path и проверять helper behavior без Docker.
 
-- [ ] **Step 2: Implement minimal helpers and CLI**
+- [ ] **Step 2: Реализовать минимальные helpers и CLI**
 
-The script should check health, preview, enqueue indexing, chat stream, and optional frontend HTML.
+Скрипт должен проверять health, preview, enqueue indexing, chat stream и optional frontend HTML.
 
-- [ ] **Step 3: Run focused tests**
+- [ ] **Step 3: Запустить focused tests**
 
 Run `uv run pytest packages/framework/tests/test_demo_smoke.py -q -W error`.
 
-### Task 3: Commands And Documentation
+### Task 3: Команды и документация
 
 **Files:**
 - Modify: `justfile`
 - Modify: `README.md`
 
-- [ ] **Step 1: Add demo commands**
+- [ ] **Step 1: Добавить demo commands**
 
-Add `demo-up`, `demo-smoke`, and `demo-down`.
+Добавить `demo-up`, `demo-smoke` и `demo-down`.
 
-- [ ] **Step 2: Document defense-ready demo flow**
+- [ ] **Step 2: Описать demo flow для защиты**
 
-Add commands and expected behavior to README.
+Добавить команды и ожидаемое поведение в README.
 
-### Task 4: Verification And PR
+### Task 4: Проверка и PR
 
 **Files:**
-- Repository-wide checks only.
+- Только repository-wide checks.
 
-- [ ] **Step 1: Run full verification**
+- [ ] **Step 1: Запустить полную проверку**
 
-Run backend tests, frontend tests/build, compose config, and relevant Docker builds.
+Запустить backend tests, frontend tests/build, compose config и relevant Docker builds.
 
-- [ ] **Step 2: Commit, push, and open PR**
+- [ ] **Step 2: Создать commit, push и открыть PR**
 
-Use Russian conventional commit message.
+Использовать русский conventional commit message.
