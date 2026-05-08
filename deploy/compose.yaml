@@ -78,6 +78,7 @@ services:
       - "8004:8000"
     volumes:
       - ../data:/app/data:ro
+      - news_uploads:/app/data/uploads
     depends_on:
       - retrieval-service
 
@@ -100,6 +101,7 @@ services:
       - "1"
     volumes:
       - ../data:/app/data:ro
+      - news_uploads:/app/data/uploads
     depends_on:
       - redis
       - retrieval-service
@@ -152,3 +154,4 @@ volumes:
   postgres_data:
   qdrant_data:
   mlflow_data:
+  news_uploads:
