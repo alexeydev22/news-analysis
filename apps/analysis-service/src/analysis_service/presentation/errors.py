@@ -1,7 +1,11 @@
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
-from analysis_service.domain.errors import EmptyNewsTextError, ModelUnavailableError
+from analysis_service.domain.errors import (
+    EmptyNewsTextError,
+    MlReportJobNotFoundError,
+    ModelUnavailableError,
+)
 
 
 def register_error_handlers(app: FastAPI) -> None:
@@ -18,3 +22,10 @@ def register_error_handlers(app: FastAPI) -> None:
         exc: ModelUnavailableError,
     ) -> JSONResponse:
         return JSONResponse(status_code=503, content={"detail": str(exc)})
+
+    @app.exception_handler(MlReportJobNotFoundError)
+    async def ml_report_job_not_found_handler(
+        request: Request,
+        exc: MlReportJobNotFoundError,
+    ) -> JSONResponse:
+        return JSONResponse(status_code=404, content={"detail": str(exc)})

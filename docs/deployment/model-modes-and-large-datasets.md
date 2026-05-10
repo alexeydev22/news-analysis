@@ -88,22 +88,23 @@ just prepare-demo-training
 Эта команда сохраняет исходный `data/raw/economic_news.csv` для news-service и
 создает `data/raw/news_impact.csv` для обучения.
 
-Внешний CSV сначала нужно привести к двум схемам. Для CSV с уже совместимыми
-колонками:
+Внешний датасет для проекта один - FNSPID. Сначала нужно подготовить локальный
+срез FNSPID и привести его к двум схемам. Для CSV с уже совместимыми колонками:
 
 ```bash
-just prepare-dataset path/to/external.csv
+just prepare-dataset path/to/fnspid_sample.csv
 ```
 
-Для training CSV передайте label и, если нужно, названия внешних колонок:
+Для training CSV передайте колонку разметки `impact` и, если нужно, названия
+внешних колонок FNSPID:
 
 ```bash
-just prepare-dataset path/to/external.csv \
+just prepare-dataset path/to/fnspid_sample.csv \
   --title-column headline \
   --text-column body \
   --source-column publisher \
   --published-at-column date \
-  --label-column sentiment \
+  --label-column impact \
   --positive-threshold 0.2 \
   --negative-threshold -0.2 \
   --limit 50000
@@ -117,14 +118,14 @@ just prepare-dataset path/to/external.csv \
 Если нужны нестандартные output paths, запустите CLI напрямую:
 
 ```bash
-uv run python tools/prepare_dataset.py path/to/external.csv \
+uv run python tools/prepare_dataset.py path/to/fnspid_sample.csv \
   --app-output data/raw/economic_news.csv \
   --train-output data/raw/news_impact.csv \
   --title-column headline \
   --text-column body \
   --source-column publisher \
   --published-at-column date \
-  --label-column sentiment \
+  --label-column impact \
   --positive-threshold 0.2 \
   --negative-threshold -0.2 \
   --limit 50000
@@ -273,42 +274,50 @@ curl http://localhost:8004/api/v1/news/preview?limit=5
 начинать с ограниченного среза, потому что текущий `news-service` читает CSV
 локально и индексирует batch через retrieval-service.
 
-## 7. Датасеты для обучения классификатора
+## 7. FNSPID для обучения классификатора
 
-FNSPID хорошо подходит для большого retrieval и стресс-проверки индексации, но
-для supervised-классификации нужен явный label `positive`, `neutral` или
-`negative`. Если в выбранном срезе FNSPID нет готовой совместимой разметки,
-нужно отдельно построить label:
+Внешний датасет для проекта один: FNSPID. Для supervised-классификации нужен
+явный label `positive`, `neutral` или `negative`. Если в выбранном срезе FNSPID
+нет готовой совместимой разметки, label строится внутри подготовки среза:
 
-- взять готовый sentiment score и преобразовать его в три класса;
-- разметить новости по движению цены после публикации;
-- использовать отдельный размеченный финансовый sentiment dataset.
+- по готовому impact score, если такая колонка есть в локальном срезе;
+- по движению цены после публикации, если срез объединен с price records;
+- вручную для небольшого учебного sample, если нужен быстрый демонстрационный
+  запуск.
 
-Практичные источники для training/evaluation:
+Пример подготовки FNSPID sample с уже рассчитанной колонкой `impact`:
 
-| Датасет | Когда использовать | Ссылка |
-| --- | --- | --- |
-| Financial News Dataset / FinSen | Средний по размеру набор: около 160 тыс. финансовых новостей, 2007-2023, Apache 2.0 | <https://www.kaggle.com/datasets/yogeshchary/financial-news-dataset/data> |
-| SEntFiN 1.0 | Человеческая разметка financial headlines, удобно для sentiment/impact baseline | <https://huggingface.co/papers/2305.12257> |
-| lwrf42 financial sentiment dataset | Готовые тексты с sentiment labels в Hugging Face формате | <https://huggingface.co/datasets/lwrf42/financial-sentiment-dataset> |
+```bash
+just prepare-dataset data/raw/fnspid_sample.csv \
+  --id-column article_id \
+  --title-column title \
+  --text-column text \
+  --source-column source \
+  --published-at-column published_at \
+  --label-column impact \
+  --limit 50000
+```
 
-Рекомендация для курсовой: использовать FNSPID как большой retrieval dataset, а
-для обучения impact classifier взять FinSen или SEntFiN и привести label к
-`positive`, `neutral`, `negative`. Это лучше, чем пытаться вручную размечать
-миллионы новостей.
+## 8. Автоматизация ML-отчета
 
-## 8. Что еще желательно автоматизировать
+ML-отчет можно сформировать из интерфейса кнопкой `Сформировать ML-отчет`.
+Frontend вызывает `analysis-service`, тот ставит Taskiq job в Redis, а
+`analysis-worker` обучает три модели, сравнивает их и пишет JSON:
 
-После добавления CLI подготовки датасета основной production-like сценарий
-выглядит так:
+```text
+reports/ml/model-report.json
+```
 
-1. Подготовить внешний CSV через `just prepare-dataset path/to/external.csv`
-   с нужными аргументами, например `--label-column sentiment`, или прямой
+CLI fallback для терминала:
+
+1. Подготовить FNSPID sample через `just prepare-dataset path/to/fnspid_sample.csv`
+   с нужными аргументами, например `--label-column impact`, или прямой
    запуск `tools/prepare_dataset.py` с явными колонками.
-2. Обучить модели: `just train-baseline`, `just train-embedding`,
-   `just train-transformer`.
-3. Сравнить результаты: `just compare-models`.
-4. Запустить стенд с обученными артефактами: `just demo-up-trained`.
+2. Выполнить полный ML pipeline: `just ml-full`.
+3. Запустить стенд с обученными артефактами: `just demo-up-trained`.
 
-Остается полезным отдельный будущий этап для управляемой индексации очень
-больших CSV и документирования лимитов по памяти и времени для Mac.
+Для уже обученных артефактов достаточно:
+
+```bash
+just ml-report
+```

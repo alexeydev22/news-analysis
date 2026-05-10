@@ -67,3 +67,42 @@ export type ActiveDataset = {
   filename: string;
   activated_at: string;
 };
+
+export type MlReportJobStatus = "queued" | "started" | "succeeded" | "failed";
+
+export type MlReportJobCreated = {
+  job_id: string;
+  status: MlReportJobStatus;
+};
+
+export type MlReportJob = {
+  job_id: string;
+  status: MlReportJobStatus;
+  message: string | null;
+  report_path: string | null;
+};
+
+export type MlReportModel = {
+  model_name: string;
+  validation_accuracy: number | null;
+  validation_macro_f1: number | null;
+  test_accuracy: number | null;
+  test_macro_f1: number | null;
+  inference_seconds_per_sample: number | null;
+  confusion_matrix: {
+    labels: string[];
+    matrix: number[][];
+  } | null;
+};
+
+export type MlReport = {
+  generated_at: string;
+  dataset: {
+    path: string;
+    row_count: number;
+    class_distribution: Record<string, number>;
+  };
+  models: MlReportModel[];
+  best_model: MlReportModel | null;
+  top_features: Record<string, Record<string, string[]>>;
+};

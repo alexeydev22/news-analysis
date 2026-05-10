@@ -2,7 +2,7 @@ import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { chatResponseFixture, previewFixture } from "../test/fixtures";
+import { chatResponseFixture, mlReportFixture, previewFixture } from "../test/fixtures";
 import { App } from "./App";
 
 function deferredResponse() {
@@ -50,6 +50,23 @@ function mockFetch() {
           },
         ],
       });
+    }
+
+    if (url.includes("/api/v1/ml-report/latest")) {
+      return new Response(null, { status: 204 });
+    }
+
+    if (url.includes("/api/v1/ml-report/jobs/job-1")) {
+      return Response.json({
+        job_id: "job-1",
+        status: "succeeded",
+        message: "ready",
+        report_path: "reports/ml.json",
+      });
+    }
+
+    if (url.includes("/api/v1/ml-report/jobs")) {
+      return Response.json({ job_id: "job-1", status: "queued" });
     }
 
     if (url.includes("/api/v1/news/preview")) {
@@ -107,6 +124,7 @@ function mockStreamErrorFetch() {
 }
 
 afterEach(() => {
+  vi.useRealTimers();
   vi.unstubAllGlobals();
 });
 
@@ -128,6 +146,8 @@ describe("App", () => {
     expect(screen.getByText("Ответ появится после отправки вопроса.")).toBeInTheDocument();
     expect(screen.getByRole("complementary", { name: "Источники анализа" })).toBeInTheDocument();
     expect(screen.getByText("Источники появятся после ответа.")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "ML-отчет" })).toBeInTheDocument();
+    expect(screen.getByText("Отчет еще не сформирован")).toBeInTheDocument();
   });
 
   it("submits a real stream request shape and renders answer, timeline, sources and impacts", async () => {
@@ -178,6 +198,59 @@ describe("App", () => {
     await waitFor(() => {
       expect(screen.getByText("Проиндексировано 10 из 10 в economic_news")).toBeInTheDocument();
     });
+  });
+
+  it("starts an ml report job and renders the latest report", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+
+      if (url.includes("/api/v1/news/datasets/active")) {
+        return Response.json(null);
+      }
+
+      if (url.includes("/api/v1/news/datasets")) {
+        return Response.json({ datasets: [] });
+      }
+
+      if (url.includes("/api/v1/ml-report/latest")) {
+        return Response.json(mlReportFixture);
+      }
+
+      if (url.includes("/api/v1/ml-report/jobs/job-1")) {
+        return Response.json({
+          job_id: "job-1",
+          status: "succeeded",
+          message: "ready",
+          report_path: "reports/ml.json",
+        });
+      }
+
+      if (url.includes("/api/v1/ml-report/jobs")) {
+        return Response.json({ job_id: "job-1", status: "succeeded" });
+      }
+
+      return Response.json({ detail: "not found" }, { status: 404 });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const user = userEvent.setup();
+
+    render(<App />);
+
+    await user.click(screen.getByRole("button", { name: "Сформировать ML-отчет" }));
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/analysis-service/api/v1/ml-report/jobs",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({}),
+      }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Лучшая модель: tfidf-logreg")).toBeInTheDocument();
+    });
+    expect(screen.getByText("Строк в датасете: 120")).toBeInTheDocument();
+    expect(screen.getByText("ввп")).toBeInTheDocument();
+    expect(screen.getByText("0.900")).toBeInTheDocument();
   });
 
   it("uploads a csv dataset and displays it as active", async () => {

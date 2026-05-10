@@ -205,15 +205,15 @@ just prepare-demo-training
 Команда не перезаписывает `data/raw/economic_news.csv`; она создает
 `data/raw/news_impact.csv` для research pipeline.
 
-Для внешнего CSV передайте названия его колонок:
+Для внешнего датасета используйте FNSPID sample и передайте названия его колонок:
 
 ```bash
-just prepare-dataset path/to/external.csv \
+just prepare-dataset path/to/fnspid_sample.csv \
   --title-column headline \
   --text-column body \
   --source-column publisher \
   --published-at-column date \
-  --label-column sentiment
+  --label-column impact
 ```
 
 Затем обучите и сравните модели:
@@ -252,6 +252,33 @@ just trained-smoke
 confidence и объяснение, а итоговый ответ сформирован по найденному контексту.
 Если артефакт выбранной модели отсутствует, `analysis-service` возвращает
 управляемую ошибку недоступной модели.
+
+## Проверка ML-отчета во фронтенде
+
+После подготовки training CSV и обученных артефактов откройте UI и нажмите
+`Сформировать ML-отчет` в левой панели. Кнопка запускает backend job в
+`analysis-service`, а тяжелая работа выполняется в `analysis-worker` через
+Taskiq + Redis.
+
+Ожидаемый результат:
+
+- статус меняется с `в очереди` или `выполняется` на `готов`;
+- появляется лучшая модель;
+- отображаются accuracy, macro-F1 и время инференса;
+- показываются распределение классов, confusion matrix и top features для
+  `tfidf-logreg`.
+
+Проверка без UI:
+
+```bash
+just ml-report
+```
+
+Команда пишет JSON, который читает frontend:
+
+```text
+reports/ml/model-report.json
+```
 
 ## Проверка LLM-режима
 

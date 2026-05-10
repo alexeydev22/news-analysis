@@ -4,13 +4,20 @@ from dishka import Provider, Scope, make_async_container, provide
 from dishka.integrations.fastapi import FastapiProvider
 from economic_news_contracts.analysis import AnalysisModelName, ImpactLabel
 
-from analysis_service.application.ports import ModelRegistry
-from analysis_service.application.use_cases import AnalyzeNewsImpact
+from analysis_service.application.ports import MlReportStorage, MlReportTaskQueue, ModelRegistry
+from analysis_service.application.use_cases import (
+    AnalyzeNewsImpact,
+    EnqueueMlReportJob,
+    GetLatestMlReport,
+    GetMlReportJob,
+)
 from analysis_service.infrastructure.classifiers import (
     JoblibImpactClassifier,
     StaticImpactClassifier,
     StaticModelRegistry,
 )
+from analysis_service.infrastructure.ml_report_queue import TaskiqMlReportTaskQueue
+from analysis_service.infrastructure.ml_report_storage import JsonMlReportStorage
 from analysis_service.main.settings import AnalysisServiceSettings
 
 
@@ -50,6 +57,33 @@ class AnalysisServiceProvider(Provider):
     @provide(scope=Scope.APP)
     def analyze_news_impact(self, registry: ModelRegistry) -> AnalyzeNewsImpact:
         return AnalyzeNewsImpact(registry)
+
+    @provide(scope=Scope.APP, provides=MlReportStorage)
+    def ml_report_storage(self, settings: AnalysisServiceSettings) -> JsonMlReportStorage:
+        return JsonMlReportStorage(
+            jobs_dir=settings.ml_report_jobs_dir,
+            latest_report_path=settings.ml_report_output_path,
+        )
+
+    @provide(scope=Scope.APP, provides=MlReportTaskQueue)
+    def ml_report_task_queue(self) -> TaskiqMlReportTaskQueue:
+        return TaskiqMlReportTaskQueue()
+
+    @provide(scope=Scope.APP)
+    def enqueue_ml_report_job(
+        self,
+        task_queue: MlReportTaskQueue,
+        storage: MlReportStorage,
+    ) -> EnqueueMlReportJob:
+        return EnqueueMlReportJob(task_queue, storage)
+
+    @provide(scope=Scope.APP)
+    def get_ml_report_job(self, storage: MlReportStorage) -> GetMlReportJob:
+        return GetMlReportJob(storage)
+
+    @provide(scope=Scope.APP)
+    def get_latest_ml_report(self, storage: MlReportStorage) -> GetLatestMlReport:
+        return GetLatestMlReport(storage)
 
 
 def create_container(settings: AnalysisServiceSettings | None = None) -> Any:

@@ -40,7 +40,7 @@ just demo-down
 Проверка обученных моделей:
 
 ```bash
-just prepare-dataset path/to/external.csv --label-column sentiment
+just prepare-dataset path/to/fnspid_sample.csv --label-column impact
 just train-baseline
 just train-embedding
 just train-transformer

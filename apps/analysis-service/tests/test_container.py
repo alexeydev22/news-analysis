@@ -2,6 +2,11 @@ from pathlib import Path
 
 import joblib
 import pytest
+from analysis_service.application.use_cases import (
+    EnqueueMlReportJob,
+    GetLatestMlReport,
+    GetMlReportJob,
+)
 from analysis_service.domain.errors import ModelUnavailableError
 from analysis_service.domain.model import NewsText
 from analysis_service.main.container import AnalysisServiceProvider
@@ -31,3 +36,17 @@ def test_production_registry_uses_only_existing_artifact_paths(tmp_path: Path) -
     assert prediction.impact == ImpactLabel.POSITIVE
     with pytest.raises(ModelUnavailableError):
         registry.get(AnalysisModelName.TINY_TRANSFORMER_CLASSIFIER)
+
+
+def test_provider_resolves_ml_report_use_cases(tmp_path: Path) -> None:
+    settings = AnalysisServiceSettings(
+        ml_report_jobs_dir=tmp_path / "jobs",
+        ml_report_output_path=tmp_path / "model-report.json",
+    )
+    provider = AnalysisServiceProvider(settings)
+    storage = provider.ml_report_storage(settings)
+    queue = provider.ml_report_task_queue()
+
+    assert isinstance(provider.enqueue_ml_report_job(queue, storage), EnqueueMlReportJob)
+    assert isinstance(provider.get_ml_report_job(storage), GetMlReportJob)
+    assert isinstance(provider.get_latest_ml_report(storage), GetLatestMlReport)

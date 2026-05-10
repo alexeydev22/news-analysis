@@ -30,6 +30,8 @@ artifacts/hf-cache/*
 
 research/reports/*
 !research/reports/.gitkeep
+reports/*
+!reports/.gitkeep
 
 .superpowers/
 .worktrees/

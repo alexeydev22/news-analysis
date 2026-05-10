@@ -8,6 +8,7 @@ from economic_news_research.eda import save_eda_artifacts
 from economic_news_research.embedding import TextEmbedder, train_embedding_classifier
 from economic_news_research.modeling import train_baseline_model
 from economic_news_research.paths import DEFAULT_RAW_DATASET, MODELS_DIR, REPORTS_DIR
+from economic_news_research.reporting import build_model_report, save_model_report
 from economic_news_research.tracking import (
     log_baseline_to_mlflow,
     save_baseline_artifacts,
@@ -91,6 +92,21 @@ def run_compare_models(*, comparison_paths: list[Path], output_path: Path) -> Pa
     return output_path
 
 
+def run_build_model_report(
+    *,
+    dataset_path: Path,
+    comparison_path: Path,
+    model_dirs: list[Path],
+    output_path: Path,
+) -> Path:
+    report = build_model_report(
+        dataset_path=dataset_path,
+        comparison_path=comparison_path,
+        model_dirs=model_dirs,
+    )
+    return save_model_report(report, output_path=output_path)
+
+
 def main() -> None:
     parser = _build_parser()
     args = parser.parse_args()
@@ -142,6 +158,16 @@ def main() -> None:
         except FileNotFoundError as error:
             parser.error(str(error))
         print(f"comparison_path={output_path}")
+        return
+
+    if args.command == "ml-report":
+        output_path = run_build_model_report(
+            dataset_path=args.dataset,
+            comparison_path=args.comparison_path,
+            model_dirs=args.model_dir or _default_model_dirs(),
+            output_path=args.output_path,
+        )
+        print(f"model_report_path={output_path}")
         return
 
     parser.error("unknown command")
@@ -237,7 +263,38 @@ def _build_parser() -> argparse.ArgumentParser:
         default=MODELS_DIR / "model_comparison.csv",
     )
 
+    report_parser = subparsers.add_parser("ml-report")
+    report_parser.add_argument(
+        "--dataset",
+        type=Path,
+        default=DEFAULT_RAW_DATASET,
+    )
+    report_parser.add_argument(
+        "--comparison-path",
+        type=Path,
+        default=MODELS_DIR / "model_comparison.csv",
+    )
+    report_parser.add_argument(
+        "--model-dir",
+        action="append",
+        type=Path,
+        default=None,
+    )
+    report_parser.add_argument(
+        "--output-path",
+        type=Path,
+        default=REPORTS_DIR / "ml" / "model-report.json",
+    )
+
     return parser
+
+
+def _default_model_dirs() -> list[Path]:
+    return [
+        MODELS_DIR / "baseline",
+        MODELS_DIR / "embedding",
+        MODELS_DIR / "transformer",
+    ]
 
 
 def _default_comparison_paths() -> list[Path]:

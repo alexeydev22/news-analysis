@@ -72,11 +72,18 @@ train-transformer:
 compare-models:
     uv run --project research python -m economic_news_research.cli compare-models
 
+ml-report:
+    uv run --project research python -m economic_news_research.cli ml-report --dataset data/raw/news_impact.csv --output-path reports/ml/model-report.json
+
 train-models:
     just train-baseline
     just train-embedding
     just train-transformer
     just compare-models
+
+ml-full:
+    just train-models
+    just ml-report
 
 trained-smoke:
     uv run python tools/trained_smoke.py

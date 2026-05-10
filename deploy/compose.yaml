@@ -33,11 +33,51 @@ services:
       HF_HOME: "${HF_HOME:-/app/artifacts/hf-cache}"
       HF_HUB_OFFLINE: "${HF_HUB_OFFLINE:-1}"
       TRANSFORMERS_OFFLINE: "${TRANSFORMERS_OFFLINE:-1}"
+      ANALYSIS_REDIS_URL: "redis://redis:6379/0"
+      ANALYSIS_ML_DATASET_PATH: "${ANALYSIS_ML_DATASET_PATH:-data/raw/news_impact.csv}"
+      ANALYSIS_ML_REPORT_OUTPUT_PATH: "${ANALYSIS_ML_REPORT_OUTPUT_PATH:-reports/ml/model-report.json}"
+      ANALYSIS_ML_REPORT_JOBS_DIR: "${ANALYSIS_ML_REPORT_JOBS_DIR:-reports/ml/jobs}"
     ports:
       - "8001:8000"
     volumes:
       - ../artifacts:/app/artifacts:ro
       - ../artifacts/hf-cache:/app/artifacts/hf-cache
+      - ../data/raw:/app/data/raw:ro
+      - ../reports:/app/reports
+    depends_on:
+      - redis
+
+  analysis-worker:
+    build:
+      context: ..
+      dockerfile: deploy/docker/analysis-service.Dockerfile
+    env_file:
+      - ../.env.example
+    environment:
+      ANALYSIS_USE_STATIC_CLASSIFIER: "false"
+      ANALYSIS_TFIDF_ARTIFACT_PATH: "${ANALYSIS_TFIDF_ARTIFACT_PATH:-artifacts/models/baseline/tfidf-logreg.joblib}"
+      ANALYSIS_EMBEDDING_ARTIFACT_PATH: "${ANALYSIS_EMBEDDING_ARTIFACT_PATH:-artifacts/models/embedding/embedding-logreg.joblib}"
+      ANALYSIS_TRANSFORMER_ARTIFACT_PATH: "${ANALYSIS_TRANSFORMER_ARTIFACT_PATH:-artifacts/models/transformer/tiny-transformer-classifier.joblib}"
+      HF_HOME: "${HF_HOME:-/app/artifacts/hf-cache}"
+      HF_HUB_OFFLINE: "${HF_HUB_OFFLINE:-1}"
+      TRANSFORMERS_OFFLINE: "${TRANSFORMERS_OFFLINE:-1}"
+      ANALYSIS_REDIS_URL: "redis://redis:6379/0"
+      ANALYSIS_ML_DATASET_PATH: "${ANALYSIS_ML_DATASET_PATH:-data/raw/news_impact.csv}"
+      ANALYSIS_ML_REPORT_OUTPUT_PATH: "${ANALYSIS_ML_REPORT_OUTPUT_PATH:-reports/ml/model-report.json}"
+      ANALYSIS_ML_REPORT_JOBS_DIR: "${ANALYSIS_ML_REPORT_JOBS_DIR:-reports/ml/jobs}"
+    command:
+      - .venv/bin/taskiq
+      - worker
+      - analysis_service.workers.broker:broker
+      - analysis_service.workers.tasks
+      - --workers
+      - "1"
+    volumes:
+      - ../artifacts:/app/artifacts
+      - ../data/raw:/app/data/raw:ro
+      - ../reports:/app/reports
+    depends_on:
+      - redis
 
   retrieval-service:
     build:
@@ -123,11 +163,13 @@ services:
       args:
         VITE_API_GATEWAY_URL: "${VITE_API_GATEWAY_URL:-/api-gateway}"
         VITE_NEWS_SERVICE_URL: "${VITE_NEWS_SERVICE_URL:-/news-service}"
+        VITE_ANALYSIS_SERVICE_URL: "${VITE_ANALYSIS_SERVICE_URL:-/analysis-service}"
     ports:
       - "5173:80"
     depends_on:
       - api-gateway
       - news-service
+      - analysis-service
 
   postgres:
     image: postgres:17-alpine

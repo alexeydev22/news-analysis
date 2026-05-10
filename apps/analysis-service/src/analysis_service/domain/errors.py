@@ -20,3 +20,9 @@ class ModelUnavailableError(AnalysisServiceError):
     def __init__(self, model_name: AnalysisModelName) -> None:
         self.model_name = model_name
         super().__init__(f"Analysis model is unavailable: {model_name}")
+
+
+class MlReportJobNotFoundError(AnalysisServiceError):
+    def __init__(self, job_id: str) -> None:
+        self.job_id = job_id
+        super().__init__(f"ML report job not found: {job_id}")

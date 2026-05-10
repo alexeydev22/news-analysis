@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
+import { getLatestMlReport, getMlReportJob, startMlReportJob } from "../api/analysis";
 import { streamChat } from "../api/chatStream";
 import { ApiError } from "../api/errors";
 import {
@@ -13,6 +14,7 @@ import {
 import { ChatPanel } from "../components/ChatPanel";
 import { ControlsPanel } from "../components/ControlsPanel";
 import { DatasetUpload } from "../components/DatasetUpload";
+import { MlReportPanel } from "../components/MlReportPanel";
 import { NewsPreview } from "../components/NewsPreview";
 import { SourcesPanel } from "../components/SourcesPanel";
 import { Timeline } from "../components/Timeline";
@@ -23,6 +25,8 @@ import type {
   ChatStreamEvent,
   ImpactSummary,
   IndexNewsDatasetResponse,
+  MlReport,
+  MlReportJobStatus,
   NewsDocument,
   PreviewNewsResponse,
   UploadedDataset,
@@ -69,12 +73,17 @@ export function App() {
   const [indexResult, setIndexResult] = useState<IndexNewsDatasetResponse | null>(null);
   const [datasets, setDatasets] = useState<UploadedDataset[]>([]);
   const [activeDataset, setActiveDataset] = useState<ActiveDataset | null>(null);
+  const [mlReport, setMlReport] = useState<MlReport | null>(null);
+  const [mlReportStatus, setMlReportStatus] = useState<MlReportJobStatus | null>(null);
+  const [mlReportError, setMlReportError] = useState<string | null>(null);
   const [isStreaming, setStreaming] = useState(false);
   const [isPreviewLoading, setPreviewLoading] = useState(false);
   const [isIndexLoading, setIndexLoading] = useState(false);
   const [isUploading, setUploading] = useState(false);
+  const [isMlReportLoading, setMlReportLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const datasetRequestIdRef = useRef(0);
+  const mlReportPollRef = useRef<number | null>(null);
 
   function nextDatasetRequestId(): number {
     datasetRequestIdRef.current += 1;
@@ -109,6 +118,32 @@ export function App() {
     return () => {
       isMounted = false;
       nextDatasetRequestId();
+    };
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadLatestReport() {
+      try {
+        const report = await getLatestMlReport();
+        if (isMounted) {
+          setMlReport(report);
+        }
+      } catch {
+        if (isMounted) {
+          setMlReport(null);
+        }
+      }
+    }
+
+    void loadLatestReport();
+
+    return () => {
+      isMounted = false;
+      if (mlReportPollRef.current !== null) {
+        window.clearTimeout(mlReportPollRef.current);
+      }
     };
   }, []);
 
@@ -221,6 +256,67 @@ export function App() {
     }
   }
 
+  async function loadLatestMlReport() {
+    setMlReport(await getLatestMlReport());
+  }
+
+  function scheduleMlReportPoll(jobId: string) {
+    if (mlReportPollRef.current !== null) {
+      window.clearTimeout(mlReportPollRef.current);
+    }
+
+    mlReportPollRef.current = window.setTimeout(() => {
+      void pollMlReportJob(jobId);
+    }, 1500);
+  }
+
+  async function pollMlReportJob(jobId: string) {
+    try {
+      const job = await getMlReportJob(jobId);
+      setMlReportStatus(job.status);
+
+      if (job.status === "succeeded") {
+        await loadLatestMlReport();
+        setMlReportLoading(false);
+        return;
+      }
+
+      if (job.status === "failed") {
+        setMlReportError(job.message || "Не удалось сформировать ML-отчет");
+        setMlReportLoading(false);
+        return;
+      }
+
+      scheduleMlReportPoll(job.job_id);
+    } catch (jobError) {
+      setMlReportError(messageFromError(jobError));
+      setMlReportLoading(false);
+    }
+  }
+
+  async function handleGenerateMlReport() {
+    setMlReportLoading(true);
+    setMlReportError(null);
+    try {
+      const job = await startMlReportJob();
+      setMlReportStatus(job.status);
+      if (job.status === "succeeded") {
+        await loadLatestMlReport();
+        setMlReportLoading(false);
+        return;
+      }
+      if (job.status === "failed") {
+        setMlReportError("Не удалось сформировать ML-отчет");
+        setMlReportLoading(false);
+        return;
+      }
+      scheduleMlReportPoll(job.job_id);
+    } catch (reportError) {
+      setMlReportError(messageFromError(reportError));
+      setMlReportLoading(false);
+    }
+  }
+
   return (
     <main className={styles.shell}>
       <div className={styles.controls}>
@@ -250,6 +346,15 @@ export function App() {
           onIndex={handleIndex}
         />
         <NewsPreview preview={preview} indexResult={indexResult} />
+        <MlReportPanel
+          report={mlReport}
+          status={mlReportStatus}
+          error={mlReportError}
+          isLoading={isMlReportLoading}
+          onGenerate={() => {
+            void handleGenerateMlReport();
+          }}
+        />
       </div>
       <div className={styles.chat}>
         <ChatPanel
