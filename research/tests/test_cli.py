@@ -7,6 +7,7 @@ import pytest
 
 from economic_news_research import cli
 from economic_news_research.cli import (
+    run_build_model_report,
     run_compare_models,
     run_eda,
     run_train_baseline,
@@ -133,6 +134,38 @@ def test_run_compare_models_combines_existing_comparisons(tmp_path: Path) -> Non
 
     comparison = pd.read_csv(output_path)
     assert comparison["model_name"].tolist() == ["tfidf-logreg", "embedding-logreg"]
+
+
+def test_run_build_model_report_writes_report(tmp_path: Path) -> None:
+    baseline_dir = tmp_path / "baseline"
+    baseline_dir.mkdir()
+    pd.DataFrame(
+        [
+            {
+                "model_name": "tfidf-logreg",
+                "validation_accuracy": 1.0,
+                "validation_macro_f1": 1.0,
+                "test_accuracy": 1.0,
+                "test_macro_f1": 1.0,
+                "inference_seconds_per_sample": 0.001,
+            },
+        ],
+    ).to_csv(tmp_path / "model_comparison.csv", index=False)
+    pd.DataFrame(
+        [[1, 0, 0], [0, 1, 0], [0, 0, 1]],
+        index=["negative", "neutral", "positive"],
+        columns=["negative", "neutral", "positive"],
+    ).to_csv(baseline_dir / "tfidf-logreg_confusion_matrix.csv")
+
+    output_path = run_build_model_report(
+        dataset_path=FIXTURE,
+        comparison_path=tmp_path / "model_comparison.csv",
+        model_dirs=[baseline_dir],
+        output_path=tmp_path / "model-report.json",
+    )
+
+    assert output_path == tmp_path / "model-report.json"
+    assert output_path.exists()
 
 
 def test_main_compare_models_uses_custom_comparisons_without_defaults(

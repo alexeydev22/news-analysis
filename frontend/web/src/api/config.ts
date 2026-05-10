@@ -9,3 +9,7 @@ export const API_GATEWAY_URL = trimTrailingSlash(
 export const NEWS_SERVICE_URL = trimTrailingSlash(
   import.meta.env.VITE_NEWS_SERVICE_URL ?? "/news-service",
 );
+
+export const ANALYSIS_SERVICE_URL = trimTrailingSlash(
+  import.meta.env.VITE_ANALYSIS_SERVICE_URL ?? "/analysis-service",
+);
