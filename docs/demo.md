@@ -189,14 +189,23 @@ curl -X POST http://localhost:8004/api/v1/news/index/jobs \
 
 | Режим | Статус для demo | Назначение |
 | --- | --- | --- |
-| `tfidf-logreg` | основной стабильный режим | Быстрая классификация влияния новости. |
-| `embedding-logreg` | доступен после обучения | Классификация на embedding-признаках после подготовки артефакта модели. |
-| `tiny-transformer-classifier` | доступен после обучения | Классификация легкой transformer-моделью после подготовки артефакта модели. |
+| `tfidf-logreg` | работает после `just train-models` | Быстрая классификация влияния новости. |
+| `embedding-logreg` | работает после `just train-models` | Классификация на embedding-признаках. |
+| `tiny-transformer-classifier` | работает после `just train-models` | Классификация дообученной transformer-моделью. |
 
-Для защиты используйте `tfidf-logreg`: он гарантированно работает в локальном
-compose-стенде.
+В обычном `just demo-up` режимы могут работать через static fallback. Для
+проверки реальных обученных моделей используйте `just demo-up-trained`.
 
-Для проверки всех обученных режимов сначала подготовьте размеченный CSV:
+Для текущего учебного CSV из репозитория подготовьте размеченный training CSV:
+
+```bash
+just prepare-demo-training
+```
+
+Команда не перезаписывает `data/raw/economic_news.csv`; она создает
+`data/raw/news_impact.csv` для research pipeline.
+
+Для внешнего CSV передайте названия его колонок:
 
 ```bash
 just prepare-dataset path/to/external.csv \
@@ -210,16 +219,32 @@ just prepare-dataset path/to/external.csv \
 Затем обучите и сравните модели:
 
 ```bash
-just train-baseline
-just train-embedding
-just train-transformer
-just compare-models
+just train-models
 ```
+
+Эта команда создает локальные gitignored-артефакты:
+
+```text
+artifacts/models/baseline/tfidf-logreg.joblib
+artifacts/models/embedding/embedding-logreg.joblib
+artifacts/models/transformer/tiny-transformer-classifier.joblib
+```
+
+Первое обучение embedding и transformer режимов может скачать модели из
+HuggingFace. Cache сохраняется в `artifacts/hf-cache` и используется
+`analysis-service` при запуске `just demo-up-trained`. В trained compose для
+HuggingFace включен offline режим, поэтому инференс идет из локального cache.
 
 Запустите стенд с обученными артефактами:
 
 ```bash
 just demo-up-trained
+```
+
+Быстрая API-проверка всех трех моделей:
+
+```bash
+just trained-smoke
 ```
 
 Проверка всех режимов выполняется одинаково: выбрать режим в UI, задать один и

@@ -57,14 +57,26 @@ web-build:
 prepare-dataset input +args='':
     uv run python tools/prepare_dataset.py {{input}} {{args}}
 
+prepare-demo-training:
+    uv run python tools/prepare_dataset.py data/raw/economic_news.csv --app-output data/processed/economic_news.csv --train-output data/raw/news_impact.csv --label-column impact
+
 train-baseline:
     uv run --project research python -m economic_news_research.cli train-baseline --dataset data/raw/news_impact.csv --output-dir artifacts/models/baseline
 
 train-embedding:
-    uv run --project research python -m economic_news_research.cli train-embedding --dataset data/raw/news_impact.csv --output-dir artifacts/models/embedding
+    HF_HOME=artifacts/hf-cache uv run --project research python -m economic_news_research.cli train-embedding --dataset data/raw/news_impact.csv --output-dir artifacts/models/embedding
 
 train-transformer:
-    uv run --project research python -m economic_news_research.cli train-transformer --dataset data/raw/news_impact.csv --output-dir artifacts/models/transformer
+    HF_HOME=artifacts/hf-cache uv run --project research python -m economic_news_research.cli train-transformer --dataset data/raw/news_impact.csv --output-dir artifacts/models/transformer
 
 compare-models:
     uv run --project research python -m economic_news_research.cli compare-models
+
+train-models:
+    just train-baseline
+    just train-embedding
+    just train-transformer
+    just compare-models
+
+trained-smoke:
+    uv run python tools/trained_smoke.py

@@ -73,6 +73,21 @@ docker compose -f deploy/compose.yaml up --build
 
 ## 4. Подготовка обученных analysis-режимов
 
+Артефакты моделей хранятся локально в `artifacts/models` и не коммитятся в git.
+Это сделано намеренно: joblib-файлы зависят от окружения и могут быть крупными,
+особенно для transformer-режима. После клонирования репозитория их нужно
+обучить один раз на рабочей машине.
+
+Для текущего учебного CSV из репозитория можно сразу подготовить training
+dataset:
+
+```bash
+just prepare-demo-training
+```
+
+Эта команда сохраняет исходный `data/raw/economic_news.csv` для news-service и
+создает `data/raw/news_impact.csv` для обучения.
+
 Внешний CSV сначала нужно привести к двум схемам. Для CSV с уже совместимыми
 колонками:
 
@@ -140,11 +155,25 @@ positive,neutral,negative
 Команды обучения и сравнения:
 
 ```bash
+just train-models
+```
+
+Эквивалентно можно выполнить шаги отдельно:
+
+```bash
 just train-baseline
 just train-embedding
 just train-transformer
 just compare-models
 ```
+
+Первый запуск `train-embedding` скачивает модель sentence-transformers, а
+первый запуск `train-transformer` скачивает HuggingFace-модель
+`cointegrated/rubert-tiny2`. Для этого нужен доступ в интернет. Cache
+сохраняется в `artifacts/hf-cache` и затем монтируется в `analysis-service`.
+В `just demo-up-trained` для HuggingFace включен offline режим, поэтому после
+обучения compose использует локальный cache и не делает сетевые запросы при
+инференсе.
 
 Ожидаемые артефакты:
 
@@ -163,8 +192,8 @@ just demo-up-trained
 Краткий сценарий после обучения:
 
 ```bash
-just compare-models
 just demo-up-trained
+just trained-smoke
 ```
 
 В UI можно переключать обученные `tfidf-logreg`, `embedding-logreg` и
