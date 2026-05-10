@@ -205,18 +205,21 @@ just prepare-demo-training
 Команда не перезаписывает `data/raw/economic_news.csv`; она создает
 `data/raw/news_impact.csv` для research pipeline.
 
-Для внешнего датасета используйте FNSPID sample и передайте названия его колонок:
+Подготовка FNSPID sample:
 
 ```bash
-just prepare-dataset path/to/fnspid_sample.csv \
-  --title-column headline \
-  --text-column body \
-  --source-column publisher \
-  --published-at-column date \
-  --label-column impact
+just prepare-fnspid
+just ml-full
 ```
 
-Затем обучите и сравните модели:
+Если интернет недоступен, используйте заранее скачанный CSV:
+
+```bash
+just prepare-fnspid-local path/to/fnspid.csv --limit 50000
+just ml-full
+```
+
+Если используется демо CSV, затем обучите и сравните модели:
 
 ```bash
 just train-models
