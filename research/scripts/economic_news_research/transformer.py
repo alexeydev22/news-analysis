@@ -134,6 +134,29 @@ class HuggingFaceTinyTransformerTrainer:
         prediction_ids = outputs.logits.argmax(dim=-1).tolist()
         return [self._id_to_label[prediction_id] for prediction_id in prediction_ids]
 
+    def __getstate__(self) -> dict[str, Any]:
+        model = self._model
+        if model is not None:
+            model = model.to("cpu")
+        return {
+            "config": self.config,
+            "best_params": self.best_params,
+            "label_to_id": self._label_to_id,
+            "id_to_label": self._id_to_label,
+            "tokenizer": self._tokenizer,
+            "model": model,
+        }
+
+    def __setstate__(self, state: dict[str, Any]) -> None:
+        self.config = state["config"]
+        self.best_params = state["best_params"]
+        self._label_to_id = state["label_to_id"]
+        self._id_to_label = state["id_to_label"]
+        self._tokenizer = state["tokenizer"]
+        self._model = state["model"]
+        self._trainer = None
+        self._training_dir = None
+
 
 def train_tiny_transformer_classifier(
     split: DatasetSplit,

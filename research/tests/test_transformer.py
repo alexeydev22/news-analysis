@@ -1,5 +1,8 @@
+import weakref
 from collections.abc import Iterator
 from pathlib import Path
+
+import joblib
 
 from economic_news_research.data import load_news_dataset, split_news_dataset
 from economic_news_research.transformer import (
@@ -91,12 +94,17 @@ class DeviceCheckingModel:
     def __init__(self, input_ids: FakeTensor) -> None:
         self.input_ids = input_ids
         self.evaluated = False
+        self.to_device_calls: list[str] = []
 
     def parameters(self) -> Iterator[FakeParameter]:
         return iter([FakeParameter()])
 
     def eval(self) -> None:
         self.evaluated = True
+
+    def to(self, device: str) -> "DeviceCheckingModel":
+        self.to_device_calls.append(device)
+        return self
 
     def __call__(self, **kwargs: FakeTensor) -> FakeModelOutput:
         assert kwargs["input_ids"].received_device == FakeParameter.device
@@ -112,6 +120,10 @@ class FakeTokenizer:
         assert texts == ["Markets rise"]
         assert kwargs["return_tensors"] == "pt"
         return {"input_ids": self.input_ids}
+
+
+class WeakRefTarget:
+    pass
 
 
 def test_train_tiny_transformer_classifier_returns_metrics_without_downloads() -> None:
@@ -158,3 +170,22 @@ def test_huggingface_tiny_transformer_predict_moves_batch_to_model_device() -> N
 
     assert predictions == ["negative"]
     assert input_ids.received_device == FakeParameter.device
+
+
+def test_huggingface_tiny_transformer_joblib_state_excludes_trainer(
+    tmp_path: Path,
+) -> None:
+    input_ids = FakeTensor()
+    target = WeakRefTarget()
+    artifact_path = tmp_path / "transformer.joblib"
+    trainer = HuggingFaceTinyTransformerTrainer()
+    trainer._tokenizer = FakeTokenizer(input_ids)
+    trainer._model = DeviceCheckingModel(input_ids)
+    trainer._trainer = weakref.ref(target)
+
+    joblib.dump(trainer, artifact_path)
+
+    loaded = joblib.load(artifact_path)
+    assert trainer._model.to_device_calls == ["cpu"]
+    assert loaded._trainer is None
+    assert loaded.predict(["Markets rise"]) == ["negative"]

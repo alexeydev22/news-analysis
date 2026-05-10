@@ -30,10 +30,14 @@ services:
       ANALYSIS_TFIDF_ARTIFACT_PATH: "${ANALYSIS_TFIDF_ARTIFACT_PATH:-artifacts/models/baseline/tfidf-logreg.joblib}"
       ANALYSIS_EMBEDDING_ARTIFACT_PATH: "${ANALYSIS_EMBEDDING_ARTIFACT_PATH:-artifacts/models/embedding/embedding-logreg.joblib}"
       ANALYSIS_TRANSFORMER_ARTIFACT_PATH: "${ANALYSIS_TRANSFORMER_ARTIFACT_PATH:-artifacts/models/transformer/tiny-transformer-classifier.joblib}"
+      HF_HOME: "${HF_HOME:-/app/artifacts/hf-cache}"
+      HF_HUB_OFFLINE: "${HF_HUB_OFFLINE:-1}"
+      TRANSFORMERS_OFFLINE: "${TRANSFORMERS_OFFLINE:-1}"
     ports:
       - "8001:8000"
     volumes:
       - ../artifacts:/app/artifacts:ro
+      - ../artifacts/hf-cache:/app/artifacts/hf-cache
 
   retrieval-service:
     build:
@@ -80,7 +84,7 @@ services:
     ports:
       - "8004:8000"
     volumes:
-      - ../data:/app/data:ro
+      - ../data/raw:/app/data/raw:ro
       - news_uploads:/app/data/uploads
     depends_on:
       - retrieval-service
@@ -106,7 +110,7 @@ services:
       - --workers
       - "1"
     volumes:
-      - ../data:/app/data:ro
+      - ../data/raw:/app/data/raw:ro
       - news_uploads:/app/data/uploads
     depends_on:
       - redis
