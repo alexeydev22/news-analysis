@@ -6,7 +6,7 @@ import pytest
 
 sys.path.append(str(Path(__file__).resolve().parents[1]))
 
-from tools.prepare_fnspid import label_impact_from_text, prepare_fnspid
+from tools.prepare_fnspid import label_impact_from_text, main, prepare_fnspid
 
 
 @pytest.mark.parametrize(
@@ -70,3 +70,38 @@ def test_prepare_fnspid_writes_news_and_training_csv(tmp_path: Path) -> None:
     ]
     assert training_frame["impact"].to_list() == ["positive", "negative", "neutral"]
     assert cached_frame.shape[0] == 3
+
+
+def test_prepare_fnspid_cli_writes_outputs(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    source_path = tmp_path / "fnspid.csv"
+    pd.DataFrame(
+        {
+            "Date": ["2026-05-01"],
+            "Article_title": ["Profit rises"],
+            "Article": ["Company profit rises after strong demand"],
+        },
+    ).to_csv(source_path, index=False)
+
+    main(
+        [
+            "--local-file",
+            str(source_path),
+            "--limit",
+            "1",
+            "--cache-path",
+            str(tmp_path / "cache.csv"),
+            "--output-news",
+            str(tmp_path / "news.csv"),
+            "--output-training",
+            str(tmp_path / "training.csv"),
+        ],
+    )
+
+    captured = capsys.readouterr()
+    assert "rows=1" in captured.out
+    assert "positive=1" in captured.out
+    assert (tmp_path / "news.csv").exists()
+    assert (tmp_path / "training.csv").exists()

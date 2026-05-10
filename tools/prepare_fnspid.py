@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import hashlib
 import re
 from collections import Counter
@@ -7,6 +8,11 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import pandas as pd
+
+FNSPID_SOURCE_URL = (
+    "https://huggingface.co/datasets/Zihan1004/FNSPID/resolve/main/"
+    "Stock_news/nasdaq_exteral_data.csv"
+)
 
 APP_COLUMNS = ["id", "title", "text", "source", "published_at"]
 TRAIN_COLUMNS = ["article_id", "text", "impact", "source", "published_at"]
@@ -241,3 +247,52 @@ def prepare_fnspid(
         training_output_path=training_output_path,
         cache_path=cache_path,
     )
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        description="Download and prepare a limited FNSPID news sample.",
+    )
+    parser.add_argument("--local-file", type=Path)
+    parser.add_argument("--source-url", default=FNSPID_SOURCE_URL)
+    parser.add_argument("--limit", type=int, default=50000)
+    parser.add_argument("--cache-path", type=Path, default=Path("data/external/fnspid_sample.csv"))
+    parser.add_argument("--output-news", type=Path, default=Path("data/raw/economic_news.csv"))
+    parser.add_argument("--output-training", type=Path, default=Path("data/raw/news_impact.csv"))
+    parser.add_argument("--max-text-chars", type=int, default=4000)
+    return parser
+
+
+def main(argv: list[str] | None = None) -> None:
+    args = build_parser().parse_args(argv)
+    source = args.local_file if args.local_file is not None else args.source_url
+
+    try:
+        summary = prepare_fnspid(
+            source=source,
+            cache_path=args.cache_path,
+            news_output_path=args.output_news,
+            training_output_path=args.output_training,
+            limit=args.limit,
+            max_text_chars=args.max_text_chars,
+        )
+    except Exception as error:
+        raise SystemExit(
+            "Failed to prepare FNSPID sample. "
+            "Use --local-file path/to/fnspid.csv if the public source is unavailable. "
+            f"Cause: {error}",
+        ) from error
+
+    distribution = " ".join(
+        f"{label}={count}" for label, count in summary.class_distribution.items()
+    )
+    print(
+        f"rows={summary.row_count} {distribution} "
+        f"news_output={summary.news_output_path} "
+        f"training_output={summary.training_output_path} "
+        f"cache={summary.cache_path}",
+    )
+
+
+if __name__ == "__main__":
+    main()

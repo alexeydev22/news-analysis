@@ -57,6 +57,12 @@ web-build:
 prepare-dataset input +args='':
     uv run python tools/prepare_dataset.py {{input}} {{args}}
 
+prepare-fnspid:
+    uv run python tools/prepare_fnspid.py
+
+prepare-fnspid-local input +args='':
+    uv run python tools/prepare_fnspid.py --local-file {{input}} {{args}}
+
 prepare-demo-training:
     uv run python tools/prepare_dataset.py data/raw/economic_news.csv --app-output data/processed/economic_news.csv --train-output data/raw/news_impact.csv --label-column impact
 
