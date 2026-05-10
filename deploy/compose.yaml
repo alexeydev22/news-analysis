@@ -26,9 +26,14 @@ services:
     env_file:
       - ../.env.example
     environment:
-      ANALYSIS_USE_STATIC_CLASSIFIER: "true"
+      ANALYSIS_USE_STATIC_CLASSIFIER: "${ANALYSIS_USE_STATIC_CLASSIFIER:-true}"
+      ANALYSIS_TFIDF_ARTIFACT_PATH: "${ANALYSIS_TFIDF_ARTIFACT_PATH:-artifacts/models/baseline/tfidf-logreg.joblib}"
+      ANALYSIS_EMBEDDING_ARTIFACT_PATH: "${ANALYSIS_EMBEDDING_ARTIFACT_PATH:-artifacts/models/embedding/embedding-logreg.joblib}"
+      ANALYSIS_TRANSFORMER_ARTIFACT_PATH: "${ANALYSIS_TRANSFORMER_ARTIFACT_PATH:-artifacts/models/transformer/tiny-transformer-classifier.joblib}"
     ports:
       - "8001:8000"
+    volumes:
+      - ../artifacts:/app/artifacts:ro
 
   retrieval-service:
     build:
@@ -38,7 +43,8 @@ services:
       - ../.env.example
     environment:
       RETRIEVAL_QDRANT_URL: "http://qdrant:6333"
-      RETRIEVAL_USE_STATIC_EMBEDDINGS: "true"
+      RETRIEVAL_USE_STATIC_EMBEDDINGS: "${RETRIEVAL_USE_STATIC_EMBEDDINGS:-true}"
+      RETRIEVAL_EMBEDDING_MODEL_NAME: "${RETRIEVAL_EMBEDDING_MODEL_NAME:-sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2}"
     ports:
       - "8002:8000"
     depends_on:
@@ -68,10 +74,14 @@ services:
     environment:
       NEWS_SERVICE_RETRIEVAL_SERVICE_URL: "http://retrieval-service:8000"
       NEWS_SERVICE_NEWS_DATASET_PATH: "${NEWS_SERVICE_NEWS_DATASET_PATH:-data/raw/economic_news.csv}"
+      NEWS_SERVICE_DATASET_UPLOAD_DIR: "${NEWS_SERVICE_DATASET_UPLOAD_DIR:-data/uploads}"
+      NEWS_SERVICE_ACTIVE_DATASET_FILE: "${NEWS_SERVICE_ACTIVE_DATASET_FILE:-data/uploads/active_dataset.json}"
+      NEWS_SERVICE_UPLOAD_MAX_BYTES: "${NEWS_SERVICE_UPLOAD_MAX_BYTES:-52428800}"
     ports:
       - "8004:8000"
     volumes:
       - ../data:/app/data:ro
+      - news_uploads:/app/data/uploads
     depends_on:
       - retrieval-service
 
@@ -84,6 +94,9 @@ services:
     environment:
       NEWS_SERVICE_RETRIEVAL_SERVICE_URL: "http://retrieval-service:8000"
       NEWS_SERVICE_NEWS_DATASET_PATH: "${NEWS_SERVICE_NEWS_DATASET_PATH:-data/raw/economic_news.csv}"
+      NEWS_SERVICE_DATASET_UPLOAD_DIR: "${NEWS_SERVICE_DATASET_UPLOAD_DIR:-data/uploads}"
+      NEWS_SERVICE_ACTIVE_DATASET_FILE: "${NEWS_SERVICE_ACTIVE_DATASET_FILE:-data/uploads/active_dataset.json}"
+      NEWS_SERVICE_UPLOAD_MAX_BYTES: "${NEWS_SERVICE_UPLOAD_MAX_BYTES:-52428800}"
       NEWS_SERVICE_REDIS_URL: "redis://redis:6379/0"
     command:
       - .venv/bin/taskiq
@@ -94,6 +107,7 @@ services:
       - "1"
     volumes:
       - ../data:/app/data:ro
+      - news_uploads:/app/data/uploads
     depends_on:
       - redis
       - retrieval-service
@@ -146,3 +160,4 @@ volumes:
   postgres_data:
   qdrant_data:
   mlflow_data:
+  news_uploads:

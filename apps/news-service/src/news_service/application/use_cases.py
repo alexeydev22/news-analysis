@@ -3,7 +3,13 @@ from economic_news_contracts.news import (
     IndexNewsDatasetResponse,
 )
 
-from news_service.application.ports import NewsIndexTaskQueue, NewsSource, RetrievalIndexer
+from news_service.application.ports import (
+    DatasetStorage,
+    NewsIndexTaskQueue,
+    NewsSource,
+    RetrievalIndexer,
+)
+from news_service.domain.dataset import ActiveDataset, UploadedDataset
 from news_service.domain.model import NewsDocument
 
 
@@ -42,3 +48,35 @@ class EnqueueIndexNewsDataset:
             job_id=job_id,
             events_channel=self._events_channel,
         )
+
+
+class UploadNewsDataset:
+    def __init__(self, storage: DatasetStorage) -> None:
+        self._storage = storage
+
+    async def execute(self, *, filename: str, content: bytes) -> UploadedDataset:
+        return await self._storage.save_upload(filename=filename, content=content)
+
+
+class ListNewsDatasets:
+    def __init__(self, storage: DatasetStorage) -> None:
+        self._storage = storage
+
+    async def execute(self) -> list[UploadedDataset]:
+        return await self._storage.list_datasets()
+
+
+class ActivateNewsDataset:
+    def __init__(self, storage: DatasetStorage) -> None:
+        self._storage = storage
+
+    async def execute(self, dataset_id: str) -> ActiveDataset:
+        return await self._storage.activate(dataset_id)
+
+
+class GetActiveNewsDataset:
+    def __init__(self, storage: DatasetStorage) -> None:
+        self._storage = storage
+
+    async def execute(self) -> ActiveDataset | None:
+        return await self._storage.get_active()

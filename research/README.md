@@ -32,7 +32,7 @@ Current package smoke check:
 uv run python -c "from economic_news_research.paths import DEFAULT_RAW_DATASET; print(DEFAULT_RAW_DATASET)"
 ```
 
-After the research CLI task is implemented, these commands will be available:
+Training and comparison commands:
 
 ```bash
 uv run python -m economic_news_research.cli validate
@@ -40,8 +40,15 @@ uv run python -m economic_news_research.cli eda
 uv run python -m economic_news_research.cli train-baseline
 uv run python -m economic_news_research.cli train-embedding
 uv run python -m economic_news_research.cli train-transformer
-uv run python -m economic_news_research.cli compare-models
+just compare-models
+just demo-up-trained
 ```
+
+After training, `just compare-models` compares trained artifacts and
+`just demo-up-trained` starts the demo with joblib classifiers enabled. The UI can switch
+between trained `tfidf-logreg`, `embedding-logreg`, and
+`tiny-transformer-classifier`; if an artifact is missing, the API returns a controlled
+unavailable-model error.
 
 Transformer and embedding model weights are downloaded into a local Hugging Face cache and
 are not committed. Unit tests use fake model adapters and do not require network access.

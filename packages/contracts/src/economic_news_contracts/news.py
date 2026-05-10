@@ -74,3 +74,42 @@ class EnqueueIndexNewsDatasetResponse(BaseModel):
         if not normalized:
             raise ValueError("Value must not be empty")
         return normalized
+
+
+class UploadedDatasetResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    dataset_id: str = Field(min_length=1)
+    filename: str = Field(min_length=1)
+    size_bytes: int = Field(ge=0)
+    uploaded_at: datetime
+
+    @field_validator("dataset_id", "filename")
+    @classmethod
+    def normalize_required_dataset_text(cls, value: str) -> str:
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("Value must not be empty")
+        return normalized
+
+
+class DatasetListResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    datasets: list[UploadedDatasetResponse]
+
+
+class ActiveDatasetResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    dataset_id: str = Field(min_length=1)
+    filename: str = Field(min_length=1)
+    activated_at: datetime
+
+    @field_validator("dataset_id", "filename")
+    @classmethod
+    def normalize_required_active_dataset_text(cls, value: str) -> str:
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("Value must not be empty")
+        return normalized

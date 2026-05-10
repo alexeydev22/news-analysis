@@ -1,8 +1,19 @@
 {
-  "docx_paragraphs": 66,
-  "docx_tables": 3,
+  "docx_has_student": true,
+  "docx_has_group": true,
+  "docx_has_university": true,
+  "docx_has_ml_backend_sections": true,
+  "pptx_has_student": true,
+  "pptx_has_group": true,
+  "pptx_has_university": true,
+  "pptx_has_ml_backend_sections": true,
+  "materials_hide_50_50_wording": true,
+  "docx_paragraphs": 101,
+  "docx_tables": 4,
   "docx_inline_shapes": 2,
+  "docx_rendered_pages": 10,
   "pptx_slides": 12,
   "pptx_media": 3,
-  "pptx_has_core_props": true
+  "pptx_rendered_pages": 12,
+  "pptx_render_refreshed": false
 }

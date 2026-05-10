@@ -1,14 +1,23 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { streamChat } from "../api/chatStream";
 import { ApiError } from "../api/errors";
-import { indexNewsDataset, previewNews } from "../api/news";
+import {
+  activateDataset,
+  getActiveDataset,
+  indexNewsDataset,
+  listDatasets,
+  previewNews,
+  uploadDataset,
+} from "../api/news";
 import { ChatPanel } from "../components/ChatPanel";
 import { ControlsPanel } from "../components/ControlsPanel";
+import { DatasetUpload } from "../components/DatasetUpload";
 import { NewsPreview } from "../components/NewsPreview";
 import { SourcesPanel } from "../components/SourcesPanel";
 import { Timeline } from "../components/Timeline";
 import type {
+  ActiveDataset,
   AnalysisModelName,
   ChatResponse,
   ChatStreamEvent,
@@ -16,6 +25,7 @@ import type {
   IndexNewsDatasetResponse,
   NewsDocument,
   PreviewNewsResponse,
+  UploadedDataset,
 } from "./types";
 import styles from "./App.module.css";
 
@@ -57,10 +67,50 @@ export function App() {
   const [impactSummaries, setImpactSummaries] = useState<ImpactSummary[]>([]);
   const [preview, setPreview] = useState<PreviewNewsResponse | null>(null);
   const [indexResult, setIndexResult] = useState<IndexNewsDatasetResponse | null>(null);
+  const [datasets, setDatasets] = useState<UploadedDataset[]>([]);
+  const [activeDataset, setActiveDataset] = useState<ActiveDataset | null>(null);
   const [isStreaming, setStreaming] = useState(false);
   const [isPreviewLoading, setPreviewLoading] = useState(false);
   const [isIndexLoading, setIndexLoading] = useState(false);
+  const [isUploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const datasetRequestIdRef = useRef(0);
+
+  function nextDatasetRequestId(): number {
+    datasetRequestIdRef.current += 1;
+    return datasetRequestIdRef.current;
+  }
+
+  function isLatestDatasetRequest(requestId: number): boolean {
+    return datasetRequestIdRef.current === requestId;
+  }
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadDatasets() {
+      const requestId = nextDatasetRequestId();
+      try {
+        const [datasetList, active] = await Promise.all([listDatasets(), getActiveDataset()]);
+        if (isMounted && isLatestDatasetRequest(requestId)) {
+          setDatasets(datasetList.datasets);
+          setActiveDataset(active);
+        }
+      } catch {
+        if (isMounted && isLatestDatasetRequest(requestId)) {
+          setDatasets([]);
+          setActiveDataset(null);
+        }
+      }
+    }
+
+    void loadDatasets();
+
+    return () => {
+      isMounted = false;
+      nextDatasetRequestId();
+    };
+  }, []);
 
   function applyStreamEvent(event: ChatStreamEvent) {
     if (event.event === "sources_found" && isSourcesFound(event.data)) {
@@ -133,6 +183,44 @@ export function App() {
     }
   }
 
+  async function handleUploadDataset(file: File) {
+    const requestId = nextDatasetRequestId();
+    setUploading(true);
+    setError(null);
+    try {
+      const uploaded = await uploadDataset(file);
+      const active = await activateDataset(uploaded.dataset_id);
+      if (isLatestDatasetRequest(requestId)) {
+        setActiveDataset(active);
+      }
+      const datasetList = await listDatasets();
+      if (isLatestDatasetRequest(requestId)) {
+        setDatasets(datasetList.datasets);
+      }
+    } catch (uploadError) {
+      if (isLatestDatasetRequest(requestId)) {
+        setError(messageFromError(uploadError));
+      }
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function handleActivateDataset(datasetId: string) {
+    const requestId = nextDatasetRequestId();
+    setError(null);
+    try {
+      const active = await activateDataset(datasetId);
+      if (isLatestDatasetRequest(requestId)) {
+        setActiveDataset(active);
+      }
+    } catch (activateError) {
+      if (isLatestDatasetRequest(requestId)) {
+        setError(messageFromError(activateError));
+      }
+    }
+  }
+
   return (
     <main className={styles.shell}>
       <div className={styles.controls}>
@@ -142,6 +230,19 @@ export function App() {
           source={source}
           isPreviewLoading={isPreviewLoading}
           isIndexLoading={isIndexLoading}
+          datasetUploadSlot={
+            <DatasetUpload
+              datasets={datasets}
+              activeDataset={activeDataset}
+              isUploading={isUploading}
+              onUpload={(file) => {
+                void handleUploadDataset(file);
+              }}
+              onActivate={(datasetId) => {
+                void handleActivateDataset(datasetId);
+              }}
+            />
+          }
           onAnalysisModelChange={setAnalysisModel}
           onLimitChange={setLimit}
           onSourceChange={setSource}

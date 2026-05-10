@@ -39,12 +39,14 @@ class JoblibImpactClassifier:
         try:
             raw_prediction = estimator.predict([text.value])[0]
             impact = ImpactLabel(str(raw_prediction))
+            confidence = _confidence_for_prediction(estimator, text, impact)
         except Exception as exc:
             raise ModelUnavailableError(self.model_name) from exc
         return ImpactPrediction(
             model_name=self.model_name,
             impact=impact,
-            metadata={"artifact_path": str(self._artifact_path)},
+            confidence=confidence,
+            metadata={"artifact_path": str(self._artifact_path), "source": "joblib"},
         )
 
     def _load_estimator(self) -> Any:
@@ -57,6 +59,24 @@ class JoblibImpactClassifier:
         except Exception as exc:
             raise ModelUnavailableError(self.model_name) from exc
         return self._estimator
+
+
+def _confidence_for_prediction(
+    estimator: Any,
+    text: NewsText,
+    impact: ImpactLabel,
+) -> float | None:
+    if not hasattr(estimator, "predict_proba"):
+        return None
+    classes = getattr(estimator, "classes_", None)
+    if classes is None:
+        return None
+    normalized_classes = [str(label) for label in classes]
+    if impact.value not in normalized_classes:
+        return None
+    probability_index = normalized_classes.index(impact.value)
+    probabilities = estimator.predict_proba([text.value])[0]
+    return float(probabilities[probability_index])
 
 
 class StaticModelRegistry:
