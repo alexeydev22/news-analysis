@@ -46,6 +46,8 @@ import styles from "./App.module.css";
 
 type ActiveSection = "chat" | "data" | "ml" | "forecast";
 
+const DEFAULT_INDEX_LIMIT = 50000;
+
 const SECTIONS: Array<{ id: ActiveSection; label: string; description: string }> = [
   { id: "chat", label: "Чат", description: "RAG-ответ и источники" },
   { id: "data", label: "Данные", description: "CSV, предпросмотр, индекс" },
@@ -262,7 +264,7 @@ export function App() {
     setIndexLoading(true);
     setError(null);
     try {
-      setIndexResult(await indexNewsDataset({ limit: 100 }));
+      setIndexResult(await indexNewsDataset({ limit: DEFAULT_INDEX_LIMIT }));
     } catch (indexError) {
       setError(messageFromError(indexError));
     } finally {

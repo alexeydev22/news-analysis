@@ -42,10 +42,10 @@ class FakeNewsSource:
 
 class FakeRetrievalIndexer:
     def __init__(self) -> None:
-        self.documents: list[NewsDocument] = []
+        self.batches: list[list[NewsDocument]] = []
 
     async def index(self, documents: list[NewsDocument]) -> IndexNewsResponse:
-        self.documents = documents
+        self.batches.append(documents)
         return IndexNewsResponse(
             indexed_count=len(documents),
             collection_name="economic_news",
@@ -121,9 +121,43 @@ async def test_index_news_dataset_loads_limited_documents_and_indexes_them() -> 
     result = await use_case.execute(limit=1)
 
     assert source.limit == 1
-    assert [document.id for document in indexer.documents] == ["news-1"]
+    assert [[document.id for document in batch] for batch in indexer.batches] == [["news-1"]]
     assert result.loaded_count == 1
     assert result.indexed_count == 1
+    assert result.collection_name == "economic_news"
+
+
+@pytest.mark.asyncio
+async def test_index_news_dataset_indexes_large_dataset_in_batches() -> None:
+    documents = [
+        NewsDocument(
+            id=f"news-{number}",
+            title=f"Title {number}",
+            text=f"Text {number}",
+            source="demo",
+        )
+        for number in range(1, 6)
+    ]
+
+    class ManyNewsSource(FakeNewsSource):
+        async def load(self, limit: int | None = None) -> list[NewsDocument]:
+            self.limit = limit
+            return documents[:limit]
+
+    source = ManyNewsSource()
+    indexer = FakeRetrievalIndexer()
+    use_case = IndexNewsDataset(source, indexer, batch_size=2)
+
+    result = await use_case.execute(limit=5)
+
+    assert source.limit == 5
+    assert [[document.id for document in batch] for batch in indexer.batches] == [
+        ["news-1", "news-2"],
+        ["news-3", "news-4"],
+        ["news-5"],
+    ]
+    assert result.loaded_count == 5
+    assert result.indexed_count == 5
     assert result.collection_name == "economic_news"
 
 

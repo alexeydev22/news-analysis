@@ -168,7 +168,8 @@ describe("App", () => {
   });
 
   it("switches between analytics sections", async () => {
-    vi.stubGlobal("fetch", mockFetch());
+    const fetchMock = mockFetch();
+    vi.stubGlobal("fetch", fetchMock);
     const user = userEvent.setup();
 
     render(<App />);
@@ -224,7 +225,8 @@ describe("App", () => {
   });
 
   it("loads preview and indexes the dataset", async () => {
-    vi.stubGlobal("fetch", mockFetch());
+    const fetchMock = mockFetch();
+    vi.stubGlobal("fetch", fetchMock);
     const user = userEvent.setup();
 
     render(<App />);
@@ -241,6 +243,13 @@ describe("App", () => {
     await waitFor(() => {
       expect(screen.getByText("Проиндексировано 10 из 10 в economic_news")).toBeInTheDocument();
     });
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/news-service/api/v1/news/index",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ limit: 50000 }),
+      }),
+    );
   });
 
   it("starts an ml report job and renders the latest report", async () => {

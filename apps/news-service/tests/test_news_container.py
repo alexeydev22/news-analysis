@@ -29,7 +29,8 @@ def test_news_settings_defaults_and_env_prefix(monkeypatch: pytest.MonkeyPatch) 
     assert settings.active_dataset_file == Path("data/uploads/active_dataset.json")
     assert settings.upload_max_bytes == 50 * 1024 * 1024
     assert str(settings.retrieval_service_url) == "http://retrieval-service:8000/"
-    assert settings.default_index_limit == 100
+    assert settings.default_index_limit == 50000
+    assert settings.index_batch_size == 500
     assert str(settings.redis_url) == "redis://redis:6379/0"
     assert settings.task_queue_name == "news-indexing"
     assert settings.index_events_channel == "news.index.events"
@@ -42,6 +43,7 @@ def test_news_settings_reads_prefixed_env(monkeypatch: pytest.MonkeyPatch) -> No
     monkeypatch.setenv("NEWS_SERVICE_UPLOAD_MAX_BYTES", "128")
     monkeypatch.setenv("NEWS_SERVICE_RETRIEVAL_SERVICE_URL", "http://localhost:8002")
     monkeypatch.setenv("NEWS_SERVICE_DEFAULT_INDEX_LIMIT", "25")
+    monkeypatch.setenv("NEWS_SERVICE_INDEX_BATCH_SIZE", "10")
     monkeypatch.setenv("NEWS_SERVICE_REDIS_URL", "redis://localhost:6379/1")
     monkeypatch.setenv("NEWS_SERVICE_TASK_QUEUE_NAME", "custom-news-indexing")
     monkeypatch.setenv("NEWS_SERVICE_INDEX_EVENTS_CHANNEL", "custom.news.index.events")
@@ -54,6 +56,7 @@ def test_news_settings_reads_prefixed_env(monkeypatch: pytest.MonkeyPatch) -> No
     assert settings.upload_max_bytes == 128
     assert str(settings.retrieval_service_url) == "http://localhost:8002/"
     assert settings.default_index_limit == 25
+    assert settings.index_batch_size == 10
     assert str(settings.redis_url) == "redis://localhost:6379/1"
     assert settings.task_queue_name == "custom-news-indexing"
     assert settings.index_events_channel == "custom.news.index.events"

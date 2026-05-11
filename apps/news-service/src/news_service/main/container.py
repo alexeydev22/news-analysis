@@ -117,8 +117,9 @@ class NewsServiceProvider(Provider):
         self,
         source: NewsSource,
         indexer: RetrievalIndexer,
+        settings: NewsServiceSettings,
     ) -> IndexNewsDataset:
-        return IndexNewsDataset(source, indexer)
+        return IndexNewsDataset(source, indexer, batch_size=settings.index_batch_size)
 
     @provide(scope=Scope.APP)
     def enqueue_index_news_dataset(

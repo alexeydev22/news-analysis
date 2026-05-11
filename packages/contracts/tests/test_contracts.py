@@ -241,13 +241,14 @@ def test_preview_news_response_rejects_negative_total_count() -> None:
 
 
 def test_index_news_dataset_request_defaults_and_bounds() -> None:
-    assert IndexNewsDatasetRequest().limit == 100
+    assert IndexNewsDatasetRequest().limit == 50000
+    assert IndexNewsDatasetRequest(limit=50000).limit == 50000
 
     with pytest.raises(ValueError):
         IndexNewsDatasetRequest(limit=0)
 
     with pytest.raises(ValueError):
-        IndexNewsDatasetRequest(limit=1001)
+        IndexNewsDatasetRequest(limit=50001)
 
 
 def test_index_news_dataset_request_forbids_extra_fields() -> None:

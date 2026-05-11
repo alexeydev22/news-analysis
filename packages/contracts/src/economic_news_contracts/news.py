@@ -34,7 +34,7 @@ class PreviewNewsResponse(BaseModel):
 class IndexNewsDatasetRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    limit: int = Field(default=100, ge=1, le=1000)
+    limit: int = Field(default=50000, ge=1, le=50000)
 
 
 class IndexNewsDatasetResponse(BaseModel):

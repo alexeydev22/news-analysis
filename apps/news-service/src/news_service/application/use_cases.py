@@ -23,17 +23,29 @@ class PreviewNews:
 
 
 class IndexNewsDataset:
-    def __init__(self, source: NewsSource, indexer: RetrievalIndexer) -> None:
+    def __init__(
+        self,
+        source: NewsSource,
+        indexer: RetrievalIndexer,
+        batch_size: int = 500,
+    ) -> None:
         self._source = source
         self._indexer = indexer
+        self._batch_size = batch_size
 
     async def execute(self, limit: int) -> IndexNewsDatasetResponse:
         documents = await self._source.load(limit=limit)
-        index_response = await self._indexer.index(documents)
+        indexed_count = 0
+        collection_name = "economic_news"
+        for offset in range(0, len(documents), self._batch_size):
+            batch = documents[offset : offset + self._batch_size]
+            index_response = await self._indexer.index(batch)
+            indexed_count += index_response.indexed_count
+            collection_name = index_response.collection_name
         return IndexNewsDatasetResponse(
             loaded_count=len(documents),
-            indexed_count=index_response.indexed_count,
-            collection_name=index_response.collection_name,
+            indexed_count=indexed_count,
+            collection_name=collection_name,
         )
 
 
