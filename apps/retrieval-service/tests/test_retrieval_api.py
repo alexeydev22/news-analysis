@@ -1,7 +1,9 @@
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from retrieval_service.domain.errors import EmptyDocumentTextError, RetrievalUnavailableError
+from retrieval_service.domain.model import NewsDocument, SearchQuery, SearchResult
 from retrieval_service.main.app import create_app
+from retrieval_service.main.container import FakeVectorRepository
 from retrieval_service.presentation.errors import register_error_handlers
 
 
@@ -39,6 +41,33 @@ def test_search_endpoint_returns_results() -> None:
 
     assert response.status_code == 200
     assert response.json()["results"][0]["id"] == "news-1"
+
+
+def test_search_endpoint_clamps_vector_score_rounding(monkeypatch) -> None:
+    async def search_with_rounding_score(
+        self: FakeVectorRepository,
+        query: SearchQuery,
+        vector: list[float],
+    ) -> list[SearchResult]:
+        return [
+            SearchResult(
+                document=NewsDocument(
+                    id="news-1",
+                    title="GDP grows",
+                    text="GDP grew by 2 percent.",
+                    source=query.source or "demo",
+                ),
+                score=1.0000001,
+            ),
+        ]
+
+    monkeypatch.setattr(FakeVectorRepository, "search", search_with_rounding_score)
+
+    with TestClient(create_app(use_fake_components=True)) as client:
+        response = client.post("/api/v1/search", json={"query": "GDP", "limit": 3})
+
+    assert response.status_code == 200
+    assert response.json()["results"][0]["score"] == 1.0
 
 
 def test_domain_validation_error_maps_to_422() -> None:

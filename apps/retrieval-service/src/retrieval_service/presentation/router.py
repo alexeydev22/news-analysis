@@ -65,7 +65,7 @@ async def search_news(
         results=[
             SearchNewsResultPayload(
                 id=result.document.id,
-                score=result.score,
+                score=_normalize_score(result.score),
                 title=result.document.title,
                 text=result.document.text,
                 source=result.document.source,
@@ -126,10 +126,14 @@ def _to_indexed_document(document: NewsDocument) -> IndexedNewsDocument:
 def _to_neighbor(result: SearchResult) -> NewsNeighbor:
     return NewsNeighbor(
         id=result.document.id,
-        score=result.score,
+        score=_normalize_score(result.score),
         title=result.document.title,
         text=result.document.text,
         source=result.document.source,
         published_at=result.document.published_at,
         metadata=dict(result.document.metadata),
     )
+
+
+def _normalize_score(score: float) -> float:
+    return min(max(score, -1.0), 1.0)
