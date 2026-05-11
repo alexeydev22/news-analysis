@@ -15,6 +15,7 @@ dependencies = [
   "structlog>=24.4",
   "taskiq>=0.12",
   "taskiq-redis>=1.0",
+  "zapros>=0.10",
 ]
 
 [project.optional-dependencies]

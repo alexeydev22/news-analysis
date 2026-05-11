@@ -636,6 +636,7 @@ dependencies = [
     { name = "structlog" },
     { name = "taskiq" },
     { name = "taskiq-redis" },
+    { name = "zapros" },
 ]
 
 [package.optional-dependencies]
@@ -661,6 +662,7 @@ requires-dist = [
     { name = "structlog", specifier = ">=24.4" },
     { name = "taskiq", specifier = ">=0.12" },
     { name = "taskiq-redis", specifier = ">=1.0" },
+    { name = "zapros", specifier = ">=0.10" },
 ]
 provides-extras = ["test"]
 

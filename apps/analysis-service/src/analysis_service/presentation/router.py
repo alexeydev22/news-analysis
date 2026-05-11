@@ -4,16 +4,22 @@ from economic_news_contracts.analysis import (
     AnalyzeNewsResponse,
     EnqueueMlReportJobRequest,
     EnqueueMlReportJobResponse,
+    EnqueueTopicForecastJobResponse,
     MlReportJobResponse,
     MlReportResponse,
+    TopicForecastJobResponse,
+    TopicForecastResponse,
 )
 from fastapi import APIRouter, status
 
 from analysis_service.application.use_cases import (
     AnalyzeNewsImpact,
     EnqueueMlReportJob,
+    EnqueueTopicForecastJob,
     GetLatestMlReport,
+    GetLatestTopicForecast,
     GetMlReportJob,
+    GetTopicForecastJob,
 )
 
 router = APIRouter(prefix="/api/v1")
@@ -70,4 +76,33 @@ async def get_ml_report_job(
 async def get_latest_ml_report(
     use_case: FromDishka[GetLatestMlReport],
 ) -> dict[str, object] | None:
+    return await use_case.execute()
+
+
+@router.post(
+    "/topic-forecast/jobs",
+    response_model=EnqueueTopicForecastJobResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+)
+@inject
+async def enqueue_topic_forecast_job(
+    use_case: FromDishka[EnqueueTopicForecastJob],
+) -> EnqueueTopicForecastJobResponse:
+    return await use_case.execute()
+
+
+@router.get("/topic-forecast/jobs/{job_id}", response_model=TopicForecastJobResponse)
+@inject
+async def get_topic_forecast_job(
+    job_id: str,
+    use_case: FromDishka[GetTopicForecastJob],
+) -> TopicForecastJobResponse:
+    return await use_case.execute(job_id)
+
+
+@router.get("/topic-forecast/latest", response_model=TopicForecastResponse | None)
+@inject
+async def get_latest_topic_forecast(
+    use_case: FromDishka[GetLatestTopicForecast],
+) -> TopicForecastResponse | None:
     return await use_case.execute()
