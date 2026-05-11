@@ -1,6 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 
-import { getLatestMlReport, getMlReportJob, startMlReportJob } from "../api/analysis";
+import {
+  getLatestMlReport,
+  getLatestTopicForecast,
+  getMlReportJob,
+  getTopicForecastJob,
+  startMlReportJob,
+  startTopicForecastJob,
+} from "../api/analysis";
 import { streamChat } from "../api/chatStream";
 import { ApiError } from "../api/errors";
 import {
@@ -18,6 +25,7 @@ import { MlReportPanel } from "../components/MlReportPanel";
 import { NewsPreview } from "../components/NewsPreview";
 import { SourcesPanel } from "../components/SourcesPanel";
 import { Timeline } from "../components/Timeline";
+import { TopicForecastPanel } from "../components/TopicForecastPanel";
 import type {
   ActiveDataset,
   AnalysisModelName,
@@ -29,6 +37,8 @@ import type {
   MlReportJobStatus,
   NewsDocument,
   PreviewNewsResponse,
+  TopicForecast,
+  TopicForecastJobStatus,
   UploadedDataset,
 } from "./types";
 import styles from "./App.module.css";
@@ -76,14 +86,19 @@ export function App() {
   const [mlReport, setMlReport] = useState<MlReport | null>(null);
   const [mlReportStatus, setMlReportStatus] = useState<MlReportJobStatus | null>(null);
   const [mlReportError, setMlReportError] = useState<string | null>(null);
+  const [topicForecast, setTopicForecast] = useState<TopicForecast | null>(null);
+  const [topicForecastStatus, setTopicForecastStatus] = useState<TopicForecastJobStatus | null>(null);
+  const [topicForecastError, setTopicForecastError] = useState<string | null>(null);
   const [isStreaming, setStreaming] = useState(false);
   const [isPreviewLoading, setPreviewLoading] = useState(false);
   const [isIndexLoading, setIndexLoading] = useState(false);
   const [isUploading, setUploading] = useState(false);
   const [isMlReportLoading, setMlReportLoading] = useState(false);
+  const [isTopicForecastLoading, setTopicForecastLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const datasetRequestIdRef = useRef(0);
   const mlReportPollRef = useRef<number | null>(null);
+  const topicForecastPollRef = useRef<number | null>(null);
 
   function nextDatasetRequestId(): number {
     datasetRequestIdRef.current += 1;
@@ -118,6 +133,32 @@ export function App() {
     return () => {
       isMounted = false;
       nextDatasetRequestId();
+    };
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadLatestForecast() {
+      try {
+        const forecast = await getLatestTopicForecast();
+        if (isMounted) {
+          setTopicForecast(forecast);
+        }
+      } catch {
+        if (isMounted) {
+          setTopicForecast(null);
+        }
+      }
+    }
+
+    void loadLatestForecast();
+
+    return () => {
+      isMounted = false;
+      if (topicForecastPollRef.current !== null) {
+        window.clearTimeout(topicForecastPollRef.current);
+      }
     };
   }, []);
 
@@ -260,6 +301,10 @@ export function App() {
     setMlReport(await getLatestMlReport());
   }
 
+  async function loadLatestTopicForecast() {
+    setTopicForecast(await getLatestTopicForecast());
+  }
+
   function scheduleMlReportPoll(jobId: string) {
     if (mlReportPollRef.current !== null) {
       window.clearTimeout(mlReportPollRef.current);
@@ -317,6 +362,63 @@ export function App() {
     }
   }
 
+  function scheduleTopicForecastPoll(jobId: string) {
+    if (topicForecastPollRef.current !== null) {
+      window.clearTimeout(topicForecastPollRef.current);
+    }
+
+    topicForecastPollRef.current = window.setTimeout(() => {
+      void pollTopicForecastJob(jobId);
+    }, 1500);
+  }
+
+  async function pollTopicForecastJob(jobId: string) {
+    try {
+      const job = await getTopicForecastJob(jobId);
+      setTopicForecastStatus(job.status);
+
+      if (job.status === "succeeded") {
+        await loadLatestTopicForecast();
+        setTopicForecastLoading(false);
+        return;
+      }
+
+      if (job.status === "failed") {
+        setTopicForecastError(job.message || "Не удалось сформировать прогноз по темам");
+        setTopicForecastLoading(false);
+        return;
+      }
+
+      scheduleTopicForecastPoll(job.job_id);
+    } catch (jobError) {
+      setTopicForecastError(messageFromError(jobError));
+      setTopicForecastLoading(false);
+    }
+  }
+
+  async function handleGenerateTopicForecast() {
+    setTopicForecastLoading(true);
+    setTopicForecastError(null);
+    try {
+      const job = await startTopicForecastJob();
+      setTopicForecastStatus(job.status);
+      if (job.status === "succeeded") {
+        await loadLatestTopicForecast();
+        setTopicForecastLoading(false);
+        return;
+      }
+      if (job.status === "failed") {
+        setTopicForecastError("Не удалось сформировать прогноз по темам");
+        setTopicForecastLoading(false);
+        return;
+      }
+      scheduleTopicForecastPoll(job.job_id);
+    } catch (forecastError) {
+      setTopicForecastError(messageFromError(forecastError));
+      setTopicForecastLoading(false);
+    }
+  }
+
   return (
     <main className={styles.shell}>
       <div className={styles.controls}>
@@ -353,6 +455,15 @@ export function App() {
           isLoading={isMlReportLoading}
           onGenerate={() => {
             void handleGenerateMlReport();
+          }}
+        />
+        <TopicForecastPanel
+          forecast={topicForecast}
+          status={topicForecastStatus}
+          error={topicForecastError}
+          isLoading={isTopicForecastLoading}
+          onGenerate={() => {
+            void handleGenerateTopicForecast();
           }}
         />
       </div>

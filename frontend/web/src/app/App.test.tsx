@@ -2,7 +2,7 @@ import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { chatResponseFixture, mlReportFixture, previewFixture } from "../test/fixtures";
+import { chatResponseFixture, mlReportFixture, previewFixture, topicForecastFixture } from "../test/fixtures";
 import { App } from "./App";
 
 function deferredResponse() {
@@ -67,6 +67,23 @@ function mockFetch() {
 
     if (url.includes("/api/v1/ml-report/jobs")) {
       return Response.json({ job_id: "job-1", status: "queued" });
+    }
+
+    if (url.includes("/api/v1/topic-forecast/latest")) {
+      return new Response(null, { status: 204 });
+    }
+
+    if (url.includes("/api/v1/topic-forecast/jobs/topic-job-1")) {
+      return Response.json({
+        job_id: "topic-job-1",
+        status: "succeeded",
+        message: "ready",
+        report_path: "reports/topic-forecast/latest.json",
+      });
+    }
+
+    if (url.includes("/api/v1/topic-forecast/jobs")) {
+      return Response.json({ job_id: "topic-job-1", status: "queued" });
     }
 
     if (url.includes("/api/v1/news/preview")) {
@@ -148,6 +165,8 @@ describe("App", () => {
     expect(screen.getByText("Источники появятся после ответа.")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "ML-отчет" })).toBeInTheDocument();
     expect(screen.getByText("Отчет еще не сформирован")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Прогноз по темам" })).toBeInTheDocument();
+    expect(screen.getByText("Прогноз еще не сформирован")).toBeInTheDocument();
   });
 
   it("submits a real stream request shape and renders answer, timeline, sources and impacts", async () => {
@@ -251,6 +270,72 @@ describe("App", () => {
     expect(screen.getByText("Строк в датасете: 120")).toBeInTheDocument();
     expect(screen.getByText("ввп")).toBeInTheDocument();
     expect(screen.getByText("0.900")).toBeInTheDocument();
+  });
+
+  it("starts a topic forecast job and renders the latest forecast", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+
+      if (url.includes("/api/v1/news/datasets/active")) {
+        return Response.json(null);
+      }
+
+      if (url.includes("/api/v1/news/datasets")) {
+        return Response.json({ datasets: [] });
+      }
+
+      if (url.includes("/api/v1/ml-report/latest")) {
+        return new Response(null, { status: 204 });
+      }
+
+      if (url.includes("/api/v1/topic-forecast/latest")) {
+        return Response.json(topicForecastFixture);
+      }
+
+      if (url.includes("/api/v1/topic-forecast/jobs/topic-job-1")) {
+        return Response.json({
+          job_id: "topic-job-1",
+          status: "succeeded",
+          message: "ready",
+          report_path: "reports/topic-forecast/latest.json",
+        });
+      }
+
+      if (url.includes("/api/v1/topic-forecast/jobs")) {
+        return Response.json({ job_id: "topic-job-1", status: "succeeded" });
+      }
+
+      return Response.json({ detail: "not found" }, { status: 404 });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const user = userEvent.setup();
+
+    render(<App />);
+
+    await user.click(screen.getByRole("button", { name: "Сформировать прогноз по темам" }));
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/analysis-service/api/v1/topic-forecast/jobs",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({}),
+      }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Рост ВВП")).toBeInTheDocument();
+    });
+    expect(screen.getByText("Сформировано: 2026-05-10T10:00:00Z")).toBeInTheDocument();
+    expect(screen.getByText("Документов: 3")).toBeInTheDocument();
+    expect(screen.getByText("Модель: tfidf-logreg")).toBeInTheDocument();
+    expect(screen.getByText("Общее влияние: позитивное")).toBeInTheDocument();
+    expect(screen.getByText("Уверенность: 0.800")).toBeInTheDocument();
+    expect(screen.getByText("Позитивных: 2")).toBeInTheDocument();
+    expect(screen.getByText("Нейтральных: 1")).toBeInTheDocument();
+    expect(screen.getByText("Негативных: 0")).toBeInTheDocument();
+    expect(screen.getByText("Рост ВВП поддерживает ожидания.")).toBeInTheDocument();
+    expect(screen.getByText("Прогноз зависит от полноты набора новостей.")).toBeInTheDocument();
+    expect(screen.getByText("ВВП вырос")).toBeInTheDocument();
+    expect(screen.getByText("Демо · позитивное · 0.92")).toBeInTheDocument();
   });
 
   it("uploads a csv dataset and displays it as active", async () => {

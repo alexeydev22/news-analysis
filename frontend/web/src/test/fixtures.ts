@@ -1,4 +1,4 @@
-import type { ChatResponse, MlReport, NewsDocument, PreviewNewsResponse } from "../app/types";
+import type { ChatResponse, MlReport, NewsDocument, PreviewNewsResponse, TopicForecast } from "../app/types";
 
 export const sourceFixture: NewsDocument = {
   id: "news-1",
@@ -94,5 +94,37 @@ export const mlReportFixture: MlReport = {
     "tfidf-logreg": {
       positive: ["ввп", "инфляция", "ставка"],
     },
+  },
+};
+
+export const topicForecastFixture: TopicForecast = {
+  generated_at: "2026-05-10T10:00:00Z",
+  topics: [
+    {
+      topic_id: "topic-1",
+      title: "Рост ВВП",
+      summary: "Тема объединяет новости о росте ВВП.",
+      overall_impact: "positive",
+      confidence: 0.8,
+      positive_count: 2,
+      neutral_count: 1,
+      negative_count: 0,
+      forecast: "По совокупности новостей преобладает положительный сигнал.",
+      arguments: ["Рост ВВП поддерживает ожидания.", "Большинство новостей имеют позитивную метку."],
+      risks: ["Прогноз зависит от полноты набора новостей."],
+      news: [
+        {
+          id: "news-1",
+          title: "ВВП вырос",
+          source: "Демо",
+          impact: "positive",
+          score: 0.92,
+        },
+      ],
+    },
+  ],
+  metadata: {
+    document_count: 3,
+    analysis_model: "tfidf-logreg",
   },
 };

@@ -70,6 +70,8 @@ export type ActiveDataset = {
 
 export type MlReportJobStatus = "queued" | "started" | "succeeded" | "failed";
 
+export type TopicForecastJobStatus = "queued" | "started" | "succeeded" | "failed";
+
 export type MlReportJobCreated = {
   job_id: string;
   status: MlReportJobStatus;
@@ -78,6 +80,18 @@ export type MlReportJobCreated = {
 export type MlReportJob = {
   job_id: string;
   status: MlReportJobStatus;
+  message: string | null;
+  report_path: string | null;
+};
+
+export type TopicForecastJobCreated = {
+  job_id: string;
+  status: TopicForecastJobStatus;
+};
+
+export type TopicForecastJob = {
+  job_id: string;
+  status: TopicForecastJobStatus;
   message: string | null;
   report_path: string | null;
 };
@@ -105,4 +119,33 @@ export type MlReport = {
   models: MlReportModel[];
   best_model: MlReportModel | null;
   top_features: Record<string, Record<string, string[]>>;
+};
+
+export type TopicForecastNewsItem = {
+  id: string;
+  title: string;
+  source: string;
+  impact: ImpactLabel;
+  score: number | null;
+};
+
+export type TopicForecastTopic = {
+  topic_id: string;
+  title: string;
+  summary: string;
+  overall_impact: ImpactLabel;
+  confidence: number | null;
+  positive_count: number;
+  neutral_count: number;
+  negative_count: number;
+  forecast: string;
+  arguments: string[];
+  risks: string[];
+  news: TopicForecastNewsItem[];
+};
+
+export type TopicForecast = {
+  generated_at: string;
+  topics: TopicForecastTopic[];
+  metadata: Record<string, unknown>;
 };
