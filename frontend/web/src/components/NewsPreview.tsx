@@ -1,4 +1,5 @@
 import type { IndexNewsDatasetResponse, PreviewNewsResponse } from "../app/types";
+import { NewsDetails } from "./NewsDetails";
 
 type NewsPreviewProps = {
   preview: PreviewNewsResponse | null;
@@ -20,6 +21,7 @@ export function NewsPreview({ preview, indexResult }: NewsPreviewProps) {
         <article key={document.id}>
           <h3>{document.title}</h3>
           <p>{document.source}</p>
+          <NewsDetails title={document.title} text={document.text} />
         </article>
       ))}
       {indexResult ? (

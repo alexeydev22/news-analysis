@@ -1,4 +1,5 @@
 import type { ImpactSummary, NewsDocument } from "../app/types";
+import { NewsDetails } from "./NewsDetails";
 
 type SourcesPanelProps = {
   sources: NewsDocument[];
@@ -45,6 +46,7 @@ export function SourcesPanel({ sources, impactSummaries }: SourcesPanelProps) {
                     <p>Влияние: {impact.explanation}</p>
                   </section>
                 ) : null}
+                <NewsDetails title={source.title} text={source.text} />
               </article>
             );
           })}

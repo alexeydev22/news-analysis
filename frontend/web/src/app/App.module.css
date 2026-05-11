@@ -5,7 +5,7 @@
 :global(body) {
   margin: 0;
   min-width: 320px;
-  background: #eef2ef;
+  background: #edf1ee;
   color: #17201b;
   font-family:
     Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -22,7 +22,7 @@
   min-height: 40px;
   border: 0;
   border-radius: 6px;
-  background: #123c2f;
+  background: #114335;
   color: #ffffff;
   padding: 10px 12px;
   cursor: pointer;
@@ -113,41 +113,156 @@
 .shell {
   display: grid;
   min-height: 100vh;
-  grid-template-columns: minmax(260px, 320px) minmax(420px, 1fr) minmax(300px, 380px);
-  gap: 1px;
-  background: #cfd8d3;
+  grid-template-columns: 280px minmax(0, 1fr);
+  background: #d7dfda;
 }
 
-.controls,
-.chat,
-.sources {
+.sidebar,
+.workspace {
   min-width: 0;
-  background: #f8faf8;
+}
+
+.sidebar {
+  position: sticky;
+  top: 0;
+  display: grid;
+  height: 100vh;
+  align-content: start;
+  gap: 22px;
+  border-right: 1px solid #c9d3cd;
+  background: #f7faf8;
+  padding: 24px 18px;
+}
+
+.workspace {
+  min-height: 100vh;
+  background: #f3f6f4;
   padding: 24px;
 }
 
-.controls {
+.eyebrow {
+  margin-bottom: 8px;
+  color: #4e6258;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.sidebarText {
+  color: #4e6258;
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.navigation {
   display: grid;
-  align-content: start;
+  gap: 8px;
+}
+
+.navigation button {
+  display: grid;
+  justify-items: start;
+  gap: 3px;
+  width: 100%;
+  min-height: 58px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #17201b;
+  padding: 10px 12px;
+  text-align: left;
+}
+
+.navigation button[aria-pressed="true"] {
+  border-color: #9bb5aa;
+  background: #e7efea;
+}
+
+.navigation small {
+  color: #5d7067;
+  font-size: 0.76rem;
+}
+
+.datasetBadge {
+  display: grid;
+  gap: 4px;
+  border: 1px solid #d6dfda;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 12px;
+}
+
+.datasetBadge span {
+  color: #5d7067;
+  font-size: 0.78rem;
+}
+
+.datasetBadge strong {
+  overflow-wrap: anywhere;
+}
+
+.pageHeader {
+  display: grid;
+  gap: 4px;
+}
+
+.pageHeader p {
+  margin: 0;
+  color: #4e6258;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.pageHeader h2 {
+  margin: 0;
+  font-size: 24px;
+}
+
+.sectionStack {
+  display: grid;
   gap: 18px;
 }
 
-.chat {
+.chatLayout {
   display: grid;
-  align-content: start;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 380px);
   gap: 18px;
+  align-items: start;
 }
 
-.sources {
+.dataGrid {
+  display: grid;
+  grid-template-columns: minmax(260px, 360px) minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.primaryColumn,
+.sideColumn,
+.panel {
+  display: grid;
+  gap: 14px;
+}
+
+.sideColumn {
+  max-height: calc(100vh - 48px);
   overflow: auto;
+}
+
+.panel,
+.mlReport,
+.topicForecast {
+  border: 1px solid #d6dfda;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 16px;
 }
 
 .mlReport,
 .topicForecast {
   display: grid;
   gap: 10px;
-  border-top: 1px solid #d6dfda;
-  padding-top: 16px;
 }
 
 .mlReport button,
@@ -157,7 +272,7 @@
 
 .reportContent {
   display: grid;
-  gap: 8px;
+  gap: 12px;
 }
 
 .inlineList {
@@ -253,14 +368,53 @@
   font-weight: 600;
 }
 
+.newsDetails {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.ghostButton {
+  width: fit-content;
+  min-height: 34px;
+  border: 1px solid #b8c7bf;
+  background: #ffffff;
+  color: #114335;
+  padding: 7px 10px;
+}
+
+.newsFullText {
+  margin: 0;
+  border-left: 3px solid #9bb5aa;
+  background: #f3f6f4;
+  padding: 10px 12px;
+  color: #26332d;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+
 @media (max-width: 1060px) {
   .shell {
     grid-template-columns: 1fr;
   }
 
-  .controls,
-  .chat,
-  .sources {
+  .sidebar {
+    position: static;
+    height: auto;
+    border-right: 0;
+    border-bottom: 1px solid #c9d3cd;
+  }
+
+  .workspace {
     padding: 18px;
+  }
+
+  .chatLayout,
+  .dataGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .sideColumn {
+    max-height: none;
   }
 }

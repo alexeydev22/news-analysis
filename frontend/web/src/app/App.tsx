@@ -18,6 +18,7 @@ import {
   previewNews,
   uploadDataset,
 } from "../api/news";
+import { AnalysisSettings } from "../components/AnalysisSettings";
 import { ChatPanel } from "../components/ChatPanel";
 import { ControlsPanel } from "../components/ControlsPanel";
 import { DatasetUpload } from "../components/DatasetUpload";
@@ -42,6 +43,15 @@ import type {
   UploadedDataset,
 } from "./types";
 import styles from "./App.module.css";
+
+type ActiveSection = "chat" | "data" | "ml" | "forecast";
+
+const SECTIONS: Array<{ id: ActiveSection; label: string; description: string }> = [
+  { id: "chat", label: "Чат", description: "RAG-ответ и источники" },
+  { id: "data", label: "Данные", description: "CSV, предпросмотр, индекс" },
+  { id: "ml", label: "ML-отчет", description: "Метрики и ошибки моделей" },
+  { id: "forecast", label: "Прогноз", description: "Темы, риски, сценарии" },
+];
 
 function messageFromError(error: unknown): string {
   return error instanceof ApiError ? error.message : "Не удалось выполнить действие";
@@ -71,6 +81,7 @@ function streamErrorMessage(): string {
 }
 
 export function App() {
+  const [activeSection, setActiveSection] = useState<ActiveSection>("chat");
   const [analysisModel, setAnalysisModel] = useState<AnalysisModelName>("tfidf-logreg");
   const [limit, setLimit] = useState("5");
   const [source, setSource] = useState("");
@@ -419,68 +430,156 @@ export function App() {
     }
   }
 
+  const activeDatasetName = activeDataset?.filename ?? "demo CSV";
+
+  function renderChatSection() {
+    return (
+      <div className={styles.chatLayout}>
+        <div className={styles.primaryColumn}>
+          <section className={styles.panel} aria-label="Параметры анализа">
+            <h2>Параметры анализа</h2>
+            <AnalysisSettings
+              analysisModel={analysisModel}
+              limit={limit}
+              source={source}
+              onAnalysisModelChange={setAnalysisModel}
+              onLimitChange={setLimit}
+              onSourceChange={setSource}
+            />
+          </section>
+          <ChatPanel
+            question={question}
+            answer={answer}
+            isStreaming={isStreaming}
+            error={error}
+            onQuestionChange={setQuestion}
+            onSubmit={handleSubmit}
+          />
+          <Timeline events={events} />
+        </div>
+        <div className={styles.sideColumn}>
+          <SourcesPanel sources={sources} impactSummaries={impactSummaries} />
+        </div>
+      </div>
+    );
+  }
+
+  function renderDataSection() {
+    return (
+      <div className={styles.sectionStack}>
+        <div className={styles.pageHeader}>
+          <p>Набор данных</p>
+          <h2>Датасет и индекс</h2>
+        </div>
+        <div className={styles.dataGrid}>
+          <ControlsPanel
+            analysisModel={analysisModel}
+            limit={limit}
+            source={source}
+            isPreviewLoading={isPreviewLoading}
+            isIndexLoading={isIndexLoading}
+            datasetUploadSlot={
+              <DatasetUpload
+                datasets={datasets}
+                activeDataset={activeDataset}
+                isUploading={isUploading}
+                onUpload={(file) => {
+                  void handleUploadDataset(file);
+                }}
+                onActivate={(datasetId) => {
+                  void handleActivateDataset(datasetId);
+                }}
+              />
+            }
+            onAnalysisModelChange={setAnalysisModel}
+            onLimitChange={setLimit}
+            onSourceChange={setSource}
+            onPreview={handlePreview}
+            onIndex={handleIndex}
+          />
+          <NewsPreview preview={preview} indexResult={indexResult} />
+        </div>
+      </div>
+    );
+  }
+
+  function renderActiveSection() {
+    if (activeSection === "data") {
+      return renderDataSection();
+    }
+    if (activeSection === "ml") {
+      return (
+        <div className={styles.sectionStack}>
+          <div className={styles.pageHeader}>
+            <p>Эксперимент</p>
+            <h2>Качество моделей</h2>
+          </div>
+          <MlReportPanel
+            report={mlReport}
+            status={mlReportStatus}
+            error={mlReportError}
+            isLoading={isMlReportLoading}
+            onGenerate={() => {
+              void handleGenerateMlReport();
+            }}
+          />
+        </div>
+      );
+    }
+    if (activeSection === "forecast") {
+      return (
+        <div className={styles.sectionStack}>
+          <div className={styles.pageHeader}>
+            <p>Тематические группы</p>
+            <h2>Сценарный прогноз</h2>
+          </div>
+          <TopicForecastPanel
+            forecast={topicForecast}
+            status={topicForecastStatus}
+            error={topicForecastError}
+            isLoading={isTopicForecastLoading}
+            onGenerate={() => {
+              void handleGenerateTopicForecast();
+            }}
+          />
+        </div>
+      );
+    }
+    return renderChatSection();
+  }
+
   return (
     <main className={styles.shell}>
-      <div className={styles.controls}>
-        <ControlsPanel
-          analysisModel={analysisModel}
-          limit={limit}
-          source={source}
-          isPreviewLoading={isPreviewLoading}
-          isIndexLoading={isIndexLoading}
-          datasetUploadSlot={
-            <DatasetUpload
-              datasets={datasets}
-              activeDataset={activeDataset}
-              isUploading={isUploading}
-              onUpload={(file) => {
-                void handleUploadDataset(file);
-              }}
-              onActivate={(datasetId) => {
-                void handleActivateDataset(datasetId);
-              }}
-            />
-          }
-          onAnalysisModelChange={setAnalysisModel}
-          onLimitChange={setLimit}
-          onSourceChange={setSource}
-          onPreview={handlePreview}
-          onIndex={handleIndex}
-        />
-        <NewsPreview preview={preview} indexResult={indexResult} />
-        <MlReportPanel
-          report={mlReport}
-          status={mlReportStatus}
-          error={mlReportError}
-          isLoading={isMlReportLoading}
-          onGenerate={() => {
-            void handleGenerateMlReport();
-          }}
-        />
-        <TopicForecastPanel
-          forecast={topicForecast}
-          status={topicForecastStatus}
-          error={topicForecastError}
-          isLoading={isTopicForecastLoading}
-          onGenerate={() => {
-            void handleGenerateTopicForecast();
-          }}
-        />
-      </div>
-      <div className={styles.chat}>
-        <ChatPanel
-          question={question}
-          answer={answer}
-          isStreaming={isStreaming}
-          error={error}
-          onQuestionChange={setQuestion}
-          onSubmit={handleSubmit}
-        />
-        <Timeline events={events} />
-      </div>
-      <div className={styles.sources}>
-        <SourcesPanel sources={sources} impactSummaries={impactSummaries} />
-      </div>
+      <aside className={styles.sidebar} aria-label="Навигация приложения">
+        <div>
+          <p className={styles.eyebrow}>Local RAG pipeline</p>
+          <h1>Аналитика экономических новостей</h1>
+          <p className={styles.sidebarText}>
+            Диалоговая система, ML-оценка влияния и тематический прогноз по новостям.
+          </p>
+        </div>
+        <nav className={styles.navigation} aria-label="Разделы">
+          {SECTIONS.map((section) => (
+            <button
+              type="button"
+              key={section.id}
+              aria-label={section.label}
+              aria-pressed={activeSection === section.id}
+              onClick={() => setActiveSection(section.id)}
+            >
+              <span>{section.label}</span>
+              <small>{section.description}</small>
+            </button>
+          ))}
+        </nav>
+        <div className={styles.datasetBadge}>
+          <span>Активный датасет</span>
+          <strong>{activeDatasetName}</strong>
+        </div>
+      </aside>
+      <section className={styles.workspace} aria-live="polite">
+        {renderActiveSection()}
+      </section>
     </main>
   );
 }

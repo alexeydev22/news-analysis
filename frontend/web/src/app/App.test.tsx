@@ -151,20 +151,38 @@ describe("App", () => {
 
     expect(
       screen.getByRole("heading", {
-        name: "Диалоговая система анализа экономических новостей",
+        name: "Аналитика экономических новостей",
       }),
     ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Чат" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "Данные" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "ML-отчет" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Прогноз" })).toBeInTheDocument();
     expect(screen.getByLabelText("Модель анализа")).toBeInTheDocument();
     expect(screen.getByLabelText("Лимит источников")).toBeInTheDocument();
     expect(screen.getByLabelText("Источник")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Предпросмотр CSV" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Индексировать CSV" })).toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: "Вопрос" })).toBeInTheDocument();
     expect(screen.getByText("Ответ появится после отправки вопроса.")).toBeInTheDocument();
     expect(screen.getByRole("complementary", { name: "Источники анализа" })).toBeInTheDocument();
     expect(screen.getByText("Источники появятся после ответа.")).toBeInTheDocument();
+  });
+
+  it("switches between analytics sections", async () => {
+    vi.stubGlobal("fetch", mockFetch());
+    const user = userEvent.setup();
+
+    render(<App />);
+
+    await user.click(screen.getByRole("button", { name: "Данные" }));
+    expect(screen.getByRole("button", { name: "Данные" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("heading", { name: "Датасет и индекс" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Предпросмотр CSV" })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "ML-отчет" }));
     expect(screen.getByRole("heading", { name: "ML-отчет" })).toBeInTheDocument();
     expect(screen.getByText("Отчет еще не сформирован")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Прогноз" }));
     expect(screen.getByRole("heading", { name: "Прогноз по темам" })).toBeInTheDocument();
     expect(screen.getByText("Прогноз еще не сформирован")).toBeInTheDocument();
   });
@@ -188,6 +206,9 @@ describe("App", () => {
     expect(screen.getByText("ответ сформирован")).toBeInTheDocument();
     expect(screen.getByText("ВВП вырос")).toBeInTheDocument();
     expect(screen.getByText("позитивное")).toBeInTheDocument();
+    expect(screen.queryByText("ВВП вырос на 2 процента.")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Показать полный текст новости ВВП вырос" }));
+    expect(screen.getByText("ВВП вырос на 2 процента.")).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledWith(
       "/api-gateway/api/v1/chat/stream",
       expect.objectContaining({
@@ -208,10 +229,13 @@ describe("App", () => {
 
     render(<App />);
 
+    await user.click(screen.getByRole("button", { name: "Данные" }));
     await user.click(screen.getByRole("button", { name: "Предпросмотр CSV" }));
     await waitFor(() => {
       expect(screen.getByText("Предпросмотр: 1 / 1")).toBeInTheDocument();
     });
+    await user.click(screen.getByRole("button", { name: "Показать полный текст новости ВВП вырос" }));
+    expect(screen.getByText("ВВП вырос на 2 процента.")).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Индексировать CSV" }));
     await waitFor(() => {
@@ -255,6 +279,7 @@ describe("App", () => {
 
     render(<App />);
 
+    await user.click(screen.getByRole("button", { name: "ML-отчет" }));
     await user.click(screen.getByRole("button", { name: "Сформировать ML-отчет" }));
     expect(fetchMock).toHaveBeenCalledWith(
       "/analysis-service/api/v1/ml-report/jobs",
@@ -312,6 +337,7 @@ describe("App", () => {
 
     render(<App />);
 
+    await user.click(screen.getByRole("button", { name: "Прогноз" }));
     await user.click(screen.getByRole("button", { name: "Сформировать прогноз по темам" }));
     expect(fetchMock).toHaveBeenCalledWith(
       "/analysis-service/api/v1/topic-forecast/jobs",
@@ -345,6 +371,7 @@ describe("App", () => {
 
     render(<App />);
 
+    await user.click(screen.getByRole("button", { name: "Данные" }));
     await user.upload(
       screen.getByLabelText("CSV датасет"),
       new File(["id,title\n1,GDP"], "macro.csv", { type: "text/csv" }),
@@ -364,9 +391,11 @@ describe("App", () => {
 
   it("renders a disabled dataset placeholder instead of selectable demo option", async () => {
     vi.stubGlobal("fetch", mockFetch());
+    const user = userEvent.setup();
 
     render(<App />);
 
+    await user.click(screen.getByRole("button", { name: "Данные" }));
     const select = await screen.findByLabelText("Загруженные датасеты");
     expect(select).toHaveValue("");
     expect(screen.queryByRole("option", { name: "demo CSV" })).not.toBeInTheDocument();
@@ -426,6 +455,7 @@ describe("App", () => {
 
     render(<App />);
 
+    await user.click(screen.getByRole("button", { name: "Данные" }));
     await user.upload(
       screen.getByLabelText("CSV датасет"),
       new File(["id,title\n1,GDP"], "macro.csv", { type: "text/csv" }),
