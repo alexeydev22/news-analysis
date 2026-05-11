@@ -128,6 +128,7 @@ def require_column(frame: pd.DataFrame, candidates: tuple[str, ...], label: str)
 
 def normalize_text(values: pd.Series, *, max_chars: int) -> pd.Series:
     normalized = values.fillna("").astype(str).str.strip()
+    normalized = normalized.str.replace(r"\s+", " ", regex=True)
     normalized = normalized[normalized.ne("")]
     return normalized.str.slice(0, max_chars)
 
