@@ -88,52 +88,34 @@ just prepare-demo-training
 Эта команда сохраняет исходный `data/raw/economic_news.csv` для news-service и
 создает `data/raw/news_impact.csv` для обучения.
 
-Внешний датасет для проекта один - FNSPID. Сначала нужно подготовить локальный
-срез FNSPID и привести его к двум схемам. Для CSV с уже совместимыми колонками:
+## FNSPID importer
+
+Основной сценарий:
 
 ```bash
-just prepare-dataset path/to/fnspid_sample.csv
+just prepare-fnspid
+just ml-full
+just demo-up-trained
 ```
 
-Для training CSV передайте колонку разметки `impact` и, если нужно, названия
-внешних колонок FNSPID:
+`just prepare-fnspid` скачивает ограниченный FNSPID news sample, сохраняет
+`data/external/fnspid_sample.csv`, формирует `data/raw/economic_news.csv` и
+`data/raw/news_impact.csv`. По умолчанию используется rule-based weak labeling:
+метка `impact` вычисляется по экономическим маркерам в тексте новости.
+
+Офлайн-сценарий для защиты:
 
 ```bash
-just prepare-dataset path/to/fnspid_sample.csv \
-  --title-column headline \
-  --text-column body \
-  --source-column publisher \
-  --published-at-column date \
-  --label-column impact \
-  --positive-threshold 0.2 \
-  --negative-threshold -0.2 \
-  --limit 50000
+just prepare-fnspid-local path/to/fnspid.csv --limit 50000
 ```
 
 Команда пишет:
 
 - `data/raw/economic_news.csv` для preview/index в news app;
-- `data/raw/news_impact.csv` для обучения research pipeline, если передан label.
+- `data/raw/news_impact.csv` для обучения research pipeline.
 
-Если нужны нестандартные output paths, запустите CLI напрямую:
-
-```bash
-uv run python tools/prepare_dataset.py path/to/fnspid_sample.csv \
-  --app-output data/raw/economic_news.csv \
-  --train-output data/raw/news_impact.csv \
-  --title-column headline \
-  --text-column body \
-  --source-column publisher \
-  --published-at-column date \
-  --label-column impact \
-  --positive-threshold 0.2 \
-  --negative-threshold -0.2 \
-  --limit 50000
-```
-
-Если `--id-column` не задан или такой колонки нет во входном CSV, CLI
-сгенерирует стабильный `id`/`article_id` из `source`, `title` и `text`.
-`--label-column` можно опустить, если нужен только CSV для news app.
+Если во входном CSV нет подходящего идентификатора, importer сгенерирует
+стабильный `id`/`article_id` из `source`, `title` и `text`.
 
 Research pipeline ожидает размеченный CSV:
 
@@ -260,7 +242,7 @@ id,title,text,source,published_at
 Запуск с большим CSV:
 
 ```bash
-NEWS_SERVICE_NEWS_DATASET_PATH=data/raw/fnspid_sample.csv \
+NEWS_SERVICE_NEWS_DATASET_PATH=data/raw/economic_news.csv \
 docker compose -f deploy/compose.yaml up --build
 ```
 
@@ -277,25 +259,12 @@ curl http://localhost:8004/api/v1/news/preview?limit=5
 ## 7. FNSPID для обучения классификатора
 
 Внешний датасет для проекта один: FNSPID. Для supervised-классификации нужен
-явный label `positive`, `neutral` или `negative`. Если в выбранном срезе FNSPID
-нет готовой совместимой разметки, label строится внутри подготовки среза:
-
-- по готовому impact score, если такая колонка есть в локальном срезе;
-- по движению цены после публикации, если срез объединен с price records;
-- вручную для небольшого учебного sample, если нужен быстрый демонстрационный
-  запуск.
-
-Пример подготовки FNSPID sample с уже рассчитанной колонкой `impact`:
+явный label `positive`, `neutral` или `negative`. FNSPID importer строит label
+внутри подготовки среза через rule-based weak labeling по экономическим маркерам
+в тексте новости.
 
 ```bash
-just prepare-dataset data/raw/fnspid_sample.csv \
-  --id-column article_id \
-  --title-column title \
-  --text-column text \
-  --source-column source \
-  --published-at-column published_at \
-  --label-column impact \
-  --limit 50000
+just prepare-fnspid-local path/to/fnspid.csv --limit 50000
 ```
 
 ## 8. Автоматизация ML-отчета
@@ -310,9 +279,8 @@ reports/ml/model-report.json
 
 CLI fallback для терминала:
 
-1. Подготовить FNSPID sample через `just prepare-dataset path/to/fnspid_sample.csv`
-   с нужными аргументами, например `--label-column impact`, или прямой
-   запуск `tools/prepare_dataset.py` с явными колонками.
+1. Подготовить FNSPID sample через `just prepare-fnspid` или офлайн fallback
+   `just prepare-fnspid-local path/to/fnspid.csv --limit 50000`.
 2. Выполнить полный ML pipeline: `just ml-full`.
 3. Запустить стенд с обученными артефактами: `just demo-up-trained`.
 

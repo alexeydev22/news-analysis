@@ -24,6 +24,14 @@ positive,neutral,negative
 
 Raw datasets are not committed. Tests use a small committed fixture in `research/tests/fixtures`.
 
+For automatic FNSPID preparation:
+
+```bash
+just prepare-fnspid
+```
+
+This command creates `data/raw/news_impact.csv` with rule-based weak labels.
+
 ## Commands
 
 Current package smoke check:
