@@ -33,7 +33,7 @@ class HttpTopicForecastRetrievalGateway:
         self._client_factory = client_factory or _make_zapros_client
 
     async def list_documents(self, *, limit: int) -> list[IndexedNewsDocument]:
-        response = await self._get("/api/v1/documents", params={"limit": limit})
+        response = await self._get("/api/v1/documents", params={"limit": [str(limit)]})
         response_json = cast("dict[str, object]", response.json)
         if response.status >= 400:
             raise RuntimeError("retrieval-service is unavailable")
@@ -58,7 +58,7 @@ class HttpTopicForecastRetrievalGateway:
             raise RuntimeError("retrieval-service is unavailable")
         return FindNeighborsResponse.model_validate(response_json).groups
 
-    async def _get(self, path: str, *, params: dict[str, object]) -> Any:
+    async def _get(self, path: str, *, params: dict[str, list[str]]) -> Any:
         url = f"{self._base_url}{path}"
         async with asyncio.timeout(self._timeout_seconds):
             if self._client is not None:

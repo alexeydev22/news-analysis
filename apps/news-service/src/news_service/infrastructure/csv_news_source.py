@@ -9,9 +9,9 @@ from news_service.domain.model import NewsDocument, stable_news_id
 
 type _CsvRow = dict[str | None, str | list[str] | None]
 
-_TITLE_COLUMNS = ("title", "headline")
-_TEXT_COLUMNS = ("text", "content", "body", "description")
-_SOURCE_COLUMNS = ("source", "publisher")
+_TITLE_COLUMNS = ("title", "headline", "article_title")
+_TEXT_COLUMNS = ("text", "content", "body", "description", "article")
+_SOURCE_COLUMNS = ("source", "publisher", "stock_symbol", "ticker", "symbol")
 _ID_COLUMNS = ("id", "news_id", "article_id")
 _PUBLISHED_COLUMNS = ("published_at", "date", "published")
 _CORE_COLUMNS = {
@@ -27,7 +27,7 @@ _CORE_COLUMNS = {
 class _CsvColumns:
     title: str
     text: str
-    source: str
+    source: str | None
     document_id: str | None
     published_at: str | None
 
@@ -113,14 +113,14 @@ class CsvNewsSource:
 
     def _resolve_columns(self, fieldnames: Sequence[str]) -> _CsvColumns:
         column_by_name = {
-            fieldname.strip(): fieldname
+            fieldname.strip().lower(): fieldname
             for fieldname in fieldnames
             if fieldname and fieldname.strip()
         }
         return _CsvColumns(
             title=self._required_column(column_by_name, _TITLE_COLUMNS, "title"),
             text=self._required_column(column_by_name, _TEXT_COLUMNS, "text"),
-            source=self._required_column(column_by_name, _SOURCE_COLUMNS, "source"),
+            source=self._optional_column(column_by_name, _SOURCE_COLUMNS),
             document_id=self._optional_column(column_by_name, _ID_COLUMNS),
             published_at=self._optional_column(column_by_name, _PUBLISHED_COLUMNS),
         )
@@ -135,7 +135,7 @@ class CsvNewsSource:
 
         title = self._required_value(row, columns.title, row_number)
         text = self._required_value(row, columns.text, row_number)
-        source = self._required_value(row, columns.source, row_number)
+        source = self._optional_value(row, columns.source) or self._path.stem
         raw_id = self._optional_value(row, columns.document_id)
         document_id = raw_id or stable_news_id(source=source, title=title, text=text)
         published_at = self._parse_published_at(
@@ -166,7 +166,7 @@ class CsvNewsSource:
                 continue
             normalized_column = column.strip()
             normalized_value = value.strip()
-            if normalized_column in _CORE_COLUMNS or not normalized_value:
+            if normalized_column.lower() in _CORE_COLUMNS or not normalized_value:
                 continue
             metadata.setdefault(normalized_column, normalized_value)
         return metadata

@@ -26,7 +26,7 @@ services:
     env_file:
       - ../.env.example
     environment:
-      ANALYSIS_USE_STATIC_CLASSIFIER: "${ANALYSIS_USE_STATIC_CLASSIFIER:-true}"
+      ANALYSIS_USE_STATIC_CLASSIFIER: "${ANALYSIS_USE_STATIC_CLASSIFIER:-false}"
       ANALYSIS_TFIDF_ARTIFACT_PATH: "${ANALYSIS_TFIDF_ARTIFACT_PATH:-artifacts/models/baseline/tfidf-logreg.joblib}"
       ANALYSIS_EMBEDDING_ARTIFACT_PATH: "${ANALYSIS_EMBEDDING_ARTIFACT_PATH:-artifacts/models/embedding/embedding-logreg.joblib}"
       ANALYSIS_TRANSFORMER_ARTIFACT_PATH: "${ANALYSIS_TRANSFORMER_ARTIFACT_PATH:-artifacts/models/transformer/tiny-transformer-classifier.joblib}"

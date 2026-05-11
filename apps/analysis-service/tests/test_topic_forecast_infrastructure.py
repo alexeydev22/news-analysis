@@ -33,10 +33,10 @@ from zapros import Response
 class FakeZaprosClient:
     def __init__(self, responses: list[Response]) -> None:
         self._responses = responses
-        self.get_calls: list[tuple[str, dict[str, object]]] = []
+        self.get_calls: list[tuple[str, dict[str, list[str]]]] = []
         self.post_calls: list[tuple[str, dict[str, object]]] = []
 
-    async def get(self, url: str, params: dict[str, object]) -> Response:
+    async def get(self, url: str, params: dict[str, list[str]]) -> Response:
         self.get_calls.append((url, params))
         return self._responses.pop(0)
 
@@ -199,7 +199,7 @@ async def test_topic_forecast_retrieval_gateway_uses_zapros_transport() -> None:
     assert documents[0].id == "news-1"
     assert neighbors[0].neighbors[0].id == "news-2"
     assert transport.get_calls == [
-        ("http://retrieval-service:8000/api/v1/documents", {"limit": 10}),
+        ("http://retrieval-service:8000/api/v1/documents", {"limit": ["10"]}),
     ]
     assert transport.post_calls == [
         (

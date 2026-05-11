@@ -33,6 +33,28 @@ async def test_csv_news_source_reads_alias_columns_and_metadata(tmp_path: Path) 
 
 
 @pytest.mark.asyncio
+async def test_csv_news_source_reads_fnspid_columns_without_source(tmp_path: Path) -> None:
+    csv_path = write_csv(
+        tmp_path / "fnspid_sample.csv",
+        "Date,Article_title,Article\n"
+        "2026-05-01,Profit rises,Company profit rises after strong demand\n",
+    )
+    source = CsvNewsSource(csv_path)
+
+    documents = await source.load()
+
+    assert documents[0].title == "Profit rises"
+    assert documents[0].text == "Company profit rises after strong demand"
+    assert documents[0].source == "fnspid_sample"
+    assert documents[0].published_at == datetime(2026, 5, 1)
+    assert documents[0].id == stable_news_id(
+        source="fnspid_sample",
+        title="Profit rises",
+        text="Company profit rises after strong demand",
+    )
+
+
+@pytest.mark.asyncio
 async def test_csv_news_source_generates_stable_id_when_id_is_missing(tmp_path: Path) -> None:
     csv_path = write_csv(
         tmp_path / "news.csv",
