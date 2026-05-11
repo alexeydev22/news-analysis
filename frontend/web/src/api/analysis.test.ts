@@ -1,7 +1,14 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { mlReportFixture } from "../test/fixtures";
-import { getLatestMlReport, getMlReportJob, startMlReportJob } from "./analysis";
+import { mlReportFixture, topicForecastFixture } from "../test/fixtures";
+import {
+  getLatestMlReport,
+  getLatestTopicForecast,
+  getMlReportJob,
+  getTopicForecastJob,
+  startMlReportJob,
+  startTopicForecastJob,
+} from "./analysis";
 
 describe("analysis api", () => {
   it("starts an ml report job", async () => {
@@ -54,5 +61,57 @@ describe("analysis api", () => {
     });
 
     expect(report).toBeNull();
+  });
+
+  it("starts a topic forecast job", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(Response.json({ job_id: "topic-job-1", status: "queued" }));
+
+    const response = await startTopicForecastJob({ baseUrl: "http://localhost:8010", fetcher: fetchMock });
+
+    expect(fetchMock).toHaveBeenCalledWith("http://localhost:8010/api/v1/topic-forecast/jobs", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    });
+    expect(response).toEqual({ job_id: "topic-job-1", status: "queued" });
+  });
+
+  it("loads topic forecast job status and latest report", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        Response.json({
+          job_id: "topic-job-1",
+          status: "succeeded",
+          message: "ready",
+          report_path: "reports/topic-forecast/latest.json",
+        }),
+      )
+      .mockResolvedValueOnce(Response.json(topicForecastFixture));
+
+    const job = await getTopicForecastJob("topic-job-1", {
+      baseUrl: "http://localhost:8010",
+      fetcher: fetchMock,
+    });
+    const forecast = await getLatestTopicForecast({
+      baseUrl: "http://localhost:8010",
+      fetcher: fetchMock,
+    });
+
+    expect(fetchMock).toHaveBeenNthCalledWith(1, "http://localhost:8010/api/v1/topic-forecast/jobs/topic-job-1");
+    expect(fetchMock).toHaveBeenNthCalledWith(2, "http://localhost:8010/api/v1/topic-forecast/latest");
+    expect(job.status).toBe("succeeded");
+    expect(forecast).toEqual(topicForecastFixture);
+  });
+
+  it("returns null when latest topic forecast is empty", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 204 }));
+
+    const forecast = await getLatestTopicForecast({
+      baseUrl: "http://localhost:8010",
+      fetcher: fetchMock,
+    });
+
+    expect(forecast).toBeNull();
   });
 });

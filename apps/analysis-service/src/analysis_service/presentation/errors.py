@@ -5,6 +5,7 @@ from analysis_service.domain.errors import (
     EmptyNewsTextError,
     MlReportJobNotFoundError,
     ModelUnavailableError,
+    TopicForecastJobNotFoundError,
 )
 
 
@@ -27,5 +28,12 @@ def register_error_handlers(app: FastAPI) -> None:
     async def ml_report_job_not_found_handler(
         request: Request,
         exc: MlReportJobNotFoundError,
+    ) -> JSONResponse:
+        return JSONResponse(status_code=404, content={"detail": str(exc)})
+
+    @app.exception_handler(TopicForecastJobNotFoundError)
+    async def topic_forecast_job_not_found_handler(
+        request: Request,
+        exc: TopicForecastJobNotFoundError,
     ) -> JSONResponse:
         return JSONResponse(status_code=404, content={"detail": str(exc)})

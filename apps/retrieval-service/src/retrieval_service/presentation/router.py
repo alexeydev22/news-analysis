@@ -1,7 +1,13 @@
 from dishka.integrations.fastapi import FromDishka, inject
 from economic_news_contracts.retrieval import (
+    FindNeighborsRequest,
+    FindNeighborsResponse,
+    IndexedNewsDocument,
     IndexNewsRequest,
     IndexNewsResponse,
+    ListIndexedDocumentsResponse,
+    NewsNeighbor,
+    NewsNeighborGroup,
     SearchNewsRequest,
     SearchNewsResponse,
 )
@@ -10,8 +16,13 @@ from economic_news_contracts.retrieval import (
 )
 from fastapi import APIRouter
 
-from retrieval_service.application.use_cases import IndexNewsDocuments, SearchNews
-from retrieval_service.domain.model import NewsDocument, SearchQuery
+from retrieval_service.application.use_cases import (
+    FindNewsNeighbors,
+    IndexNewsDocuments,
+    ListIndexedDocuments,
+    SearchNews,
+)
+from retrieval_service.domain.model import NewsDocument, SearchQuery, SearchResult
 from retrieval_service.main.settings import RetrievalServiceSettings
 
 router = APIRouter(prefix="/api/v1")
@@ -63,4 +74,62 @@ async def search_news(
             )
             for result in results
         ],
+    )
+
+
+@router.get("/documents")
+@inject
+async def list_documents(
+    use_case: FromDishka[ListIndexedDocuments],
+    limit: int = 100,
+    source: str | None = None,
+) -> ListIndexedDocumentsResponse:
+    documents = await use_case.execute(limit=min(max(limit, 1), 500), source=source)
+    return ListIndexedDocumentsResponse(
+        documents=[_to_indexed_document(document) for document in documents],
+    )
+
+
+@router.post("/neighbors")
+@inject
+async def find_neighbors(
+    request: FindNeighborsRequest,
+    use_case: FromDishka[FindNewsNeighbors],
+) -> FindNeighborsResponse:
+    groups = await use_case.execute(
+        document_ids=request.document_ids,
+        limit=request.limit,
+        source=request.source,
+    )
+    return FindNeighborsResponse(
+        groups=[
+            NewsNeighborGroup(
+                document_id=document_id,
+                neighbors=[_to_neighbor(result) for result in results],
+            )
+            for document_id, results in groups.items()
+        ],
+    )
+
+
+def _to_indexed_document(document: NewsDocument) -> IndexedNewsDocument:
+    return IndexedNewsDocument(
+        id=document.id,
+        title=document.title,
+        text=document.text,
+        source=document.source,
+        published_at=document.published_at,
+        metadata=dict(document.metadata),
+    )
+
+
+def _to_neighbor(result: SearchResult) -> NewsNeighbor:
+    return NewsNeighbor(
+        id=result.document.id,
+        score=result.score,
+        title=result.document.title,
+        text=result.document.text,
+        source=result.document.source,
+        published_at=result.document.published_at,
+        metadata=dict(result.document.metadata),
     )

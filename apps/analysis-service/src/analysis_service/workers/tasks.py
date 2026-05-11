@@ -2,7 +2,13 @@ from pathlib import Path
 
 from economic_news_contracts.analysis import MlReportJobResponse, MlReportJobStatus
 
+from analysis_service.application.use_cases import GenerateTopicForecastReport
 from analysis_service.infrastructure.ml_report_storage import JsonMlReportStorage
+from analysis_service.infrastructure.topic_forecast_retrieval_client import (
+    HttpTopicForecastRetrievalGateway,
+)
+from analysis_service.infrastructure.topic_forecast_storage import JsonTopicForecastStorage
+from analysis_service.main.container import AnalysisServiceProvider
 from analysis_service.main.settings import AnalysisServiceSettings
 from analysis_service.workers.broker import broker
 from economic_news_research.cli import (
@@ -79,3 +85,38 @@ async def generate_ml_report_task(
         ),
     )
     return {"report_path": str(report_path)}
+
+
+@broker.task
+async def generate_topic_forecast_task(
+    job_id: str,
+) -> dict[str, object]:
+    settings = AnalysisServiceSettings()
+    use_case = _build_topic_forecast_report_use_case(settings)
+    report = await use_case.execute(job_id)
+    return report.model_dump(mode="json")
+
+
+def _build_topic_forecast_report_use_case(
+    settings: AnalysisServiceSettings,
+) -> GenerateTopicForecastReport:
+    storage = JsonTopicForecastStorage(
+        jobs_dir=settings.topic_forecast_jobs_dir,
+        latest_report_path=settings.topic_forecast_output_path,
+    )
+    retrieval_gateway = HttpTopicForecastRetrievalGateway(
+        base_url=settings.retrieval_service_url,
+        timeout_seconds=settings.retrieval_service_timeout_seconds,
+    )
+    registry = AnalysisServiceProvider(settings).model_registry(settings)
+    return GenerateTopicForecastReport(
+        retrieval_gateway=retrieval_gateway,
+        registry=registry,
+        storage=storage,
+        analysis_model=settings.topic_forecast_analysis_model,
+        document_limit=settings.topic_forecast_document_limit,
+        neighbor_limit=settings.topic_forecast_neighbor_limit,
+        min_neighbor_score=settings.topic_forecast_min_neighbor_score,
+        max_topic_size=settings.topic_forecast_max_topic_size,
+        report_path=settings.topic_forecast_output_path,
+    )

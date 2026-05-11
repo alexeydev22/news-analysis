@@ -103,3 +103,61 @@ class MlReportResponse(BaseModel):
     models: list[MlModelReportItemResponse]
     best_model: MlModelReportItemResponse | None = None
     top_features: dict[str, dict[str, list[str]]] = Field(default_factory=dict)
+
+
+class TopicForecastJobStatus(StrEnum):
+    QUEUED = "queued"
+    STARTED = "started"
+    SUCCEEDED = "succeeded"
+    FAILED = "failed"
+
+
+class EnqueueTopicForecastJobResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    job_id: str = Field(min_length=1)
+    status: TopicForecastJobStatus = TopicForecastJobStatus.QUEUED
+
+
+class TopicForecastJobResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    job_id: str = Field(min_length=1)
+    status: TopicForecastJobStatus
+    message: str | None = None
+    report_path: str | None = None
+
+
+class TopicForecastNewsItemResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    id: str = Field(min_length=1)
+    title: str = Field(min_length=1)
+    source: str = Field(min_length=1)
+    impact: ImpactLabel
+    score: float | None = Field(default=None, ge=-1.0, le=1.0)
+
+
+class TopicForecastItemResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    topic_id: str = Field(min_length=1)
+    title: str = Field(min_length=1)
+    summary: str = Field(min_length=1)
+    overall_impact: ImpactLabel
+    confidence: float | None = Field(default=None, ge=0.0, le=1.0)
+    positive_count: int = Field(ge=0)
+    neutral_count: int = Field(ge=0)
+    negative_count: int = Field(ge=0)
+    forecast: str = Field(min_length=1)
+    arguments: list[str] = Field(default_factory=list)
+    risks: list[str] = Field(default_factory=list)
+    news: list[TopicForecastNewsItemResponse] = Field(default_factory=list)
+
+
+class TopicForecastResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    generated_at: str
+    topics: list[TopicForecastItemResponse] = Field(default_factory=list)
+    metadata: dict[str, Any] = Field(default_factory=dict)

@@ -32,6 +32,8 @@ class FakeQdrantClient:
         self.vectors_config: object | None = None
         self.points: list[Any] = []
         self.query_filter: object | None = None
+        self.scroll_filter: object | None = None
+        self.retrieve_ids: list[str] = []
 
     async def collection_exists(self, collection_name: str) -> bool:
         return self.collection_exists_value
@@ -50,6 +52,8 @@ class FakeQdrantClient:
         query: list[float],
         limit: int,
         query_filter: object | None = None,
+        with_payload: bool = True,
+        with_vectors: bool = False,
     ) -> object:
         self.query_filter = query_filter
         point = type(
@@ -69,6 +73,59 @@ class FakeQdrantClient:
             },
         )()
         return type("QueryResponse", (), {"points": [point]})()
+
+    async def scroll(
+        self,
+        collection_name: str,
+        scroll_filter: object | None = None,
+        limit: int = 10,
+        with_payload: bool = True,
+        with_vectors: bool = False,
+    ) -> tuple[list[object], None]:
+        self.scroll_filter = scroll_filter
+        point = type(
+            "Record",
+            (),
+            {
+                "id": str(uuid5(NAMESPACE_URL, "news-1")),
+                "payload": {
+                    "document_id": "news-1",
+                    "title": "GDP grows",
+                    "text": "GDP grew by 2 percent.",
+                    "source": "demo",
+                    "published_at": "2026-04-29T10:30:00",
+                    "metadata": {"sector": "macro"},
+                },
+            },
+        )()
+        points: list[object] = [point]
+        return (points[:limit], None)
+
+    async def retrieve(
+        self,
+        collection_name: str,
+        ids: list[str],
+        with_payload: bool = True,
+        with_vectors: bool = False,
+    ) -> list[object]:
+        self.retrieve_ids = ids
+        point = type(
+            "Record",
+            (),
+            {
+                "id": ids[0],
+                "vector": [0.1, 0.2],
+                "payload": {
+                    "document_id": "news-1",
+                    "title": "GDP grows",
+                    "text": "GDP grew by 2 percent.",
+                    "source": "demo",
+                    "published_at": "2026-04-29T10:30:00",
+                    "metadata": {"sector": "macro"},
+                },
+            },
+        )()
+        return [point]
 
 
 class FailingQdrantClient(FakeQdrantClient):
@@ -92,10 +149,19 @@ class FailingQdrantClient(FakeQdrantClient):
         query: list[float],
         limit: int,
         query_filter: object | None = None,
+        with_payload: bool = True,
+        with_vectors: bool = False,
     ) -> object:
         if self.failure_method == "query_points":
             raise RuntimeError("qdrant unavailable")
-        return await super().query_points(collection_name, query, limit, query_filter)
+        return await super().query_points(
+            collection_name,
+            query,
+            limit,
+            query_filter,
+            with_payload,
+            with_vectors,
+        )
 
 
 @pytest.mark.asyncio
@@ -192,6 +258,40 @@ async def test_qdrant_repository_search_returns_domain_results_and_source_filter
     assert results[0].document.published_at == datetime(2026, 4, 29, 10, 30)
     assert results[0].score == 0.87
     assert client.query_filter is not None
+
+
+@pytest.mark.asyncio
+async def test_qdrant_repository_lists_documents_with_source_filter() -> None:
+    client = FakeQdrantClient()
+    repository = QdrantNewsRepository(
+        client=client,
+        collection_name="economic_news",
+        vector_size=2,
+    )
+
+    documents = await repository.list_documents(limit=1, source="demo")
+
+    assert len(documents) == 1
+    assert documents[0].id == "news-1"
+    assert documents[0].metadata == {"sector": "macro"}
+    assert documents[0].published_at == datetime(2026, 4, 29, 10, 30)
+    assert client.scroll_filter is not None
+
+
+@pytest.mark.asyncio
+async def test_qdrant_repository_finds_neighbors_and_excludes_seed_document() -> None:
+    client = FakeQdrantClient()
+    repository = QdrantNewsRepository(
+        client=client,
+        collection_name="economic_news",
+        vector_size=2,
+    )
+
+    groups = await repository.neighbors(document_ids=["news-1"], limit=1, source="demo")
+
+    assert client.retrieve_ids == [_point_id("news-1")]
+    assert client.query_filter is not None
+    assert groups["news-1"] == []
 
 
 def test_qdrant_point_id_is_deterministic_uuid_from_document_id() -> None:

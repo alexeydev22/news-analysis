@@ -26,3 +26,9 @@ class MlReportJobNotFoundError(AnalysisServiceError):
     def __init__(self, job_id: str) -> None:
         self.job_id = job_id
         super().__init__(f"ML report job not found: {job_id}")
+
+
+class TopicForecastJobNotFoundError(AnalysisServiceError):
+    def __init__(self, job_id: str) -> None:
+        self.job_id = job_id
+        super().__init__(f"Topic forecast job not found: {job_id}")

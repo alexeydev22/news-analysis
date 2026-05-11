@@ -4,12 +4,23 @@ from dishka import Provider, Scope, make_async_container, provide
 from dishka.integrations.fastapi import FastapiProvider
 from economic_news_contracts.analysis import AnalysisModelName, ImpactLabel
 
-from analysis_service.application.ports import MlReportStorage, MlReportTaskQueue, ModelRegistry
+from analysis_service.application.ports import (
+    MlReportStorage,
+    MlReportTaskQueue,
+    ModelRegistry,
+    TopicForecastRetrievalGateway,
+    TopicForecastStorage,
+    TopicForecastTaskQueue,
+)
 from analysis_service.application.use_cases import (
     AnalyzeNewsImpact,
     EnqueueMlReportJob,
+    EnqueueTopicForecastJob,
+    GenerateTopicForecastReport,
     GetLatestMlReport,
+    GetLatestTopicForecast,
     GetMlReportJob,
+    GetTopicForecastJob,
 )
 from analysis_service.infrastructure.classifiers import (
     JoblibImpactClassifier,
@@ -18,6 +29,11 @@ from analysis_service.infrastructure.classifiers import (
 )
 from analysis_service.infrastructure.ml_report_queue import TaskiqMlReportTaskQueue
 from analysis_service.infrastructure.ml_report_storage import JsonMlReportStorage
+from analysis_service.infrastructure.topic_forecast_queue import TaskiqTopicForecastTaskQueue
+from analysis_service.infrastructure.topic_forecast_retrieval_client import (
+    HttpTopicForecastRetrievalGateway,
+)
+from analysis_service.infrastructure.topic_forecast_storage import JsonTopicForecastStorage
 from analysis_service.main.settings import AnalysisServiceSettings
 
 
@@ -84,6 +100,72 @@ class AnalysisServiceProvider(Provider):
     @provide(scope=Scope.APP)
     def get_latest_ml_report(self, storage: MlReportStorage) -> GetLatestMlReport:
         return GetLatestMlReport(storage)
+
+    @provide(scope=Scope.APP, provides=TopicForecastStorage)
+    def topic_forecast_storage(
+        self,
+        settings: AnalysisServiceSettings,
+    ) -> JsonTopicForecastStorage:
+        return JsonTopicForecastStorage(
+            jobs_dir=settings.topic_forecast_jobs_dir,
+            latest_report_path=settings.topic_forecast_output_path,
+        )
+
+    @provide(scope=Scope.APP, provides=TopicForecastTaskQueue)
+    def topic_forecast_task_queue(self) -> TaskiqTopicForecastTaskQueue:
+        return TaskiqTopicForecastTaskQueue()
+
+    @provide(scope=Scope.APP, provides=TopicForecastRetrievalGateway)
+    def topic_forecast_retrieval_gateway(
+        self,
+        settings: AnalysisServiceSettings,
+    ) -> HttpTopicForecastRetrievalGateway:
+        return HttpTopicForecastRetrievalGateway(
+            base_url=settings.retrieval_service_url,
+            timeout_seconds=settings.retrieval_service_timeout_seconds,
+        )
+
+    @provide(scope=Scope.APP)
+    def enqueue_topic_forecast_job(
+        self,
+        task_queue: TopicForecastTaskQueue,
+        storage: TopicForecastStorage,
+    ) -> EnqueueTopicForecastJob:
+        return EnqueueTopicForecastJob(task_queue, storage)
+
+    @provide(scope=Scope.APP)
+    def get_topic_forecast_job(
+        self,
+        storage: TopicForecastStorage,
+    ) -> GetTopicForecastJob:
+        return GetTopicForecastJob(storage)
+
+    @provide(scope=Scope.APP)
+    def get_latest_topic_forecast(
+        self,
+        storage: TopicForecastStorage,
+    ) -> GetLatestTopicForecast:
+        return GetLatestTopicForecast(storage)
+
+    @provide(scope=Scope.APP)
+    def generate_topic_forecast_report(
+        self,
+        retrieval_gateway: TopicForecastRetrievalGateway,
+        registry: ModelRegistry,
+        storage: TopicForecastStorage,
+        settings: AnalysisServiceSettings,
+    ) -> GenerateTopicForecastReport:
+        return GenerateTopicForecastReport(
+            retrieval_gateway=retrieval_gateway,
+            registry=registry,
+            storage=storage,
+            analysis_model=settings.topic_forecast_analysis_model,
+            document_limit=settings.topic_forecast_document_limit,
+            neighbor_limit=settings.topic_forecast_neighbor_limit,
+            min_neighbor_score=settings.topic_forecast_min_neighbor_score,
+            max_topic_size=settings.topic_forecast_max_topic_size,
+            report_path=settings.topic_forecast_output_path,
+        )
 
 
 def create_container(settings: AnalysisServiceSettings | None = None) -> Any:
