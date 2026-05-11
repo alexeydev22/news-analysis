@@ -5,7 +5,12 @@ from dishka.integrations.fastapi import FastapiProvider
 from qdrant_client import AsyncQdrantClient
 
 from retrieval_service.application.ports import EmbeddingProvider, VectorRepository
-from retrieval_service.application.use_cases import IndexNewsDocuments, SearchNews
+from retrieval_service.application.use_cases import (
+    FindNewsNeighbors,
+    IndexNewsDocuments,
+    ListIndexedDocuments,
+    SearchNews,
+)
 from retrieval_service.domain.model import NewsDocument, SearchQuery, SearchResult
 from retrieval_service.infrastructure.embeddings import FastEmbedEmbeddingProvider
 from retrieval_service.infrastructure.qdrant_repository import QdrantNewsRepository
@@ -36,6 +41,31 @@ class FakeVectorRepository:
             source=query.source or "demo",
         )
         return [SearchResult(document=document, score=0.91)]
+
+    async def list_documents(self, *, limit: int, source: str | None) -> list[NewsDocument]:
+        document = NewsDocument(
+            id="news-1",
+            title="GDP grows",
+            text="GDP grew by 2 percent.",
+            source=source or "demo",
+        )
+        return [document][:limit]
+
+    async def neighbors(
+        self,
+        *,
+        document_ids: list[str],
+        limit: int,
+        source: str | None,
+    ) -> dict[str, list[SearchResult]]:
+        document = NewsDocument(
+            id="news-2",
+            title="GDP outlook improves",
+            text="Analysts upgraded GDP outlook.",
+            source=source or "demo",
+        )
+        results = [SearchResult(document=document, score=0.86)][:limit]
+        return {document_id: results for document_id in document_ids}
 
 
 class RetrievalServiceProvider(Provider):
@@ -87,6 +117,14 @@ class RetrievalServiceProvider(Provider):
         repository: VectorRepository,
     ) -> SearchNews:
         return SearchNews(embedder, repository)
+
+    @provide(scope=Scope.APP)
+    def list_indexed_documents(self, repository: VectorRepository) -> ListIndexedDocuments:
+        return ListIndexedDocuments(repository)
+
+    @provide(scope=Scope.APP)
+    def find_news_neighbors(self, repository: VectorRepository) -> FindNewsNeighbors:
+        return FindNewsNeighbors(repository)
 
 
 def create_container(

@@ -17,3 +17,17 @@ class VectorRepository(Protocol):
     async def search(self, query: SearchQuery, vector: list[float]) -> list[SearchResult]:
         """Search nearest documents for query vector."""
         ...
+
+    async def list_documents(self, *, limit: int, source: str | None) -> list[NewsDocument]:
+        """Return indexed documents from vector store payloads."""
+        ...
+
+    async def neighbors(
+        self,
+        *,
+        document_ids: list[str],
+        limit: int,
+        source: str | None,
+    ) -> dict[str, list[SearchResult]]:
+        """Return nearest indexed documents for each seed document id."""
+        ...
