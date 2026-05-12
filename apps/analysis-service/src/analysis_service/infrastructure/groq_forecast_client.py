@@ -55,7 +55,8 @@ class GroqEconomicForecastGenerator:
         if not self._api_key:
             raise GroqForecastGenerationError("GROQ API key is not configured")
 
-        payload = self._build_payload(request)
+        news_items = self._select_news_items(request)
+        payload = self._build_payload(request, news_items)
         response = await self._post(payload)
         if response.status >= 400:
             raise GroqForecastGenerationError(_UNAVAILABLE_MESSAGE)
@@ -68,21 +69,24 @@ class GroqEconomicForecastGenerator:
         except Exception as error:
             raise GroqForecastGenerationError(_UNAVAILABLE_MESSAGE) from error
 
-        target_id = request.news_id or request.topic.topic_id
         return GroqForecastResponse(
             provider="groq",
             model_name=self._model_name,
             scope=request.scope,
-            target_id=target_id,
+            target_id=self._target_id(request),
             prediction=prediction,
             metadata={
                 "source_model": request.model_name,
                 "topic_id": request.topic.topic_id,
-                "news_count": len(request.topic.news),
+                "news_count": len(news_items),
             },
         )
 
-    def _build_payload(self, request: GroqForecastRequest) -> dict[str, object]:
+    def _build_payload(
+        self,
+        request: GroqForecastRequest,
+        news_items: list[TopicForecastNewsItemResponse],
+    ) -> dict[str, object]:
         return {
             "model": self._model_name,
             "messages": [
@@ -92,7 +96,7 @@ class GroqEconomicForecastGenerator:
                 },
                 {
                     "role": "user",
-                    "content": self._build_user_prompt(request),
+                    "content": self._build_user_prompt(request, news_items),
                 },
             ],
             "temperature": self._temperature,
@@ -107,9 +111,12 @@ class GroqEconomicForecastGenerator:
             "инвестиционных указаний и явно избегай формата финансовой рекомендации."
         )
 
-    def _build_user_prompt(self, request: GroqForecastRequest) -> str:
+    def _build_user_prompt(
+        self,
+        request: GroqForecastRequest,
+        news_items: list[TopicForecastNewsItemResponse],
+    ) -> str:
         topic = request.topic
-        news_items = self._select_news_items(request)
         news_block = "\n".join(self._format_news_item(item) for item in news_items)
         return (
             f"Область прогноза: {request.scope.value}\n"
@@ -125,6 +132,11 @@ class GroqEconomicForecastGenerator:
             "Сделай краткий сценарный прогноз: вероятное влияние, факторы "
             "неопределенности и что может изменить вывод."
         )
+
+    def _target_id(self, request: GroqForecastRequest) -> str:
+        if request.scope == GroqForecastScope.TOPIC:
+            return request.topic.topic_id
+        return request.news_id or request.topic.topic_id
 
     def _select_news_items(
         self,
