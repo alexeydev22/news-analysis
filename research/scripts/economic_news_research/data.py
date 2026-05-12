@@ -13,6 +13,62 @@ class ImpactLabel(StrEnum):
 
 
 REQUIRED_COLUMNS = ["article_id", "text", "impact", "source", "published_at"]
+FNSPID_COLUMNS = ["id", "title", "text", "source", "published_at"]
+POSITIVE_TERMS = frozenset(
+    {
+        "approval",
+        "approved",
+        "beat",
+        "beats",
+        "bullish",
+        "gain",
+        "gains",
+        "grew",
+        "grow",
+        "grows",
+        "growth",
+        "higher",
+        "improve",
+        "improves",
+        "profit",
+        "profits",
+        "record",
+        "rise",
+        "rises",
+        "rose",
+        "strong buy",
+        "surge",
+        "upgraded",
+        "upside",
+    },
+)
+NEGATIVE_TERMS = frozenset(
+    {
+        "bankruptcy",
+        "bearish",
+        "cut",
+        "decline",
+        "declines",
+        "downgrade",
+        "downgraded",
+        "drop",
+        "drops",
+        "fell",
+        "fall",
+        "falls",
+        "lawsuit",
+        "loss",
+        "losses",
+        "lower",
+        "miss",
+        "misses",
+        "recession",
+        "risk",
+        "risks",
+        "weak",
+        "warning",
+    },
+)
 
 
 class NewsDatasetError(ValueError):
@@ -34,6 +90,7 @@ def load_news_dataset(path: Path) -> pd.DataFrame:
 
 
 def validate_news_dataset(frame: pd.DataFrame) -> pd.DataFrame:
+    frame = adapt_news_dataset(frame)
     missing_columns = [column for column in REQUIRED_COLUMNS if column not in frame.columns]
     if missing_columns:
         raise NewsDatasetError(f"Missing required columns: {missing_columns}")
@@ -61,6 +118,32 @@ def validate_news_dataset(frame: pd.DataFrame) -> pd.DataFrame:
         raise NewsDatasetError("published_at values must be parseable dates")
 
     return dataset
+
+
+def adapt_news_dataset(frame: pd.DataFrame) -> pd.DataFrame:
+    """Adapts supported raw news formats to the supervised ML schema."""
+    if all(column in frame.columns for column in REQUIRED_COLUMNS):
+        return frame
+    if all(column in frame.columns for column in FNSPID_COLUMNS):
+        dataset = frame.copy()
+        dataset["article_id"] = dataset["id"]
+        dataset["impact"] = [
+            infer_weak_impact_label(title=title, text=text)
+            for title, text in zip(dataset["title"], dataset["text"], strict=True)
+        ]
+        return dataset
+    return frame
+
+
+def infer_weak_impact_label(*, title: object, text: object) -> str:
+    content = f"{title or ''} {text or ''}".lower()
+    positive_score = sum(term in content for term in POSITIVE_TERMS)
+    negative_score = sum(term in content for term in NEGATIVE_TERMS)
+    if positive_score > negative_score:
+        return ImpactLabel.POSITIVE.value
+    if negative_score > positive_score:
+        return ImpactLabel.NEGATIVE.value
+    return ImpactLabel.NEUTRAL.value
 
 
 def split_news_dataset(

@@ -33,6 +33,40 @@ def test_validate_news_dataset_rejects_missing_columns() -> None:
         validate_news_dataset(frame)
 
 
+def test_validate_news_dataset_adapts_fnspid_format_with_weak_labels() -> None:
+    frame = pd.DataFrame(
+        {
+            "id": ["news-positive", "news-negative", "news-neutral"],
+            "title": [
+                "GDP grows",
+                "Shares drop after warning",
+                "Central bank keeps rate unchanged",
+            ],
+            "text": [
+                "Company revenue rises and profit beats expectations.",
+                "The stock fell after a weak outlook and lower demand.",
+                "The regulator published a scheduled market update.",
+            ],
+            "source": ["FNSPID", "FNSPID", "FNSPID"],
+            "published_at": [
+                "2024-01-01T00:00:00Z",
+                "2024-01-02T00:00:00Z",
+                "2024-01-03T00:00:00Z",
+            ],
+        },
+    )
+
+    dataset = validate_news_dataset(frame)
+
+    assert list(dataset.columns) == ["article_id", "text", "impact", "source", "published_at"]
+    assert dataset["article_id"].tolist() == ["news-positive", "news-negative", "news-neutral"]
+    assert dataset["impact"].tolist() == [
+        ImpactLabel.POSITIVE,
+        ImpactLabel.NEGATIVE,
+        ImpactLabel.NEUTRAL,
+    ]
+
+
 def test_validate_news_dataset_rejects_unknown_label() -> None:
     frame = pd.read_csv(FIXTURE)
     frame.loc[0, "impact"] = "mixed"
