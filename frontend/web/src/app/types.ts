@@ -144,8 +144,15 @@ export type TopicForecastTopic = {
   news: TopicForecastNewsItem[];
 };
 
+export type TopicForecastModelReport = {
+  model_name: string;
+  topics: TopicForecastTopic[];
+  error: string | null;
+};
+
 export type TopicForecast = {
   generated_at: string;
   topics: TopicForecastTopic[];
+  model_reports?: TopicForecastModelReport[];
   metadata: Record<string, unknown>;
 };

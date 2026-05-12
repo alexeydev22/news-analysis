@@ -357,16 +357,18 @@ describe("App", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText("Рост ВВП")).toBeInTheDocument();
+      expect(screen.getAllByText("Рост ВВП")).toHaveLength(3);
     });
     expect(screen.getByText("Сформировано: 2026-05-10T10:00:00Z")).toBeInTheDocument();
     expect(screen.getByText("Документов: 3")).toBeInTheDocument();
     expect(screen.getByText("Модель: tfidf-logreg")).toBeInTheDocument();
+    expect(screen.getByText("Модель: embedding-logreg")).toBeInTheDocument();
+    expect(screen.getByText("Модель: tiny-transformer-classifier")).toBeInTheDocument();
     expect(screen.getByText("Общее влияние: позитивное")).toBeInTheDocument();
     expect(screen.getByText("Уверенность: 0.800")).toBeInTheDocument();
     expect(screen.getByText("Позитивных: 2")).toBeInTheDocument();
-    expect(screen.getByText("Нейтральных: 1")).toBeInTheDocument();
-    expect(screen.getByText("Негативных: 0")).toBeInTheDocument();
+    expect(screen.getAllByText("Нейтральных: 1")).toHaveLength(2);
+    expect(screen.getAllByText("Негативных: 0")).toHaveLength(2);
     expect(screen.getByText("Рост ВВП поддерживает ожидания.")).toBeInTheDocument();
     expect(screen.getByText("Прогноз зависит от полноты набора новостей.")).toBeInTheDocument();
     expect(screen.getByText("ВВП вырос")).toBeInTheDocument();

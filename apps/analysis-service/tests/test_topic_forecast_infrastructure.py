@@ -104,9 +104,8 @@ class FailingTopicForecastRetrievalGateway:
 
 
 class FakeClassifier:
-    model_name = AnalysisModelName.TFIDF_LOGREG
-
-    def __init__(self) -> None:
+    def __init__(self, model_name: AnalysisModelName = AnalysisModelName.TFIDF_LOGREG) -> None:
+        self.model_name = model_name
         self.texts: list[str] = []
 
     def predict(self, text: NewsText) -> ImpactPrediction:
@@ -120,13 +119,13 @@ class FakeClassifier:
 
 
 class FakeRegistry:
-    def __init__(self, classifier: FakeClassifier) -> None:
-        self.classifier = classifier
-        self.requested_model: AnalysisModelName | None = None
+    def __init__(self, classifier: FakeClassifier | None = None) -> None:
+        self.classifier = classifier or FakeClassifier()
+        self.requested_models: list[AnalysisModelName] = []
 
     def get(self, model_name: AnalysisModelName) -> FakeClassifier:
-        self.requested_model = model_name
-        return self.classifier
+        self.requested_models.append(model_name)
+        return FakeClassifier(model_name=model_name)
 
 
 def _document(news_id: str, title: str) -> IndexedNewsDocument:
@@ -315,8 +314,24 @@ async def test_generate_topic_forecast_report_builds_and_persists_latest_report(
 
     assert retrieval_gateway.document_limit == 10
     assert retrieval_gateway.neighbor_limit == 3
-    assert registry.requested_model == AnalysisModelName.TFIDF_LOGREG
-    assert classifier.texts == [document.text for document in documents]
+    assert registry.requested_models == [
+        AnalysisModelName.TFIDF_LOGREG,
+        AnalysisModelName.EMBEDDING_LOGREG,
+        AnalysisModelName.TINY_TRANSFORMER_CLASSIFIER,
+    ]
+    assert len(report.model_reports) == 3
+    assert [item.model_name for item in report.model_reports] == [
+        "tfidf-logreg",
+        "embedding-logreg",
+        "tiny-transformer-classifier",
+    ]
+    assert all(item.error is None for item in report.model_reports)
+    assert all(item.topics for item in report.model_reports)
+    assert report.metadata["analysis_models"] == [
+        "tfidf-logreg",
+        "embedding-logreg",
+        "tiny-transformer-classifier",
+    ]
     assert report.topics[0].overall_impact == ImpactLabel.POSITIVE
     assert {news.id for news in report.topics[0].news} == {"news-1", "news-2"}
     assert (await storage.get_latest_report()) == report

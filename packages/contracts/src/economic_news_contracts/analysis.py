@@ -155,9 +155,18 @@ class TopicForecastItemResponse(BaseModel):
     news: list[TopicForecastNewsItemResponse] = Field(default_factory=list)
 
 
+class TopicForecastModelReportResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    model_name: AnalysisModelName
+    topics: list[TopicForecastItemResponse] = Field(default_factory=list)
+    error: str | None = None
+
+
 class TopicForecastResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     generated_at: str
     topics: list[TopicForecastItemResponse] = Field(default_factory=list)
+    model_reports: list[TopicForecastModelReportResponse] = Field(default_factory=list)
     metadata: dict[str, Any] = Field(default_factory=dict)

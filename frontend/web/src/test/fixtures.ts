@@ -125,6 +125,76 @@ export const topicForecastFixture: TopicForecast = {
   ],
   metadata: {
     document_count: 3,
-    analysis_model: "tfidf-logreg",
+    analysis_models: ["tfidf-logreg", "embedding-logreg", "tiny-transformer-classifier"],
   },
+  model_reports: [
+    {
+      model_name: "tfidf-logreg",
+      topics: [
+        {
+          topic_id: "topic-1",
+          title: "Рост ВВП",
+          summary: "Тема объединяет новости о росте ВВП.",
+          overall_impact: "positive",
+          confidence: 0.8,
+          positive_count: 2,
+          neutral_count: 1,
+          negative_count: 0,
+          forecast: "По совокупности новостей преобладает положительный сигнал.",
+          arguments: ["Рост ВВП поддерживает ожидания.", "Большинство новостей имеют позитивную метку."],
+          risks: ["Прогноз зависит от полноты набора новостей."],
+          news: [
+            {
+              id: "news-1",
+              title: "ВВП вырос",
+              source: "Демо",
+              impact: "positive",
+              score: 0.92,
+            },
+          ],
+        },
+      ],
+      error: null,
+    },
+    {
+      model_name: "embedding-logreg",
+      topics: [
+        {
+          topic_id: "topic-1",
+          title: "Рост ВВП",
+          summary: "Тема объединяет новости о росте ВВП.",
+          overall_impact: "neutral",
+          confidence: 0.7,
+          positive_count: 1,
+          neutral_count: 2,
+          negative_count: 0,
+          forecast: "Сигналы неоднозначны.",
+          arguments: ["Embedding-модель считает сигнал сбалансированным."],
+          risks: ["Возможна низкая разделимость похожих тем."],
+          news: [],
+        },
+      ],
+      error: null,
+    },
+    {
+      model_name: "tiny-transformer-classifier",
+      topics: [
+        {
+          topic_id: "topic-1",
+          title: "Рост ВВП",
+          summary: "Тема объединяет новости о росте ВВП.",
+          overall_impact: "negative",
+          confidence: 0.6,
+          positive_count: 0,
+          neutral_count: 1,
+          negative_count: 2,
+          forecast: "Преобладает отрицательный сигнал.",
+          arguments: ["Transformer-модель выделяет риски."],
+          risks: ["Модель чувствительна к малому объему обучения."],
+          news: [],
+        },
+      ],
+      error: null,
+    },
+  ],
 };

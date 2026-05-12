@@ -4,6 +4,7 @@ from economic_news_contracts.analysis import (
     TopicForecastItemResponse,
     TopicForecastJobResponse,
     TopicForecastJobStatus,
+    TopicForecastModelReportResponse,
     TopicForecastNewsItemResponse,
     TopicForecastResponse,
 )
@@ -72,7 +73,15 @@ def test_topic_forecast_contracts_validate_payloads() -> None:
         risks=["Сигналы могут измениться после новых данных."],
         news=[news],
     )
-    response = TopicForecastResponse(generated_at="2026-05-11T10:00:00Z", topics=[topic])
+    model_report = TopicForecastModelReportResponse(
+        model_name="tfidf-logreg",
+        topics=[topic],
+    )
+    response = TopicForecastResponse(
+        generated_at="2026-05-11T10:00:00Z",
+        topics=[topic],
+        model_reports=[model_report],
+    )
     job = TopicForecastJobResponse(
         job_id="job-1",
         status=TopicForecastJobStatus.SUCCEEDED,
@@ -81,4 +90,6 @@ def test_topic_forecast_contracts_validate_payloads() -> None:
 
     assert EnqueueTopicForecastJobResponse(job_id="job-1").status == TopicForecastJobStatus.QUEUED
     assert response.topics[0].overall_impact == ImpactLabel.POSITIVE
+    assert response.model_reports[0].model_name == "tfidf-logreg"
+    assert response.model_reports[0].topics[0].topic_id == "topic-1"
     assert job.status == TopicForecastJobStatus.SUCCEEDED

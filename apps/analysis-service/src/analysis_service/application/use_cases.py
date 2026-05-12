@@ -10,10 +10,11 @@ from economic_news_contracts.analysis import (
     MlReportJobStatus,
     TopicForecastJobResponse,
     TopicForecastJobStatus,
+    TopicForecastModelReportResponse,
     TopicForecastResponse,
 )
 from economic_news_contracts.dialog import DialogImpactSummary
-from economic_news_contracts.retrieval import IndexedNewsDocument
+from economic_news_contracts.retrieval import IndexedNewsDocument, NewsNeighborGroup
 
 from analysis_service.application.ports import (
     MlReportStorage,
@@ -135,20 +136,32 @@ class GenerateTopicForecastReport:
                 documents=documents,
                 limit=self._neighbor_limit,
             )
-            impacts_by_news_id = self._predict_impacts(documents)
-            report = TopicForecastResponse(
-                generated_at=datetime.now(UTC).isoformat(),
-                topics=build_topic_forecast(
+            model_reports = [
+                self._build_model_report(
+                    model_name=model_name,
                     documents=documents,
                     neighbor_groups=neighbor_groups,
-                    impacts_by_news_id=impacts_by_news_id,
-                    min_neighbor_score=self._min_neighbor_score,
-                    max_topic_size=self._max_topic_size,
-                ),
+                )
+                for model_name in self._analysis_models()
+            ]
+            primary_report = next(
+                (model_report for model_report in model_reports if model_report.error is None),
+                model_reports[0],
+            )
+            report = TopicForecastResponse(
+                generated_at=datetime.now(UTC).isoformat(),
+                topics=primary_report.topics,
+                model_reports=model_reports,
                 metadata={
                     "document_count": len(documents),
                     "neighbor_group_count": len(neighbor_groups),
                     "analysis_model": self._analysis_model,
+                    "analysis_models": [model_name.value for model_name in self._analysis_models()],
+                    "model_errors": {
+                        model_report.model_name.value: model_report.error
+                        for model_report in model_reports
+                        if model_report.error is not None
+                    },
                     "document_limit": self._document_limit,
                     "neighbor_limit": self._neighbor_limit,
                     "min_neighbor_score": self._min_neighbor_score,
@@ -175,11 +188,42 @@ class GenerateTopicForecastReport:
         )
         return report
 
+    def _analysis_models(self) -> list[AnalysisModelName]:
+        return [
+            self._analysis_model,
+            *[model_name for model_name in AnalysisModelName if model_name != self._analysis_model],
+        ]
+
+    def _build_model_report(
+        self,
+        *,
+        model_name: AnalysisModelName,
+        documents: list[IndexedNewsDocument],
+        neighbor_groups: list[NewsNeighborGroup],
+    ) -> TopicForecastModelReportResponse:
+        try:
+            impacts_by_news_id = self._predict_impacts(documents, model_name)
+            topics = build_topic_forecast(
+                documents=documents,
+                neighbor_groups=neighbor_groups,
+                impacts_by_news_id=impacts_by_news_id,
+                min_neighbor_score=self._min_neighbor_score,
+                max_topic_size=self._max_topic_size,
+            )
+            return TopicForecastModelReportResponse(model_name=model_name, topics=topics)
+        except Exception as error:
+            return TopicForecastModelReportResponse(
+                model_name=model_name,
+                topics=[],
+                error=str(error),
+            )
+
     def _predict_impacts(
         self,
         documents: list[IndexedNewsDocument],
+        model_name: AnalysisModelName,
     ) -> dict[str, DialogImpactSummary]:
-        classifier = self._registry.get(self._analysis_model)
+        classifier = self._registry.get(model_name)
         impacts_by_news_id: dict[str, DialogImpactSummary] = {}
         for document in documents:
             prediction = classifier.predict(NewsText.from_raw(document.text))
