@@ -27,6 +27,7 @@ class AnalysisServiceSettings(BaseServiceSettings):
     ml_report_output_path: Path = Path("reports/ml/model-report.json")
     ml_report_jobs_dir: Path = Path("reports/ml/jobs")
     ml_random_state: int = 42
+    ml_train_max_rows: int | None = Field(default=10000, ge=100)
     ml_transformer_max_rows: int | None = Field(default=3000, ge=100)
     topic_forecast_output_path: Path = Path("reports/topic-forecast/latest.json")
     topic_forecast_jobs_dir: Path = Path("reports/topic-forecast/jobs")

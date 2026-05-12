@@ -39,8 +39,14 @@ def run_train_baseline(
     dataset_path: Path,
     output_dir: Path,
     random_state: int,
+    max_rows: int | None = None,
 ) -> None:
     dataset = load_news_dataset(dataset_path)
+    dataset = sample_news_dataset(
+        dataset,
+        max_rows=max_rows,
+        random_state=random_state,
+    )
     split = split_news_dataset(dataset, random_state=random_state)
     result = train_baseline_model(split, random_state=random_state)
 
@@ -53,9 +59,15 @@ def run_train_embedding(
     dataset_path: Path,
     output_dir: Path,
     random_state: int,
+    max_rows: int | None = None,
     embedder: TextEmbedder | None = None,
 ) -> None:
     dataset = load_news_dataset(dataset_path)
+    dataset = sample_news_dataset(
+        dataset,
+        max_rows=max_rows,
+        random_state=random_state,
+    )
     split = split_news_dataset(dataset, random_state=random_state)
     result = train_embedding_classifier(
         split,
@@ -136,6 +148,7 @@ def main() -> None:
             dataset_path=args.dataset,
             output_dir=args.output_dir,
             random_state=args.random_state,
+            max_rows=args.max_rows,
         )
         print(f"baseline_output_dir={args.output_dir}")
         return
@@ -145,6 +158,7 @@ def main() -> None:
             dataset_path=args.dataset,
             output_dir=args.output_dir,
             random_state=args.random_state,
+            max_rows=args.max_rows,
         )
         print(f"embedding_output_dir={args.output_dir}")
         return
@@ -226,6 +240,12 @@ def _build_parser() -> argparse.ArgumentParser:
         type=int,
         default=42,
     )
+    train_parser.add_argument(
+        "--max-rows",
+        type=int,
+        default=None,
+        help="Limit rows for local baseline training; report can still use full dataset.",
+    )
 
     embedding_parser = subparsers.add_parser("train-embedding")
     embedding_parser.add_argument(
@@ -242,6 +262,12 @@ def _build_parser() -> argparse.ArgumentParser:
         "--random-state",
         type=int,
         default=42,
+    )
+    embedding_parser.add_argument(
+        "--max-rows",
+        type=int,
+        default=None,
+        help="Limit rows for local embedding training; report can still use full dataset.",
     )
 
     transformer_parser = subparsers.add_parser("train-transformer")

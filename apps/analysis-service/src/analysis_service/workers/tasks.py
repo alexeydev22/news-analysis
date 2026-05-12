@@ -38,11 +38,13 @@ async def generate_ml_report_task(
             dataset_path=selected_dataset_path,
             output_dir=settings.tfidf_artifact_path.parent,
             random_state=settings.ml_random_state,
+            max_rows=settings.ml_train_max_rows,
         )
         run_train_embedding(
             dataset_path=selected_dataset_path,
             output_dir=settings.embedding_artifact_path.parent,
             random_state=settings.ml_random_state,
+            max_rows=settings.ml_train_max_rows,
         )
         run_train_transformer(
             dataset_path=selected_dataset_path,
