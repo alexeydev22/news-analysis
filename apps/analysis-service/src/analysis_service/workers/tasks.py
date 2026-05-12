@@ -48,6 +48,7 @@ async def generate_ml_report_task(
             dataset_path=selected_dataset_path,
             output_dir=settings.transformer_artifact_path.parent,
             random_state=settings.ml_random_state,
+            max_rows=settings.ml_transformer_max_rows,
         )
         run_compare_models(
             comparison_paths=[

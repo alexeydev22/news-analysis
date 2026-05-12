@@ -7,6 +7,7 @@ from economic_news_research.data import (
     ImpactLabel,
     NewsDatasetError,
     load_news_dataset,
+    sample_news_dataset,
     split_news_dataset,
     validate_news_dataset,
 )
@@ -95,3 +96,27 @@ def test_split_news_dataset_is_deterministic() -> None:
     assert len(first.train) == 5
     assert len(first.validation) == 2
     assert len(first.test) == 2
+
+
+def test_sample_news_dataset_is_deterministic_and_stratified() -> None:
+    dataset = pd.DataFrame(
+        {
+            "article_id": [f"positive-{index}" for index in range(10)]
+            + [f"negative-{index}" for index in range(10)]
+            + [f"neutral-{index}" for index in range(10)],
+            "text": [f"text {index}" for index in range(30)],
+            "impact": ["positive"] * 10 + ["negative"] * 10 + ["neutral"] * 10,
+            "source": ["fixture"] * 30,
+            "published_at": ["2024-01-01"] * 30,
+        },
+    )
+
+    first = sample_news_dataset(dataset, max_rows=9, random_state=42)
+    second = sample_news_dataset(dataset, max_rows=9, random_state=42)
+
+    assert first["article_id"].tolist() == second["article_id"].tolist()
+    assert first["impact"].value_counts().to_dict() == {
+        "negative": 3,
+        "neutral": 3,
+        "positive": 3,
+    }

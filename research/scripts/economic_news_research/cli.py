@@ -3,7 +3,11 @@ from pathlib import Path
 
 import pandas as pd
 
-from economic_news_research.data import load_news_dataset, split_news_dataset
+from economic_news_research.data import (
+    load_news_dataset,
+    sample_news_dataset,
+    split_news_dataset,
+)
 from economic_news_research.eda import save_eda_artifacts
 from economic_news_research.embedding import TextEmbedder, train_embedding_classifier
 from economic_news_research.modeling import train_baseline_model
@@ -68,9 +72,15 @@ def run_train_transformer(
     dataset_path: Path,
     output_dir: Path,
     random_state: int,
+    max_rows: int | None = None,
     trainer: TinyTransformerTrainer | None = None,
 ) -> None:
     dataset = load_news_dataset(dataset_path)
+    dataset = sample_news_dataset(
+        dataset,
+        max_rows=max_rows,
+        random_state=random_state,
+    )
     split = split_news_dataset(dataset, random_state=random_state)
     result = train_tiny_transformer_classifier(
         split,
@@ -144,6 +154,7 @@ def main() -> None:
             dataset_path=args.dataset,
             output_dir=args.output_dir,
             random_state=args.random_state,
+            max_rows=args.max_rows,
         )
         print(f"transformer_output_dir={args.output_dir}")
         return
@@ -248,6 +259,12 @@ def _build_parser() -> argparse.ArgumentParser:
         "--random-state",
         type=int,
         default=42,
+    )
+    transformer_parser.add_argument(
+        "--max-rows",
+        type=int,
+        default=None,
+        help="Limit rows for local transformer fine-tuning; report can still use full dataset.",
     )
 
     compare_parser = subparsers.add_parser("compare-models")

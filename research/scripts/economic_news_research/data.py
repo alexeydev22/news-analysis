@@ -173,3 +173,23 @@ def split_news_dataset(
         validation=validation.reset_index(drop=True),
         test=test.reset_index(drop=True),
     )
+
+
+def sample_news_dataset(
+    dataset: pd.DataFrame,
+    *,
+    max_rows: int | None,
+    random_state: int,
+) -> pd.DataFrame:
+    if max_rows is None or max_rows <= 0 or len(dataset) <= max_rows:
+        return dataset.reset_index(drop=True)
+
+    stratify = dataset["impact"] if dataset["impact"].value_counts().min() >= 2 else None
+    sampled, _ = train_test_split(
+        dataset,
+        train_size=max_rows,
+        random_state=random_state,
+        shuffle=True,
+        stratify=stratify,
+    )
+    return sampled.reset_index(drop=True)
