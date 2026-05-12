@@ -2,7 +2,7 @@ from pathlib import Path
 
 from economic_news_contracts.analysis import AnalysisModelName
 from economic_news_framework.settings import BaseServiceSettings
-from pydantic import Field, RedisDsn
+from pydantic import AnyHttpUrl, Field, RedisDsn, SecretStr
 from pydantic_settings import SettingsConfigDict
 
 
@@ -36,6 +36,12 @@ class AnalysisServiceSettings(BaseServiceSettings):
     topic_forecast_analysis_model: AnalysisModelName = AnalysisModelName.TFIDF_LOGREG
     retrieval_service_url: str = "http://retrieval-service:8000"
     retrieval_service_timeout_seconds: float = Field(default=10.0, gt=0.0)
+    groq_base_url: AnyHttpUrl = AnyHttpUrl("https://api.groq.com/openai")
+    groq_model: str = Field(default="qwen/qwen3-32b", min_length=1)
+    groq_api_key: SecretStr | None = None
+    groq_timeout_seconds: float = Field(default=45.0, gt=0.0)
+    groq_temperature: float = Field(default=0.2, ge=0.0, le=2.0)
+    groq_max_tokens: int = Field(default=700, ge=1, le=4096)
     redis_url: RedisDsn = RedisDsn("redis://redis:6379/0")
     task_queue_name: str = Field(default="analysis-ml-reporting", min_length=1)
     task_result_ttl_seconds: int = Field(default=3600, ge=60)

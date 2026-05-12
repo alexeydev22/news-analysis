@@ -155,6 +155,34 @@ class TopicForecastItemResponse(BaseModel):
     news: list[TopicForecastNewsItemResponse] = Field(default_factory=list)
 
 
+class GroqForecastScope(StrEnum):
+    TOPIC = "topic"
+    NEWS = "news"
+
+
+class GroqForecastRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    scope: GroqForecastScope
+    model_name: str = Field(min_length=1)
+    topic: TopicForecastItemResponse
+    news_id: str | None = None
+
+
+class GroqForecastResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    provider: str = Field(min_length=1)
+    model_name: str = Field(min_length=1)
+    scope: GroqForecastScope
+    target_id: str = Field(min_length=1)
+    prediction: str = Field(min_length=1)
+    disclaimer: str = Field(
+        default="Это аналитический сценарий, а не финансовая рекомендация.",
+    )
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
 class TopicForecastModelReportResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 

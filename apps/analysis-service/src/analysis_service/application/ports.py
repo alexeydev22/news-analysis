@@ -2,6 +2,8 @@ from typing import Protocol
 
 from economic_news_contracts.analysis import (
     AnalysisModelName,
+    GroqForecastRequest,
+    GroqForecastResponse,
     MlReportJobResponse,
     TopicForecastJobResponse,
     TopicForecastResponse,
@@ -70,6 +72,12 @@ class TopicForecastStorage(Protocol):
 class TopicForecastTaskQueue(Protocol):
     async def enqueue(self, *, job_id: str) -> None:
         """Enqueue asynchronous topic forecast generation."""
+        ...
+
+
+class EconomicForecastGenerator(Protocol):
+    async def generate(self, request: GroqForecastRequest) -> GroqForecastResponse:
+        """Generate an LLM-based economic forecast for a topic or one news item."""
         ...
 
 
