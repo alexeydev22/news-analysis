@@ -52,6 +52,7 @@ def test_topic_forecast_contracts_validate_payloads() -> None:
     news = TopicForecastNewsItemResponse(
         id="news-1",
         title="GDP grows",
+        text="GDP expanded faster than expected while consumer prices cooled.",
         source="FNSPID",
         impact=ImpactLabel.POSITIVE,
         score=0.91,
@@ -90,6 +91,9 @@ def test_topic_forecast_contracts_validate_payloads() -> None:
 
     assert EnqueueTopicForecastJobResponse(job_id="job-1").status == TopicForecastJobStatus.QUEUED
     assert response.topics[0].overall_impact == ImpactLabel.POSITIVE
+    assert response.topics[0].news[0].text == (
+        "GDP expanded faster than expected while consumer prices cooled."
+    )
     assert response.model_reports[0].model_name == "tfidf-logreg"
     assert response.model_reports[0].topics[0].topic_id == "topic-1"
     assert job.status == TopicForecastJobStatus.SUCCEEDED

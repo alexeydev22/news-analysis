@@ -1,3 +1,4 @@
+import re
 from collections.abc import Callable, Mapping, Sequence
 from typing import Any, Protocol, cast
 
@@ -106,9 +107,10 @@ class GroqEconomicForecastGenerator:
 
     def _build_system_prompt(self) -> str:
         return (
-            "Ты экономический аналитик. Сформируй осторожный сценарный прогноз "
-            "на русском языке по предоставленной теме или новости. Не давай "
-            "инвестиционных указаний и явно избегай формата финансовой рекомендации."
+            "Ты экономический аналитик. Верни только итоговый прогноз на русском языке. "
+            "Не показывай ход рассуждений, не используй <think>, не добавляй заголовки "
+            "и не давай инвестиционных указаний. Прогноз должен опираться только на "
+            "факты из переданных текстов новостей."
         )
 
     def _build_user_prompt(
@@ -129,8 +131,10 @@ class GroqEconomicForecastGenerator:
             f"Аргументы: {'; '.join(topic.arguments) or 'нет'}\n"
             f"Риски: {'; '.join(topic.risks) or 'нет'}\n"
             f"Новости:\n{news_block or 'Нет новостей для детализации.'}\n\n"
-            "Сделай краткий сценарный прогноз: вероятное влияние, факторы "
-            "неопределенности и что может изменить вывод."
+            "Сделай один краткий прогноз в 3-6 предложениях. Опирайся только на факты "
+            "из текстов новостей: назови факты, которые поддерживают вывод, и осторожно "
+            "укажи, что может изменить сценарий. Не выводи рассуждения, списки, "
+            "служебные пометки и финансовые рекомендации."
         )
 
     def _target_id(self, request: GroqForecastRequest) -> str:
@@ -153,7 +157,7 @@ class GroqEconomicForecastGenerator:
     def _format_news_item(self, item: TopicForecastNewsItemResponse) -> str:
         return (
             f"- id={item.id}; title={item.title}; source={item.source}; "
-            f"impact={item.impact.value}; score={item.score}"
+            f"impact={item.impact.value}; score={item.score}; text={item.text}"
         )
 
     async def _post(self, payload: dict[str, object]) -> _ZaprosResponse:
@@ -195,10 +199,13 @@ class GroqEconomicForecastGenerator:
         if not isinstance(content, str):
             raise GroqForecastGenerationError(_UNAVAILABLE_MESSAGE)
 
-        prediction = content.strip()
+        prediction = self._remove_thinking_blocks(content).strip()
         if not prediction:
             raise GroqForecastGenerationError(_UNAVAILABLE_MESSAGE)
         return prediction
+
+    def _remove_thinking_blocks(self, content: str) -> str:
+        return re.sub(r"<think>.*?</think>", "", content, flags=re.DOTALL | re.IGNORECASE)
 
     def _field(self, value: object, field_name: str) -> object:
         if not isinstance(value, Mapping):

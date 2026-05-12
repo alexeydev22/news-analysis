@@ -56,6 +56,7 @@ def topic() -> TopicForecastItemResponse:
             TopicForecastNewsItemResponse(
                 id="news-1",
                 title="GDP grows",
+                text="GDP expanded faster than expected while consumer prices cooled.",
                 source="demo",
                 impact=ImpactLabel.POSITIVE,
                 score=0.91,
@@ -81,6 +82,7 @@ def multi_news_topic() -> TopicForecastItemResponse:
             TopicForecastNewsItemResponse(
                 id="news-1",
                 title="GDP grows",
+                text="GDP expanded faster than expected while consumer prices cooled.",
                 source="demo",
                 impact=ImpactLabel.POSITIVE,
                 score=0.91,
@@ -88,6 +90,7 @@ def multi_news_topic() -> TopicForecastItemResponse:
             TopicForecastNewsItemResponse(
                 id="news-2",
                 title="Inflation slows",
+                text="Inflation slowed for the second month and bond yields declined.",
                 source="demo",
                 impact=ImpactLabel.POSITIVE,
                 score=0.72,
@@ -145,10 +148,14 @@ async def test_groq_forecast_generator_sends_prompt_and_parses_answer() -> None:
     assert isinstance(system_message, dict)
     assert isinstance(user_message, dict)
     assert "экономический аналитик" in str(system_message["content"])
-    assert "осторожный сценарный прогноз" in str(system_message["content"])
-    assert "финансовой рекомендации" in str(system_message["content"])
+    assert "Верни только итоговый прогноз" in str(system_message["content"])
+    assert "не используй <think>" in str(system_message["content"])
+    assert "не давай инвестиционных указаний" in str(system_message["content"])
     assert "Область прогноза: topic" in str(user_message["content"])
-    assert "Сделай краткий сценарный прогноз" in str(user_message["content"])
+    assert "GDP expanded faster than expected while consumer prices cooled." in str(
+        user_message["content"],
+    )
+    assert "Опирайся только на факты из текстов новостей" in str(user_message["content"])
     assert result.provider == "groq"
     assert result.model_name == "qwen/qwen3-32b"
     assert result.scope == GroqForecastScope.TOPIC
@@ -194,6 +201,34 @@ async def test_news_scope_filters_prompt_to_selected_news_and_counts_it() -> Non
     assert isinstance(user_message, dict)
     user_prompt = str(user_message["content"])
     assert "Inflation slows" in user_prompt
+    assert "Inflation slowed for the second month and bond yields declined." in user_prompt
     assert "GDP grows" not in user_prompt
+    assert "GDP expanded faster than expected while consumer prices cooled." not in user_prompt
     assert result.target_id == "news-2"
     assert result.metadata["news_count"] == 1
+
+
+@pytest.mark.asyncio
+async def test_groq_forecast_generator_removes_qwen_thinking_blocks() -> None:
+    client = FakeZaprosClient(
+        FakeResponse(
+            "<think>Скрытое рассуждение не должно попасть в интерфейс.</think>\n"
+            "Прогноз: рост ВВП и снижение инфляции поддерживают умеренно позитивный сценарий.",
+        ),
+    )
+    generator = generator_with(client)
+
+    result = await generator.generate(
+        request=GroqForecastRequest(
+            scope=GroqForecastScope.TOPIC,
+            model_name="tfidf-logreg",
+            topic=topic(),
+            news_id=None,
+        ),
+    )
+
+    assert "<think>" not in result.prediction
+    assert "Скрытое рассуждение" not in result.prediction
+    assert result.prediction == (
+        "Прогноз: рост ВВП и снижение инфляции поддерживают умеренно позитивный сценарий."
+    )

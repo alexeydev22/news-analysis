@@ -612,6 +612,9 @@ describe("App", () => {
       }),
     );
     expect(request.topic).toEqual(expect.objectContaining({ topic_id: "topic-1" }));
+    expect(request.topic.news[0].text).toBe(
+      "Росстат сообщил о росте ВВП и замедлении инфляции, что поддержало ожидания рынка.",
+    );
   });
 
   it("renders backend Groq error detail", async () => {

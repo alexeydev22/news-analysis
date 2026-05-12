@@ -133,6 +133,7 @@ class TopicForecastNewsItemResponse(BaseModel):
 
     id: str = Field(min_length=1)
     title: str = Field(min_length=1)
+    text: str = ""
     source: str = Field(min_length=1)
     impact: ImpactLabel
     score: float | None = Field(default=None, ge=-1.0, le=1.0)

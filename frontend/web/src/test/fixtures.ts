@@ -116,6 +116,7 @@ export const topicForecastFixture: TopicForecast = {
         {
           id: "news-1",
           title: "ВВП вырос",
+          text: "Росстат сообщил о росте ВВП и замедлении инфляции, что поддержало ожидания рынка.",
           source: "Демо",
           impact: "positive",
           score: 0.92,
@@ -147,6 +148,7 @@ export const topicForecastFixture: TopicForecast = {
             {
               id: "news-1",
               title: "ВВП вырос",
+              text: "Росстат сообщил о росте ВВП и замедлении инфляции, что поддержало ожидания рынка.",
               source: "Демо",
               impact: "positive",
               score: 0.92,

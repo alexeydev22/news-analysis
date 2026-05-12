@@ -124,6 +124,7 @@ export type MlReport = {
 export type TopicForecastNewsItem = {
   id: string;
   title: string;
+  text: string;
   source: string;
   impact: ImpactLabel;
   score: number | null;

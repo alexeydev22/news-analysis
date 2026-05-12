@@ -245,6 +245,7 @@ def _build_news_item(
     return TopicForecastNewsItemResponse(
         id=document.id,
         title=document.title,
+        text=document.text,
         source=document.source,
         impact=impact,
         score=scores_by_news_id.get(document.id),
