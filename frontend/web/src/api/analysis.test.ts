@@ -152,4 +152,23 @@ describe("analysis api", () => {
     });
     expect(response.model_name).toBe("qwen/qwen3-32b");
   });
+
+  it("uses backend detail when Groq forecast generation fails", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      Response.json({ detail: "GROQ API key is not configured" }, { status: 503 }),
+    );
+    const topic = topicForecastFixture.model_reports![0].topics[0];
+
+    await expect(
+      generateGroqForecast(
+        {
+          scope: "topic",
+          model_name: topicForecastFixture.model_reports![0].model_name,
+          topic,
+          news_id: null,
+        },
+        { baseUrl: "http://localhost:8010", fetcher: fetchMock },
+      ),
+    ).rejects.toThrow("GROQ API key is not configured");
+  });
 });
