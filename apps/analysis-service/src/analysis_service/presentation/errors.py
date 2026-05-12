@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 
 from analysis_service.domain.errors import (
@@ -7,6 +7,7 @@ from analysis_service.domain.errors import (
     ModelUnavailableError,
     TopicForecastJobNotFoundError,
 )
+from analysis_service.infrastructure.groq_forecast_client import GroqForecastGenerationError
 
 
 def register_error_handlers(app: FastAPI) -> None:
@@ -23,6 +24,16 @@ def register_error_handlers(app: FastAPI) -> None:
         exc: ModelUnavailableError,
     ) -> JSONResponse:
         return JSONResponse(status_code=503, content={"detail": str(exc)})
+
+    @app.exception_handler(GroqForecastGenerationError)
+    async def groq_forecast_generation_error_handler(
+        request: Request,
+        exc: GroqForecastGenerationError,
+    ) -> JSONResponse:
+        return JSONResponse(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            content={"detail": str(exc)},
+        )
 
     @app.exception_handler(MlReportJobNotFoundError)
     async def ml_report_job_not_found_handler(

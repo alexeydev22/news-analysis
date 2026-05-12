@@ -4,11 +4,15 @@ import joblib
 import pytest
 from analysis_service.application.use_cases import (
     EnqueueMlReportJob,
+    GenerateGroqTopicForecast,
     GetLatestMlReport,
     GetMlReportJob,
 )
 from analysis_service.domain.errors import ModelUnavailableError
 from analysis_service.domain.model import NewsText
+from analysis_service.infrastructure.groq_forecast_client import (
+    GroqEconomicForecastGenerator,
+)
 from analysis_service.main.container import AnalysisServiceProvider
 from analysis_service.main.settings import AnalysisServiceSettings
 from economic_news_contracts.analysis import AnalysisModelName, ImpactLabel
@@ -50,3 +54,15 @@ def test_provider_resolves_ml_report_use_cases(tmp_path: Path) -> None:
     assert isinstance(provider.enqueue_ml_report_job(queue, storage), EnqueueMlReportJob)
     assert isinstance(provider.get_ml_report_job(storage), GetMlReportJob)
     assert isinstance(provider.get_latest_ml_report(storage), GetLatestMlReport)
+
+
+def test_provider_resolves_groq_forecast_use_case() -> None:
+    settings = AnalysisServiceSettings(use_static_classifier=True)
+    provider = AnalysisServiceProvider(settings)
+    generator = provider.economic_forecast_generator(settings)
+
+    assert isinstance(generator, GroqEconomicForecastGenerator)
+    assert isinstance(
+        provider.generate_groq_topic_forecast(generator),
+        GenerateGroqTopicForecast,
+    )
