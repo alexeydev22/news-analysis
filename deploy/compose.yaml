@@ -34,7 +34,11 @@ services:
       HF_HUB_OFFLINE: "${HF_HUB_OFFLINE:-1}"
       TRANSFORMERS_OFFLINE: "${TRANSFORMERS_OFFLINE:-1}"
       ANALYSIS_REDIS_URL: "redis://redis:6379/0"
-      ANALYSIS_ML_DATASET_PATH: "${ANALYSIS_ML_DATASET_PATH:-data/raw/news_impact.csv}"
+      ANALYSIS_ML_DATASET_PATH: "${ANALYSIS_ML_DATASET_PATH:-data/raw/economic_news.csv}"
+      ANALYSIS_TOPIC_FORECAST_DOCUMENT_LIMIT: "${ANALYSIS_TOPIC_FORECAST_DOCUMENT_LIMIT:-500}"
+      ANALYSIS_GROQ_BASE_URL: "${ANALYSIS_GROQ_BASE_URL:-https://api.groq.com/openai}"
+      ANALYSIS_GROQ_MODEL: "${ANALYSIS_GROQ_MODEL:-qwen/qwen3-32b}"
+      ANALYSIS_GROQ_API_KEY: "${ANALYSIS_GROQ_API_KEY:-}"
       ANALYSIS_ML_REPORT_OUTPUT_PATH: "${ANALYSIS_ML_REPORT_OUTPUT_PATH:-reports/ml/model-report.json}"
       ANALYSIS_ML_REPORT_JOBS_DIR: "${ANALYSIS_ML_REPORT_JOBS_DIR:-reports/ml/jobs}"
     ports:
@@ -62,7 +66,11 @@ services:
       HF_HUB_OFFLINE: "${HF_HUB_OFFLINE:-1}"
       TRANSFORMERS_OFFLINE: "${TRANSFORMERS_OFFLINE:-1}"
       ANALYSIS_REDIS_URL: "redis://redis:6379/0"
-      ANALYSIS_ML_DATASET_PATH: "${ANALYSIS_ML_DATASET_PATH:-data/raw/news_impact.csv}"
+      ANALYSIS_ML_DATASET_PATH: "${ANALYSIS_ML_DATASET_PATH:-data/raw/economic_news.csv}"
+      ANALYSIS_TOPIC_FORECAST_DOCUMENT_LIMIT: "${ANALYSIS_TOPIC_FORECAST_DOCUMENT_LIMIT:-500}"
+      ANALYSIS_GROQ_BASE_URL: "${ANALYSIS_GROQ_BASE_URL:-https://api.groq.com/openai}"
+      ANALYSIS_GROQ_MODEL: "${ANALYSIS_GROQ_MODEL:-qwen/qwen3-32b}"
+      ANALYSIS_GROQ_API_KEY: "${ANALYSIS_GROQ_API_KEY:-}"
       ANALYSIS_ML_REPORT_OUTPUT_PATH: "${ANALYSIS_ML_REPORT_OUTPUT_PATH:-reports/ml/model-report.json}"
       ANALYSIS_ML_REPORT_JOBS_DIR: "${ANALYSIS_ML_REPORT_JOBS_DIR:-reports/ml/jobs}"
     command:
@@ -101,7 +109,10 @@ services:
     env_file:
       - ../.env.example
     environment:
-      DIALOG_GENERATOR_KIND: "${DIALOG_GENERATOR_KIND:-template}"
+      DIALOG_GENERATOR_KIND: "${DIALOG_GENERATOR_KIND:-groq}"
+      DIALOG_GROQ_BASE_URL: "${DIALOG_GROQ_BASE_URL:-https://api.groq.com/openai}"
+      DIALOG_GROQ_MODEL: "${DIALOG_GROQ_MODEL:-qwen/qwen3-32b}"
+      DIALOG_GROQ_API_KEY: "${DIALOG_GROQ_API_KEY:-}"
       DIALOG_LLM_BASE_URL: "${DIALOG_LLM_BASE_URL:-http://host.docker.internal:8080}"
       DIALOG_LLM_MODEL: "${DIALOG_LLM_MODEL:-Qwen3-0.6B-Instruct-GGUF}"
     extra_hosts:
