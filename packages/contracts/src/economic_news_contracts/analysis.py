@@ -1,7 +1,7 @@
 from enum import StrEnum
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 class ImpactLabel(StrEnum):
@@ -167,6 +167,12 @@ class GroqForecastRequest(BaseModel):
     model_name: str = Field(min_length=1)
     topic: TopicForecastItemResponse
     news_id: str | None = None
+
+    @model_validator(mode="after")
+    def validate_news_scope_target(self) -> "GroqForecastRequest":
+        if self.scope == GroqForecastScope.NEWS and self.news_id is None:
+            raise ValueError("news_id is required for news scope")
+        return self
 
 
 class GroqForecastResponse(BaseModel):

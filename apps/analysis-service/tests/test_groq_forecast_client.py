@@ -9,6 +9,7 @@ from economic_news_contracts.analysis import (
     TopicForecastItemResponse,
     TopicForecastNewsItemResponse,
 )
+from pydantic import ValidationError
 
 
 class FakeResponse:
@@ -105,6 +106,16 @@ def generator_with(client: FakeZaprosClient) -> GroqEconomicForecastGenerator:
         max_tokens=700,
         client=client,
     )
+
+
+def test_groq_news_scope_requires_news_id() -> None:
+    with pytest.raises(ValidationError, match="news_id is required for news scope"):
+        GroqForecastRequest(
+            scope=GroqForecastScope.NEWS,
+            model_name="tfidf-logreg",
+            topic=topic(),
+            news_id=None,
+        )
 
 
 @pytest.mark.asyncio
