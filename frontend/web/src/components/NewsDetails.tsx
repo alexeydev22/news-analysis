@@ -4,13 +4,14 @@ import styles from "../app/App.module.css";
 
 type NewsDetailsProps = {
   title: string;
-  text: string;
+  text?: string | null;
 };
 
 export function NewsDetails({ title, text }: NewsDetailsProps) {
   const [isExpanded, setExpanded] = useState(false);
+  const normalizedText = typeof text === "string" ? text.trim() : "";
 
-  if (!text.trim()) {
+  if (!normalizedText) {
     return null;
   }
 
@@ -25,7 +26,7 @@ export function NewsDetails({ title, text }: NewsDetailsProps) {
       >
         {isExpanded ? "Скрыть текст" : "Показать полный текст"}
       </button>
-      {isExpanded ? <p className={styles.newsFullText}>{text}</p> : null}
+      {isExpanded ? <p className={styles.newsFullText}>{normalizedText}</p> : null}
     </div>
   );
 }

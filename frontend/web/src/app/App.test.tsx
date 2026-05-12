@@ -99,13 +99,15 @@ function mockFetch() {
     }
 
     if (url.includes("/api/v1/chat/stream")) {
+      const sourcePreviews = chatResponseFixture.sources.map(({ text: _text, ...source }) => source);
+
       return new Response(
         [
           "event: chat_started",
           'data: {"question":"Что с ВВП?","analysis_model":"embedding-logreg","limit":3,"source":null}',
           "",
           "event: sources_found",
-          `data: ${JSON.stringify({ count: 1, sources: chatResponseFixture.sources })}`,
+          `data: ${JSON.stringify({ count: 1, sources: sourcePreviews })}`,
           "",
           "event: analysis_completed",
           `data: ${JSON.stringify({ count: 1, impact_summaries: chatResponseFixture.impact_summaries })}`,
@@ -222,6 +224,90 @@ describe("App", () => {
         }),
       }),
     );
+  });
+
+  it("renders source previews without full text while the stream is still running", async () => {
+    let streamController!: ReadableStreamDefaultController<Uint8Array>;
+    const encoder = new TextEncoder();
+    const sourcePreviews = chatResponseFixture.sources.map(({ text: _text, ...source }) => source);
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+
+      if (url.includes("/api/v1/news/datasets/active")) {
+        return Response.json(null);
+      }
+
+      if (url.includes("/api/v1/news/datasets")) {
+        return Response.json({ datasets: [] });
+      }
+
+      if (url.includes("/api/v1/ml-report/latest") || url.includes("/api/v1/topic-forecast/latest")) {
+        return new Response(null, { status: 204 });
+      }
+
+      if (url.includes("/api/v1/chat/stream")) {
+        return new Response(
+          new ReadableStream<Uint8Array>({
+            start(controller) {
+              streamController = controller;
+              controller.enqueue(
+                encoder.encode(
+                  [
+                    "event: sources_found",
+                    `data: ${JSON.stringify({ count: 1, sources: sourcePreviews })}`,
+                    "",
+                    "event: analysis_completed",
+                    `data: ${JSON.stringify({ count: 1, impact_summaries: chatResponseFixture.impact_summaries })}`,
+                    "",
+                    "",
+                  ].join("\n"),
+                ),
+              );
+            },
+          }),
+          { status: 200, headers: { "content-type": "text/event-stream" } },
+        );
+      }
+
+      return Response.json({ detail: "not found" }, { status: 404 });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const user = userEvent.setup();
+
+    render(<App />);
+
+    await user.type(screen.getByRole("textbox", { name: "Вопрос" }), "Что с ВВП?");
+    await user.click(screen.getByRole("button", { name: "Спросить" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("ВВП вырос")).toBeInTheDocument();
+    });
+    await waitFor(() => {
+      expect(screen.getByText("позитивное")).toBeInTheDocument();
+    });
+    expect(screen.queryByRole("button", { name: /Показать полный текст новости/ })).not.toBeInTheDocument();
+
+    await act(async () => {
+      streamController.enqueue(
+        encoder.encode(
+          [
+            "event: answer_completed",
+            `data: ${JSON.stringify(chatResponseFixture)}`,
+            "",
+            "event: done",
+            'data: {"status":"ok"}',
+            "",
+            "",
+          ].join("\n"),
+        ),
+      );
+      streamController.close();
+      await Promise.resolve();
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("Рост ВВП обычно поддерживает рынок.")).toBeInTheDocument();
+    });
   });
 
   it("loads preview and indexes the dataset", async () => {
