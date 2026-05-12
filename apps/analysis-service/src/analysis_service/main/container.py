@@ -5,6 +5,7 @@ from dishka.integrations.fastapi import FastapiProvider
 from economic_news_contracts.analysis import AnalysisModelName, ImpactLabel
 
 from analysis_service.application.ports import (
+    EconomicForecastGenerator,
     MlReportStorage,
     MlReportTaskQueue,
     ModelRegistry,
@@ -16,6 +17,7 @@ from analysis_service.application.use_cases import (
     AnalyzeNewsImpact,
     EnqueueMlReportJob,
     EnqueueTopicForecastJob,
+    GenerateGroqTopicForecast,
     GenerateTopicForecastReport,
     GetLatestMlReport,
     GetLatestTopicForecast,
@@ -27,6 +29,7 @@ from analysis_service.infrastructure.classifiers import (
     StaticImpactClassifier,
     StaticModelRegistry,
 )
+from analysis_service.infrastructure.groq_forecast_client import GroqEconomicForecastGenerator
 from analysis_service.infrastructure.ml_report_queue import TaskiqMlReportTaskQueue
 from analysis_service.infrastructure.ml_report_storage import JsonMlReportStorage
 from analysis_service.infrastructure.topic_forecast_queue import TaskiqTopicForecastTaskQueue
@@ -146,6 +149,31 @@ class AnalysisServiceProvider(Provider):
         storage: TopicForecastStorage,
     ) -> GetLatestTopicForecast:
         return GetLatestTopicForecast(storage)
+
+    @provide(scope=Scope.APP, provides=EconomicForecastGenerator)
+    def economic_forecast_generator(
+        self,
+        settings: AnalysisServiceSettings,
+    ) -> EconomicForecastGenerator:
+        return GroqEconomicForecastGenerator(
+            base_url=str(settings.groq_base_url),
+            api_key=(
+                settings.groq_api_key.get_secret_value()
+                if settings.groq_api_key
+                else None
+            ),
+            model_name=settings.groq_model,
+            timeout_seconds=settings.groq_timeout_seconds,
+            temperature=settings.groq_temperature,
+            max_tokens=settings.groq_max_tokens,
+        )
+
+    @provide(scope=Scope.APP)
+    def generate_groq_topic_forecast(
+        self,
+        generator: EconomicForecastGenerator,
+    ) -> GenerateGroqTopicForecast:
+        return GenerateGroqTopicForecast(generator)
 
     @provide(scope=Scope.APP)
     def generate_topic_forecast_report(

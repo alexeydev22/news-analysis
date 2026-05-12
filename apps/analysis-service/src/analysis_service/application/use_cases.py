@@ -6,6 +6,8 @@ from economic_news_contracts.analysis import (
     AnalysisModelName,
     EnqueueMlReportJobResponse,
     EnqueueTopicForecastJobResponse,
+    GroqForecastRequest,
+    GroqForecastResponse,
     MlReportJobResponse,
     MlReportJobStatus,
     TopicForecastJobResponse,
@@ -17,6 +19,7 @@ from economic_news_contracts.dialog import DialogImpactSummary
 from economic_news_contracts.retrieval import IndexedNewsDocument, NewsNeighborGroup
 
 from analysis_service.application.ports import (
+    EconomicForecastGenerator,
     MlReportStorage,
     MlReportTaskQueue,
     ModelRegistry,
@@ -100,6 +103,14 @@ class GetLatestTopicForecast:
 
     async def execute(self) -> TopicForecastResponse | None:
         return await self._storage.get_latest_report()
+
+
+class GenerateGroqTopicForecast:
+    def __init__(self, generator: EconomicForecastGenerator) -> None:
+        self._generator = generator
+
+    async def execute(self, request: GroqForecastRequest) -> GroqForecastResponse:
+        return await self._generator.generate(request)
 
 
 class GenerateTopicForecastReport:
