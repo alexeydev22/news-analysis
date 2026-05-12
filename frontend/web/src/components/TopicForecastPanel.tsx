@@ -5,7 +5,6 @@ import type {
   TopicForecast,
   TopicForecastJobStatus,
   TopicForecastNewsItem,
-  TopicForecastTopic,
 } from "../app/types";
 import styles from "../app/App.module.css";
 
@@ -15,10 +14,10 @@ type TopicForecastPanelProps = {
   error: string | null;
   isLoading: boolean;
   groqForecasts: Record<string, GroqForecastResponse>;
-  groqForecastLoadingKey: string | null;
+  groqForecastLoadingKeys: Record<string, boolean>;
   groqForecastError: string | null;
   onGenerate: () => void;
-  onGenerateGroqForecast: (request: GroqForecastRequest) => void;
+  onGenerateGroqForecast: (request: GroqForecastRequest, forecastGeneratedAt: string) => void;
 };
 
 const STATUS_LABELS: Record<TopicForecastJobStatus, string> = {
@@ -54,8 +53,20 @@ function renderNewsMeta(news: TopicForecastNewsItem): string {
   return parts.join(" · ");
 }
 
-function groqForecastKey(modelName: string, scope: "topic" | "news", topic: TopicForecastTopic, newsId: string | null): string {
-  return `${modelName}:${scope}:${newsId ?? topic.topic_id}`;
+export function groqForecastKey(request: {
+  forecastGeneratedAt: string;
+  modelName: string;
+  scope: "topic" | "news";
+  topicId: string;
+  newsId?: string | null;
+}): string {
+  return [
+    request.forecastGeneratedAt,
+    request.modelName,
+    request.scope,
+    request.topicId,
+    request.newsId ?? "",
+  ].join(":");
 }
 
 function renderGroqForecastResult(result: GroqForecastResponse | undefined) {
@@ -78,7 +89,7 @@ export function TopicForecastPanel({
   error,
   isLoading,
   groqForecasts,
-  groqForecastLoadingKey,
+  groqForecastLoadingKeys,
   groqForecastError,
   onGenerate,
   onGenerateGroqForecast,
@@ -104,7 +115,11 @@ export function TopicForecastPanel({
           {error}
         </p>
       ) : null}
-      {groqForecastError ? <p className={styles.errorText}>{groqForecastError}</p> : null}
+      {groqForecastError ? (
+        <p className={styles.errorText} role="alert">
+          {groqForecastError}
+        </p>
+      ) : null}
 
       {forecast ? (
         <div className={styles.reportContent}>
@@ -118,7 +133,12 @@ export function TopicForecastPanel({
 
               <div className={styles.topicCards}>
                 {modelReport.topics.map((topic) => {
-                  const topicGroqKey = groqForecastKey(modelReport.model_name, "topic", topic, null);
+                  const topicGroqKey = groqForecastKey({
+                    forecastGeneratedAt: forecast.generated_at,
+                    modelName: modelReport.model_name,
+                    scope: "topic",
+                    topicId: topic.topic_id,
+                  });
                   return (
                     <article className={styles.topicCard} key={`${modelReport.model_name}-${topic.topic_id}`}>
                       <h4>{topic.title}</h4>
@@ -126,17 +146,20 @@ export function TopicForecastPanel({
                       <div className={styles.forecastActions}>
                         <button
                           type="button"
-                          disabled={groqForecastLoadingKey === topicGroqKey}
+                          disabled={Boolean(groqForecastLoadingKeys[topicGroqKey])}
                           onClick={() =>
-                            onGenerateGroqForecast({
-                              scope: "topic",
-                              model_name: modelReport.model_name,
-                              topic,
-                              news_id: null,
-                            })
+                            onGenerateGroqForecast(
+                              {
+                                scope: "topic",
+                                model_name: modelReport.model_name,
+                                topic,
+                                news_id: null,
+                              },
+                              forecast.generated_at,
+                            )
                           }
                         >
-                          {groqForecastLoadingKey === topicGroqKey ? "Формирование Groq-прогноза" : "Groq-прогноз темы"}
+                          {groqForecastLoadingKeys[topicGroqKey] ? "Формирование Groq-прогноза" : "Groq-прогноз темы"}
                         </button>
                       </div>
                       {renderGroqForecastResult(groqForecasts[topicGroqKey])}
@@ -184,24 +207,33 @@ export function TopicForecastPanel({
                         {topic.news.length > 0 ? (
                           <ul className={styles.newsList}>
                             {topic.news.map((news) => {
-                              const newsGroqKey = groqForecastKey(modelReport.model_name, "news", topic, news.id);
+                              const newsGroqKey = groqForecastKey({
+                                forecastGeneratedAt: forecast.generated_at,
+                                modelName: modelReport.model_name,
+                                scope: "news",
+                                topicId: topic.topic_id,
+                                newsId: news.id,
+                              });
                               return (
                                 <li key={news.id}>
                                   <strong>{news.title}</strong>
                                   <span>{renderNewsMeta(news)}</span>
                                   <button
                                     type="button"
-                                    disabled={groqForecastLoadingKey === newsGroqKey}
+                                    disabled={Boolean(groqForecastLoadingKeys[newsGroqKey])}
                                     onClick={() =>
-                                      onGenerateGroqForecast({
-                                        scope: "news",
-                                        model_name: modelReport.model_name,
-                                        topic,
-                                        news_id: news.id,
-                                      })
+                                      onGenerateGroqForecast(
+                                        {
+                                          scope: "news",
+                                          model_name: modelReport.model_name,
+                                          topic,
+                                          news_id: news.id,
+                                        },
+                                        forecast.generated_at,
+                                      )
                                     }
                                   >
-                                    {groqForecastLoadingKey === newsGroqKey
+                                    {groqForecastLoadingKeys[newsGroqKey]
                                       ? "Формирование Groq-прогноза"
                                       : "Groq-прогноз новости"}
                                   </button>

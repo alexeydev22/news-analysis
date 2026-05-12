@@ -551,6 +551,69 @@ describe("App", () => {
     expect(screen.getByText("Это аналитический сценарий, а не финансовая рекомендация.")).toBeInTheDocument();
   });
 
+  it("sends topic and news identity when generating a Groq forecast for news", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, _init?: RequestInit) => {
+      const url = String(input);
+
+      if (url.includes("/api/v1/news/datasets/active")) {
+        return Response.json(null);
+      }
+
+      if (url.includes("/api/v1/news/datasets")) {
+        return Response.json({ datasets: [] });
+      }
+
+      if (url.includes("/api/v1/ml-report/latest")) {
+        return new Response(null, { status: 204 });
+      }
+
+      if (url.includes("/api/v1/topic-forecast/latest")) {
+        return Response.json(topicForecastFixture);
+      }
+
+      if (url.includes("/api/v1/topic-forecast/groq-predictions")) {
+        return Response.json({
+          provider: "groq",
+          model_name: "qwen/qwen3-32b",
+          scope: "news",
+          target_id: "news-1",
+          prediction: "Groq выделяет позитивный новостной сигнал.",
+          disclaimer: "Это аналитический сценарий, а не финансовая рекомендация.",
+          metadata: {},
+        });
+      }
+
+      return Response.json({ detail: "not found" }, { status: 404 });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const user = userEvent.setup();
+
+    render(<App />);
+
+    await user.click(screen.getByRole("button", { name: "Прогноз" }));
+    await waitFor(() => {
+      expect(screen.getAllByRole("button", { name: "Groq-прогноз новости" }).length).toBeGreaterThan(0);
+    });
+    await user.click(screen.getAllByRole("button", { name: "Groq-прогноз новости" })[0]);
+
+    await waitFor(() => {
+      expect(screen.getByText("Groq выделяет позитивный новостной сигнал.")).toBeInTheDocument();
+    });
+    const groqCall = fetchMock.mock.calls.find(([input]) =>
+      String(input).includes("/api/v1/topic-forecast/groq-predictions"),
+    );
+    expect(groqCall).toBeDefined();
+    const request = JSON.parse(String(groqCall![1]?.body));
+    expect(request).toEqual(
+      expect.objectContaining({
+        scope: "news",
+        news_id: "news-1",
+        model_name: "tfidf-logreg",
+      }),
+    );
+    expect(request.topic).toEqual(expect.objectContaining({ topic_id: "topic-1" }));
+  });
+
   it("renders backend Groq error detail", async () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input);
@@ -589,7 +652,7 @@ describe("App", () => {
     await user.click(screen.getAllByRole("button", { name: "Groq-прогноз темы" })[0]);
 
     await waitFor(() => {
-      expect(screen.getByText("GROQ API key is not configured")).toBeInTheDocument();
+      expect(screen.getByRole("alert")).toHaveTextContent("GROQ API key is not configured");
     });
   });
 });

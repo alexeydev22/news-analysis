@@ -27,7 +27,7 @@ import { MlReportPanel } from "../components/MlReportPanel";
 import { NewsPreview } from "../components/NewsPreview";
 import { SourcesPanel } from "../components/SourcesPanel";
 import { Timeline } from "../components/Timeline";
-import { TopicForecastPanel } from "../components/TopicForecastPanel";
+import { groqForecastKey, TopicForecastPanel } from "../components/TopicForecastPanel";
 import type {
   ActiveDataset,
   AnalysisModelName,
@@ -106,7 +106,7 @@ export function App() {
   const [topicForecastStatus, setTopicForecastStatus] = useState<TopicForecastJobStatus | null>(null);
   const [topicForecastError, setTopicForecastError] = useState<string | null>(null);
   const [groqForecasts, setGroqForecasts] = useState<Record<string, GroqForecastResponse>>({});
-  const [groqForecastLoadingKey, setGroqForecastLoadingKey] = useState<string | null>(null);
+  const [groqForecastLoadingKeys, setGroqForecastLoadingKeys] = useState<Record<string, boolean>>({});
   const [groqForecastError, setGroqForecastError] = useState<string | null>(null);
   const [isStreaming, setStreaming] = useState(false);
   const [isPreviewLoading, setPreviewLoading] = useState(false);
@@ -163,10 +163,16 @@ export function App() {
         const forecast = await getLatestTopicForecast();
         if (isMounted) {
           setTopicForecast(forecast);
+          setGroqForecasts({});
+          setGroqForecastError(null);
+          setGroqForecastLoadingKeys({});
         }
       } catch {
         if (isMounted) {
           setTopicForecast(null);
+          setGroqForecasts({});
+          setGroqForecastError(null);
+          setGroqForecastLoadingKeys({});
         }
       }
     }
@@ -321,7 +327,11 @@ export function App() {
   }
 
   async function loadLatestTopicForecast() {
-    setTopicForecast(await getLatestTopicForecast());
+    const forecast = await getLatestTopicForecast();
+    setTopicForecast(forecast);
+    setGroqForecasts({});
+    setGroqForecastError(null);
+    setGroqForecastLoadingKeys({});
   }
 
   function scheduleMlReportPoll(jobId: string) {
@@ -438,9 +448,15 @@ export function App() {
     }
   }
 
-  async function handleGenerateGroqForecast(request: GroqForecastRequest): Promise<void> {
-    const targetKey = `${request.model_name}:${request.scope}:${request.news_id ?? request.topic.topic_id}`;
-    setGroqForecastLoadingKey(targetKey);
+  async function handleGenerateGroqForecast(request: GroqForecastRequest, forecastGeneratedAt: string): Promise<void> {
+    const targetKey = groqForecastKey({
+      forecastGeneratedAt,
+      modelName: request.model_name,
+      scope: request.scope,
+      topicId: request.topic.topic_id,
+      newsId: request.news_id,
+    });
+    setGroqForecastLoadingKeys((current) => ({ ...current, [targetKey]: true }));
     setGroqForecastError(null);
     try {
       const response = await generateGroqForecast(request);
@@ -448,7 +464,11 @@ export function App() {
     } catch (forecastError) {
       setGroqForecastError(messageFromError(forecastError));
     } finally {
-      setGroqForecastLoadingKey(null);
+      setGroqForecastLoadingKeys((current) => {
+        const next = { ...current };
+        delete next[targetKey];
+        return next;
+      });
     }
   }
 
@@ -561,13 +581,13 @@ export function App() {
             error={topicForecastError}
             isLoading={isTopicForecastLoading}
             groqForecasts={groqForecasts}
-            groqForecastLoadingKey={groqForecastLoadingKey}
+            groqForecastLoadingKeys={groqForecastLoadingKeys}
             groqForecastError={groqForecastError}
             onGenerate={() => {
               void handleGenerateTopicForecast();
             }}
-            onGenerateGroqForecast={(request) => {
-              void handleGenerateGroqForecast(request);
+            onGenerateGroqForecast={(request, forecastGeneratedAt) => {
+              void handleGenerateGroqForecast(request, forecastGeneratedAt);
             }}
           />
         </div>
