@@ -20,6 +20,9 @@ _DIALOG_ENV_KEYS = (
     "DIALOG_LLM_TIMEOUT_SECONDS",
     "DIALOG_LLM_TEMPERATURE",
     "DIALOG_LLM_MAX_TOKENS",
+    "DIALOG_GROQ_BASE_URL",
+    "DIALOG_GROQ_MODEL",
+    "DIALOG_GROQ_API_KEY",
 )
 
 
@@ -57,8 +60,16 @@ def test_dialog_settings_include_llm_defaults(isolate_dialog_settings: None) -> 
     assert settings.llm_max_tokens == 512
 
 
+def test_dialog_settings_include_groq_defaults(isolate_dialog_settings: None) -> None:
+    settings = DialogServiceSettings()
+
+    assert str(settings.groq_base_url) == "https://api.groq.com/openai/"
+    assert settings.groq_model == "qwen/qwen3-32b"
+    assert settings.groq_api_key is None
+
+
 def test_dialog_settings_reject_blank_llm_model(isolate_dialog_settings: None) -> None:
-    with pytest.raises(ValidationError, match="llm_model must not be blank"):
+    with pytest.raises(ValidationError, match="model name must not be blank"):
         DialogServiceSettings(llm_model="   ")
 
 
@@ -122,6 +133,24 @@ def test_dialog_settings_read_prefixed_llm_env(
     assert settings.llm_max_tokens == 384
 
 
+def test_dialog_settings_read_prefixed_groq_env(
+    isolate_dialog_settings: None,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("DIALOG_GENERATOR_KIND", "groq")
+    monkeypatch.setenv("DIALOG_GROQ_BASE_URL", "https://api.groq.com/openai")
+    monkeypatch.setenv("DIALOG_GROQ_MODEL", "qwen/qwen3-32b")
+    monkeypatch.setenv("DIALOG_GROQ_API_KEY", "secret-key")
+
+    settings = DialogServiceSettings()
+
+    assert settings.generator_kind == DialogGeneratorKind.GROQ
+    assert str(settings.groq_base_url) == "https://api.groq.com/openai/"
+    assert settings.groq_model == "qwen/qwen3-32b"
+    assert settings.groq_api_key is not None
+    assert settings.groq_api_key.get_secret_value() == "secret-key"
+
+
 @pytest.mark.asyncio
 async def test_container_resolves_generate_dialog_answer() -> None:
     container: AsyncContainer = create_container()
@@ -163,6 +192,24 @@ async def test_container_resolves_llm_generator_for_llm_mode(
         llm_timeout_seconds=45.0,
         llm_temperature=0.1,
         llm_max_tokens=384,
+    )
+    container: AsyncContainer = create_container(settings)
+
+    try:
+        generator = await container.get(DialogGenerator)
+    finally:
+        await container.close()
+
+    assert isinstance(generator, LlmDialogGenerator)
+
+
+@pytest.mark.asyncio
+async def test_container_resolves_llm_generator_for_groq_mode(
+    isolate_dialog_settings: None,
+) -> None:
+    settings = DialogServiceSettings(
+        generator_kind=DialogGeneratorKind.GROQ,
+        groq_api_key="secret-key",
     )
     container: AsyncContainer = create_container(settings)
 

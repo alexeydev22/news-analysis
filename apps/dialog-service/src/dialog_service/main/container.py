@@ -39,6 +39,21 @@ class DialogServiceProvider(Provider):
                 max_tokens=settings.llm_max_tokens,
                 prompt_builder=prompt_builder,
             )
+        if settings.generator_kind == DialogGeneratorKind.GROQ:
+            return LlmDialogGenerator(
+                base_url=str(settings.groq_base_url),
+                model_name=settings.groq_model,
+                timeout_seconds=settings.llm_timeout_seconds,
+                temperature=settings.llm_temperature,
+                max_tokens=settings.llm_max_tokens,
+                api_key=(
+                    settings.groq_api_key.get_secret_value()
+                    if settings.groq_api_key
+                    else None
+                ),
+                generator_kind="groq",
+                prompt_builder=prompt_builder,
+            )
         return TemplateDialogGenerator(model_name=settings.generator_name)
 
     @provide(scope=Scope.APP)

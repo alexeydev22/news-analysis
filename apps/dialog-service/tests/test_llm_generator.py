@@ -44,19 +44,25 @@ class MalformedJsonResponse:
 class FakeZaprosClient:
     def __init__(self, response: FakeResponse | MalformedJsonResponse) -> None:
         self.response = response
-        self.calls: list[tuple[str, dict[str, object]]] = []
+        self.calls: list[tuple[str, dict[str, object], dict[str, str] | None]] = []
 
     async def post(
         self,
         url: str,
         json: dict[str, object],
+        headers: dict[str, str] | None = None,
     ) -> FakeResponse | MalformedJsonResponse:
-        self.calls.append((url, json))
+        self.calls.append((url, json, headers))
         return self.response
 
 
 class RaisingZaprosClient:
-    async def post(self, url: str, json: dict[str, object]) -> FakeResponse:
+    async def post(
+        self,
+        url: str,
+        json: dict[str, object],
+        headers: dict[str, str] | None = None,
+    ) -> FakeResponse:
         raise OSError("connection refused")
 
 
@@ -136,7 +142,7 @@ async def test_llm_generator_sends_openai_compatible_payload() -> None:
         language="ru",
     )
 
-    url, payload = transport.calls[0]
+    url, payload, _headers = transport.calls[0]
     assert url == "http://llm.local:8080/v1/chat/completions"
     assert payload["model"] == "qwen3-0.6b"
     assert payload["temperature"] == 0.1
@@ -179,6 +185,38 @@ async def test_llm_generator_parses_answer_and_metadata() -> None:
         "context_count": 1,
         "impact_summary_count": 1,
     }
+
+
+@pytest.mark.asyncio
+async def test_llm_generator_sends_bearer_token_and_provider_metadata() -> None:
+    transport = FakeZaprosClient(FakeResponse(200, llm_payload("Прогноз сформирован.")))
+    generator = LlmDialogGenerator(
+        base_url="https://api.groq.com/openai",
+        model_name="qwen/qwen3-32b",
+        timeout_seconds=30.0,
+        temperature=0.2,
+        max_tokens=512,
+        api_key="test-groq-key",
+        generator_kind="groq",
+        client=transport,
+    )
+
+    generation = await generator.generate(
+        question=DialogQuestion("Что будет с рынком?"),
+        context=dialog_context(),
+        impact_summaries=impact_summaries(),
+        language="ru",
+    )
+
+    url, payload, headers = transport.calls[0]
+    assert url == "https://api.groq.com/openai/v1/chat/completions"
+    assert payload["model"] == "qwen/qwen3-32b"
+    assert headers == {
+        "Authorization": "Bearer test-groq-key",
+        "Content-Type": "application/json",
+    }
+    assert generation.metadata["generator_kind"] == "groq"
+    assert generation.metadata["model_name"] == "qwen/qwen3-32b"
 
 
 @pytest.mark.asyncio

@@ -36,6 +36,8 @@ class LlmDialogGenerator:
         timeout_seconds: float,
         temperature: float,
         max_tokens: int,
+        api_key: str | None = None,
+        generator_kind: str = "llm",
         prompt_builder: DialogPromptBuilder | None = None,
         client: Any | None = None,
         client_factory: Callable[[float], Any] | None = None,
@@ -45,6 +47,8 @@ class LlmDialogGenerator:
         self._timeout_seconds = timeout_seconds
         self._temperature = temperature
         self._max_tokens = max_tokens
+        self._api_key = api_key
+        self._generator_kind = generator_kind
         self._prompt_builder = prompt_builder or DialogPromptBuilder()
         self._client = client
         self._client_factory = client_factory or _make_zapros_client
@@ -73,7 +77,7 @@ class LlmDialogGenerator:
             used_context_ids=[item.id for item in context],
             model_name=self._model_name,
             metadata={
-                "generator_kind": "llm",
+                "generator_kind": self._generator_kind,
                 "model_name": self._model_name,
                 "context_count": len(context),
                 "impact_summary_count": len(impact_summaries),
@@ -102,15 +106,30 @@ class LlmDialogGenerator:
 
     async def _post(self, payload: dict[str, object]) -> _ZaprosResponse:
         url = f"{self._base_url}/v1/chat/completions"
+        headers = self._headers()
         try:
             if self._client is not None:
-                return cast(_ZaprosResponse, await self._client.post(url, json=payload))
+                return cast(
+                    _ZaprosResponse,
+                    await self._client.post(url, json=payload, headers=headers),
+                )
             async with self._client_factory(self._timeout_seconds) as client:
-                return cast(_ZaprosResponse, await client.post(url, json=payload))
+                return cast(
+                    _ZaprosResponse,
+                    await client.post(url, json=payload, headers=headers),
+                )
         except DialogGeneratorUnavailableError:
             raise
         except Exception as error:
             raise DialogGeneratorUnavailableError(_UNAVAILABLE_MESSAGE) from error
+
+    def _headers(self) -> dict[str, str] | None:
+        if self._api_key is None:
+            return None
+        return {
+            "Authorization": f"Bearer {self._api_key}",
+            "Content-Type": "application/json",
+        }
 
     def _parse_content(self, body: object) -> str:
         try:
