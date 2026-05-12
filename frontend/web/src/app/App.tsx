@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import {
+  generateGroqForecast,
   getLatestMlReport,
   getLatestTopicForecast,
   getMlReportJob,
@@ -32,6 +33,8 @@ import type {
   AnalysisModelName,
   ChatResponse,
   ChatStreamEvent,
+  GroqForecastRequest,
+  GroqForecastResponse,
   ImpactSummary,
   IndexNewsDatasetResponse,
   MlReport,
@@ -102,6 +105,9 @@ export function App() {
   const [topicForecast, setTopicForecast] = useState<TopicForecast | null>(null);
   const [topicForecastStatus, setTopicForecastStatus] = useState<TopicForecastJobStatus | null>(null);
   const [topicForecastError, setTopicForecastError] = useState<string | null>(null);
+  const [groqForecasts, setGroqForecasts] = useState<Record<string, GroqForecastResponse>>({});
+  const [groqForecastLoadingKey, setGroqForecastLoadingKey] = useState<string | null>(null);
+  const [groqForecastError, setGroqForecastError] = useState<string | null>(null);
   const [isStreaming, setStreaming] = useState(false);
   const [isPreviewLoading, setPreviewLoading] = useState(false);
   const [isIndexLoading, setIndexLoading] = useState(false);
@@ -432,6 +438,20 @@ export function App() {
     }
   }
 
+  async function handleGenerateGroqForecast(request: GroqForecastRequest): Promise<void> {
+    const targetKey = `${request.model_name}:${request.scope}:${request.news_id ?? request.topic.topic_id}`;
+    setGroqForecastLoadingKey(targetKey);
+    setGroqForecastError(null);
+    try {
+      const response = await generateGroqForecast(request);
+      setGroqForecasts((current) => ({ ...current, [targetKey]: response }));
+    } catch (forecastError) {
+      setGroqForecastError(messageFromError(forecastError));
+    } finally {
+      setGroqForecastLoadingKey(null);
+    }
+  }
+
   const activeDatasetName = activeDataset?.filename ?? "demo CSV";
 
   function renderChatSection() {
@@ -540,8 +560,14 @@ export function App() {
             status={topicForecastStatus}
             error={topicForecastError}
             isLoading={isTopicForecastLoading}
+            groqForecasts={groqForecasts}
+            groqForecastLoadingKey={groqForecastLoadingKey}
+            groqForecastError={groqForecastError}
             onGenerate={() => {
               void handleGenerateTopicForecast();
+            }}
+            onGenerateGroqForecast={(request) => {
+              void handleGenerateGroqForecast(request);
             }}
           />
         </div>

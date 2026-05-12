@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { mlReportFixture, topicForecastFixture } from "../test/fixtures";
 import {
+  generateGroqForecast,
   getLatestMlReport,
   getLatestTopicForecast,
   getMlReportJob,
@@ -113,5 +114,42 @@ describe("analysis api", () => {
     });
 
     expect(forecast).toBeNull();
+  });
+
+  it("generates a Groq forecast for a topic", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      Response.json({
+        provider: "groq",
+        model_name: "qwen/qwen3-32b",
+        scope: "topic",
+        target_id: "topic-1",
+        prediction: "Groq видит умеренно позитивный сценарий.",
+        disclaimer: "Это аналитический сценарий, а не финансовая рекомендация.",
+        metadata: {},
+      }),
+    );
+    const topic = topicForecastFixture.model_reports![0].topics[0];
+
+    const response = await generateGroqForecast(
+      {
+        scope: "topic",
+        model_name: topicForecastFixture.model_reports![0].model_name,
+        topic,
+        news_id: null,
+      },
+      { baseUrl: "http://localhost:8010", fetcher: fetchMock },
+    );
+
+    expect(fetchMock).toHaveBeenCalledWith("http://localhost:8010/api/v1/topic-forecast/groq-predictions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        scope: "topic",
+        model_name: topicForecastFixture.model_reports![0].model_name,
+        topic,
+        news_id: null,
+      }),
+    });
+    expect(response.model_name).toBe("qwen/qwen3-32b");
   });
 });

@@ -498,4 +498,56 @@ describe("App", () => {
     });
     expect(screen.getByText("ошибка")).toBeInTheDocument();
   });
+
+  it("generates and renders a Groq forecast for a topic", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+
+      if (url.includes("/api/v1/news/datasets/active")) {
+        return Response.json(null);
+      }
+
+      if (url.includes("/api/v1/news/datasets")) {
+        return Response.json({ datasets: [] });
+      }
+
+      if (url.includes("/api/v1/ml-report/latest")) {
+        return new Response(null, { status: 204 });
+      }
+
+      if (url.includes("/api/v1/topic-forecast/latest")) {
+        return Response.json(topicForecastFixture);
+      }
+
+      if (url.includes("/api/v1/topic-forecast/groq-predictions")) {
+        return Response.json({
+          provider: "groq",
+          model_name: "qwen/qwen3-32b",
+          scope: "topic",
+          target_id: "topic-1",
+          prediction: "Groq видит умеренно позитивный сценарий.",
+          disclaimer: "Это аналитический сценарий, а не финансовая рекомендация.",
+          metadata: {},
+        });
+      }
+
+      return Response.json({ detail: "not found" }, { status: 404 });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const user = userEvent.setup();
+
+    render(<App />);
+
+    await user.click(screen.getByRole("button", { name: "Прогноз" }));
+    await waitFor(() => {
+      expect(screen.getAllByText("Рост ВВП").length).toBeGreaterThan(0);
+    });
+    await user.click(screen.getAllByRole("button", { name: "Groq-прогноз темы" })[0]);
+
+    await waitFor(() => {
+      expect(screen.getByText("Groq видит умеренно позитивный сценарий.")).toBeInTheDocument();
+    });
+    expect(screen.getByText("qwen/qwen3-32b · topic")).toBeInTheDocument();
+    expect(screen.getByText("Это аналитический сценарий, а не финансовая рекомендация.")).toBeInTheDocument();
+  });
 });

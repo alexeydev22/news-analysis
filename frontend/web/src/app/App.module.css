@@ -270,6 +270,42 @@
   width: 100%;
 }
 
+.forecastActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.forecastActions button {
+  width: auto;
+  min-height: 34px;
+  padding: 7px 10px;
+  font-size: 0.86rem;
+}
+
+.groqForecastResult {
+  display: grid;
+  gap: 4px;
+  border-left: 3px solid #7f9f92;
+  background: #f3f6f4;
+  padding: 9px 11px;
+}
+
+.groqForecastResult strong {
+  color: #26332d;
+  font-size: 0.82rem;
+}
+
+.groqForecastResult p {
+  margin: 0;
+  line-height: 1.4;
+}
+
+.groqForecastResult small {
+  color: #4e6258;
+  line-height: 1.35;
+}
+
 .reportContent {
   display: grid;
   gap: 12px;
@@ -330,11 +366,21 @@
 
 .newsList li {
   display: grid;
-  gap: 2px;
+  gap: 5px;
 }
 
 .newsList span {
   color: #34443b;
+}
+
+.newsList button {
+  width: fit-content;
+  min-height: 32px;
+  border: 1px solid #b8c7bf;
+  background: #ffffff;
+  color: #114335;
+  padding: 6px 9px;
+  font-size: 0.82rem;
 }
 
 .tableScroller {

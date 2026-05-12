@@ -1,4 +1,12 @@
-import type { ImpactLabel, TopicForecast, TopicForecastJobStatus, TopicForecastNewsItem } from "../app/types";
+import type {
+  GroqForecastRequest,
+  GroqForecastResponse,
+  ImpactLabel,
+  TopicForecast,
+  TopicForecastJobStatus,
+  TopicForecastNewsItem,
+  TopicForecastTopic,
+} from "../app/types";
 import styles from "../app/App.module.css";
 
 type TopicForecastPanelProps = {
@@ -6,7 +14,11 @@ type TopicForecastPanelProps = {
   status: TopicForecastJobStatus | null;
   error: string | null;
   isLoading: boolean;
+  groqForecasts: Record<string, GroqForecastResponse>;
+  groqForecastLoadingKey: string | null;
+  groqForecastError: string | null;
   onGenerate: () => void;
+  onGenerateGroqForecast: (request: GroqForecastRequest) => void;
 };
 
 const STATUS_LABELS: Record<TopicForecastJobStatus, string> = {
@@ -42,7 +54,35 @@ function renderNewsMeta(news: TopicForecastNewsItem): string {
   return parts.join(" · ");
 }
 
-export function TopicForecastPanel({ forecast, status, error, isLoading, onGenerate }: TopicForecastPanelProps) {
+function groqForecastKey(modelName: string, scope: "topic" | "news", topic: TopicForecastTopic, newsId: string | null): string {
+  return `${modelName}:${scope}:${newsId ?? topic.topic_id}`;
+}
+
+function renderGroqForecastResult(result: GroqForecastResponse | undefined) {
+  if (!result) {
+    return null;
+  }
+
+  return (
+    <div className={styles.groqForecastResult}>
+      <strong>{`${result.model_name} · ${result.scope}`}</strong>
+      <p>{result.prediction}</p>
+      <small>{result.disclaimer}</small>
+    </div>
+  );
+}
+
+export function TopicForecastPanel({
+  forecast,
+  status,
+  error,
+  isLoading,
+  groqForecasts,
+  groqForecastLoadingKey,
+  groqForecastError,
+  onGenerate,
+  onGenerateGroqForecast,
+}: TopicForecastPanelProps) {
   const documentCount = forecast ? metadataValue(forecast, "document_count") : null;
   const fallbackModel = forecast ? (metadataValue(forecast, "model") ?? metadataValue(forecast, "analysis_model")) : null;
   const modelReports =
@@ -64,6 +104,7 @@ export function TopicForecastPanel({ forecast, status, error, isLoading, onGener
           {error}
         </p>
       ) : null}
+      {groqForecastError ? <p className={styles.errorText}>{groqForecastError}</p> : null}
 
       {forecast ? (
         <div className={styles.reportContent}>
@@ -76,66 +117,106 @@ export function TopicForecastPanel({ forecast, status, error, isLoading, onGener
               {modelReport.error ? <p className={styles.errorText}>{modelReport.error}</p> : null}
 
               <div className={styles.topicCards}>
-                {modelReport.topics.map((topic) => (
-                  <article className={styles.topicCard} key={`${modelReport.model_name}-${topic.topic_id}`}>
-                    <h4>{topic.title}</h4>
-                    <p>{topic.summary}</p>
-                    <ul className={styles.inlineList}>
-                      <li>Общее влияние: {IMPACT_LABELS[topic.overall_impact]}</li>
-                      <li>Уверенность: {formatMetric(topic.confidence)}</li>
-                      <li>Позитивных: {topic.positive_count}</li>
-                      <li>Нейтральных: {topic.neutral_count}</li>
-                      <li>Негативных: {topic.negative_count}</li>
-                    </ul>
+                {modelReport.topics.map((topic) => {
+                  const topicGroqKey = groqForecastKey(modelReport.model_name, "topic", topic, null);
+                  return (
+                    <article className={styles.topicCard} key={`${modelReport.model_name}-${topic.topic_id}`}>
+                      <h4>{topic.title}</h4>
+                      <p>{topic.summary}</p>
+                      <div className={styles.forecastActions}>
+                        <button
+                          type="button"
+                          disabled={groqForecastLoadingKey === topicGroqKey}
+                          onClick={() =>
+                            onGenerateGroqForecast({
+                              scope: "topic",
+                              model_name: modelReport.model_name,
+                              topic,
+                              news_id: null,
+                            })
+                          }
+                        >
+                          {groqForecastLoadingKey === topicGroqKey ? "Формирование Groq-прогноза" : "Groq-прогноз темы"}
+                        </button>
+                      </div>
+                      {renderGroqForecastResult(groqForecasts[topicGroqKey])}
+                      <ul className={styles.inlineList}>
+                        <li>Общее влияние: {IMPACT_LABELS[topic.overall_impact]}</li>
+                        <li>Уверенность: {formatMetric(topic.confidence)}</li>
+                        <li>Позитивных: {topic.positive_count}</li>
+                        <li>Нейтральных: {topic.neutral_count}</li>
+                        <li>Негативных: {topic.negative_count}</li>
+                      </ul>
 
-                    <section>
-                      <h5>Прогноз</h5>
-                      <p>{topic.forecast}</p>
-                    </section>
+                      <section>
+                        <h5>Прогноз</h5>
+                        <p>{topic.forecast}</p>
+                      </section>
 
-                    <section>
-                      <h5>Аргументы</h5>
-                      {topic.arguments.length > 0 ? (
-                        <ul className={styles.sectionList}>
-                          {topic.arguments.map((argument) => (
-                            <li key={argument}>{argument}</li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <p>Аргументы не указаны.</p>
-                      )}
-                    </section>
+                      <section>
+                        <h5>Аргументы</h5>
+                        {topic.arguments.length > 0 ? (
+                          <ul className={styles.sectionList}>
+                            {topic.arguments.map((argument) => (
+                              <li key={argument}>{argument}</li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p>Аргументы не указаны.</p>
+                        )}
+                      </section>
 
-                    <section>
-                      <h5>Риски</h5>
-                      {topic.risks.length > 0 ? (
-                        <ul className={styles.sectionList}>
-                          {topic.risks.map((risk) => (
-                            <li key={risk}>{risk}</li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <p>Риски не указаны.</p>
-                      )}
-                    </section>
+                      <section>
+                        <h5>Риски</h5>
+                        {topic.risks.length > 0 ? (
+                          <ul className={styles.sectionList}>
+                            {topic.risks.map((risk) => (
+                              <li key={risk}>{risk}</li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p>Риски не указаны.</p>
+                        )}
+                      </section>
 
-                    <section>
-                      <h5>Новости</h5>
-                      {topic.news.length > 0 ? (
-                        <ul className={styles.newsList}>
-                          {topic.news.map((news) => (
-                            <li key={news.id}>
-                              <strong>{news.title}</strong>
-                              <span>{renderNewsMeta(news)}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <p>Новости не указаны.</p>
-                      )}
-                    </section>
-                  </article>
-                ))}
+                      <section>
+                        <h5>Новости</h5>
+                        {topic.news.length > 0 ? (
+                          <ul className={styles.newsList}>
+                            {topic.news.map((news) => {
+                              const newsGroqKey = groqForecastKey(modelReport.model_name, "news", topic, news.id);
+                              return (
+                                <li key={news.id}>
+                                  <strong>{news.title}</strong>
+                                  <span>{renderNewsMeta(news)}</span>
+                                  <button
+                                    type="button"
+                                    disabled={groqForecastLoadingKey === newsGroqKey}
+                                    onClick={() =>
+                                      onGenerateGroqForecast({
+                                        scope: "news",
+                                        model_name: modelReport.model_name,
+                                        topic,
+                                        news_id: news.id,
+                                      })
+                                    }
+                                  >
+                                    {groqForecastLoadingKey === newsGroqKey
+                                      ? "Формирование Groq-прогноза"
+                                      : "Groq-прогноз новости"}
+                                  </button>
+                                  {renderGroqForecastResult(groqForecasts[newsGroqKey])}
+                                </li>
+                              );
+                            })}
+                          </ul>
+                        ) : (
+                          <p>Новости не указаны.</p>
+                        )}
+                      </section>
+                    </article>
+                  );
+                })}
               </div>
             </section>
           ))}

@@ -156,3 +156,22 @@ export type TopicForecast = {
   model_reports?: TopicForecastModelReport[];
   metadata: Record<string, unknown>;
 };
+
+export type GroqForecastScope = "topic" | "news";
+
+export type GroqForecastRequest = {
+  scope: GroqForecastScope;
+  model_name: string;
+  topic: TopicForecastTopic;
+  news_id: string | null;
+};
+
+export type GroqForecastResponse = {
+  provider: string;
+  model_name: string;
+  scope: GroqForecastScope;
+  target_id: string;
+  prediction: string;
+  disclaimer: string;
+  metadata: Record<string, unknown>;
+};
