@@ -1,0 +1,62 @@
+{
+  "student": {
+    "name": "Прудиев Алексей Сергеевич",
+    "group": "ПМ23-4",
+    "university": "Финансовый университет при Правительстве РФ",
+    "department": "Кафедра искусственного интеллекта",
+    "city": "Москва",
+    "year": "2026"
+  },
+  "coursework": {
+    "topic": "Разработка автоматической диалоговой системы на основе языковой модели для анализа экономических новостей",
+    "discipline": "Машинное обучение в семантическом и сетевом анализе"
+  },
+  "dataset": {
+    "name": "FNSPID",
+    "rows": 50000,
+    "classes": [
+      "negative",
+      "neutral",
+      "positive"
+    ]
+  },
+  "models": [
+    {
+      "name": "tfidf-logreg",
+      "description": "TF-IDF + Logistic Regression",
+      "test_accuracy": 0.78475,
+      "test_macro_f1": 0.71676,
+      "role": "best baseline model"
+    },
+    {
+      "name": "embedding-logreg",
+      "description": "Sentence embeddings + Logistic Regression",
+      "test_accuracy": 0.594,
+      "test_macro_f1": 0.51538,
+      "role": "semantic feature baseline"
+    },
+    {
+      "name": "tiny-transformer-classifier",
+      "description": "Lightweight transformer classifier",
+      "test_accuracy": 0.488,
+      "test_macro_f1": 0.35185,
+      "role": "light neural baseline"
+    }
+  ],
+  "forecast": {
+    "documents": 10000,
+    "topics": 2716,
+    "model_reports": 3
+  },
+  "sources": [
+    "Методические указания по выполнению курсовых работ по дисциплине «Машинное обучение в семантическом и сетевом анализе»",
+    "FNSPID dataset",
+    "scikit-learn documentation",
+    "PyTorch documentation",
+    "Hugging Face Transformers documentation",
+    "Qdrant documentation",
+    "FastAPI documentation",
+    "MLflow documentation",
+    "Docker Compose documentation"
+  ]
+}
