@@ -608,8 +608,29 @@ def add_model_results_table(doc: Document, facts: dict[str, Any]) -> None:
 
 
 def add_sources(doc: Document, facts: dict[str, Any]) -> None:
-    sources = facts["sources"][:9] + [
-        "Lewis P. et al. Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks.",
+    del facts
+    access_date = "15.05.2026"
+    sources = [
+        "Dong Z. et al. FNSPID: A Comprehensive Financial News Dataset in Time Series [Электронный ресурс]. - URL: https://arxiv.org/abs/2402.06698 (дата обращения: "
+        f"{access_date}). - Текст : электронный.",
+        "FNSPID: A Comprehensive Financial News Dataset in Time Series : dataset [Электронный ресурс]. - URL: https://huggingface.co/datasets/beachside1234/FNSPID (дата обращения: "
+        f"{access_date}). - Текст : электронный.",
+        "Pedregosa F. et al. Scikit-learn: Machine Learning in Python [Электронный ресурс]. - URL: https://arxiv.org/abs/1201.0490 (дата обращения: "
+        f"{access_date}). - Текст : электронный.",
+        "Scikit-learn documentation [Электронный ресурс]. - URL: https://scikit-learn.org/stable/ (дата обращения: "
+        f"{access_date}). - Текст : электронный.",
+        "Paszke A. et al. PyTorch: An Imperative Style, High-Performance Deep Learning Library [Электронный ресурс]. - URL: https://arxiv.org/abs/1912.01703 (дата обращения: "
+        f"{access_date}). - Текст : электронный.",
+        "Wolf T. et al. HuggingFace's Transformers: State-of-the-art Natural Language Processing [Электронный ресурс]. - URL: https://arxiv.org/abs/1910.03771 (дата обращения: "
+        f"{access_date}). - Текст : электронный.",
+        "Lewis P. et al. Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks [Электронный ресурс]. - URL: https://arxiv.org/abs/2005.11401 (дата обращения: "
+        f"{access_date}). - Текст : электронный.",
+        "Qdrant documentation [Электронный ресурс]. - URL: https://qdrant.tech/documentation/ (дата обращения: "
+        f"{access_date}). - Текст : электронный.",
+        "FastAPI documentation [Электронный ресурс]. - URL: https://fastapi.tiangolo.com/ (дата обращения: "
+        f"{access_date}). - Текст : электронный.",
+        "MLflow documentation [Электронный ресурс]. - URL: https://mlflow.org/docs/latest/ (дата обращения: "
+        f"{access_date}). - Текст : электронный.",
     ]
     add_section_title(doc, "СПИСОК ИСПОЛЬЗОВАННЫХ ИСТОЧНИКОВ")
     add_numbers(doc, sources)

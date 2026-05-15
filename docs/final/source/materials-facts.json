@@ -49,14 +49,15 @@
     "model_reports": 3
   },
   "sources": [
-    "Методические указания по выполнению курсовых работ по дисциплине «Машинное обучение в семантическом и сетевом анализе»",
-    "FNSPID dataset",
-    "scikit-learn documentation",
-    "PyTorch documentation",
-    "Hugging Face Transformers documentation",
-    "Qdrant documentation",
-    "FastAPI documentation",
-    "MLflow documentation",
-    "Docker Compose documentation"
+    "Dong Z. et al. FNSPID: A Comprehensive Financial News Dataset in Time Series. URL: https://arxiv.org/abs/2402.06698",
+    "FNSPID: A Comprehensive Financial News Dataset in Time Series : dataset. URL: https://huggingface.co/datasets/beachside1234/FNSPID",
+    "Pedregosa F. et al. Scikit-learn: Machine Learning in Python. URL: https://arxiv.org/abs/1201.0490",
+    "Scikit-learn documentation. URL: https://scikit-learn.org/stable/",
+    "Paszke A. et al. PyTorch: An Imperative Style, High-Performance Deep Learning Library. URL: https://arxiv.org/abs/1912.01703",
+    "Wolf T. et al. HuggingFace's Transformers: State-of-the-art Natural Language Processing. URL: https://arxiv.org/abs/1910.03771",
+    "Lewis P. et al. Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks. URL: https://arxiv.org/abs/2005.11401",
+    "Qdrant documentation. URL: https://qdrant.tech/documentation/",
+    "FastAPI documentation. URL: https://fastapi.tiangolo.com/",
+    "MLflow documentation. URL: https://mlflow.org/docs/latest/"
   ]
 }
