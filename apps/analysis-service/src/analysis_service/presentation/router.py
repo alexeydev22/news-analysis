@@ -5,8 +5,8 @@ from economic_news_contracts.analysis import (
     EnqueueMlReportJobRequest,
     EnqueueMlReportJobResponse,
     EnqueueTopicForecastJobResponse,
-    GroqForecastRequest,
-    GroqForecastResponse,
+    GeminiForecastRequest,
+    GeminiForecastResponse,
     MlReportJobResponse,
     MlReportResponse,
     TopicForecastJobResponse,
@@ -18,7 +18,7 @@ from analysis_service.application.use_cases import (
     AnalyzeNewsImpact,
     EnqueueMlReportJob,
     EnqueueTopicForecastJob,
-    GenerateGroqTopicForecast,
+    GenerateGeminiTopicForecast,
     GetLatestMlReport,
     GetLatestTopicForecast,
     GetMlReportJob,
@@ -111,10 +111,10 @@ async def get_latest_topic_forecast(
     return await use_case.execute()
 
 
-@router.post("/topic-forecast/groq-predictions", response_model=GroqForecastResponse)
+@router.post("/topic-forecast/gemini-predictions", response_model=GeminiForecastResponse)
 @inject
-async def generate_groq_topic_prediction(
-    request: GroqForecastRequest,
-    use_case: FromDishka[GenerateGroqTopicForecast],
-) -> GroqForecastResponse:
+async def generate_gemini_topic_prediction(
+    request: GeminiForecastRequest,
+    use_case: FromDishka[GenerateGeminiTopicForecast],
+) -> GeminiForecastResponse:
     return await use_case.execute(request)

@@ -1,0 +1,53 @@
+- main [ref=e3]:
+  - complementary "Навигация приложения" [ref=e4]:
+    - generic [ref=e5]:
+      - paragraph [ref=e6]: Local RAG pipeline
+      - heading "Аналитика экономических новостей" [level=1] [ref=e7]
+      - paragraph [ref=e8]: Диалоговая система, ML-оценка влияния и тематический прогноз по новостям.
+    - navigation "Разделы" [ref=e9]:
+      - button "Чат" [pressed] [ref=e10] [cursor=pointer]:
+        - generic [ref=e11]: Чат
+        - generic [ref=e12]: RAG-ответ и источники
+      - button "Данные" [ref=e13] [cursor=pointer]:
+        - generic [ref=e14]: Данные
+        - generic [ref=e15]: CSV, предпросмотр, индекс
+      - button "ML-отчет" [ref=e16] [cursor=pointer]:
+        - generic [ref=e17]: ML-отчет
+        - generic [ref=e18]: Метрики и ошибки моделей
+      - button "Прогноз" [ref=e19] [cursor=pointer]:
+        - generic [ref=e20]: Прогноз
+        - generic [ref=e21]: Темы, риски, сценарии
+    - generic [ref=e22]:
+      - generic [ref=e23]: Активный датасет
+      - strong [ref=e24]: demo CSV
+  - generic [ref=e26]:
+    - generic [ref=e27]:
+      - region "Параметры анализа" [ref=e28]:
+        - heading "Параметры анализа" [level=2] [ref=e29]
+        - generic [ref=e30]:
+          - generic [ref=e31]:
+            - generic [ref=e32]: Модель анализа
+            - combobox "Модель анализа" [ref=e33]:
+              - option "tfidf-logreg" [selected]
+              - option "embedding-logreg"
+              - option "tiny-transformer-classifier"
+          - generic [ref=e34]:
+            - generic [ref=e35]: Лимит источников
+            - spinbutton "Лимит источников" [ref=e36]: "5"
+          - generic [ref=e37]:
+            - generic [ref=e38]: Источник
+            - textbox "Источник" [ref=e39]:
+              - /placeholder: все источники
+      - region "Диалоговая система" [ref=e40]:
+        - generic [ref=e41]:
+          - generic [ref=e42]: Вопрос
+          - textbox "Вопрос" [ref=e43]:
+            - /placeholder: Что означает рост ВВП для рынка?
+        - button "Спросить" [disabled] [ref=e44]
+        - article [ref=e45]: Ответ появится после отправки вопроса.
+      - region "Ход обработки" [ref=e46]:
+        - heading "Ход обработки" [level=2] [ref=e47]
+        - paragraph [ref=e48]: События обработки появятся во время ответа.
+    - complementary "Источники анализа" [ref=e50]:
+      - heading "Источники" [level=2] [ref=e51]
+      - paragraph [ref=e52]: Источники появятся после ответа.

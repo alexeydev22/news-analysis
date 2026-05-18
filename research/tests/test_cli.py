@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 import mlflow
@@ -5,7 +6,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from economic_news_research import cli
+from economic_news_research import cli, modeling
 from economic_news_research.cli import (
     run_build_model_report,
     run_compare_models,
@@ -18,6 +19,22 @@ from economic_news_research.cli import (
 from economic_news_research.paths import MLFLOW_DIR, REPO_ROOT
 
 FIXTURE = Path(__file__).parent / "fixtures" / "news_impact_sample.csv"
+
+
+@pytest.fixture
+def fixture_safe_baseline_grid(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        modeling,
+        "baseline_param_grid",
+        lambda: {
+            "tfidf__max_features": [100],
+            "tfidf__ngram_range": [(1, 1)],
+            "tfidf__min_df": [1],
+            "tfidf__max_df": [1.0],
+            "tfidf__sublinear_tf": [True],
+            "classifier__C": [1.0],
+        },
+    )
 
 
 class FakeEmbedder:
@@ -64,6 +81,7 @@ def test_run_eda_writes_report(tmp_path: Path) -> None:
     assert (tmp_path / "eda_summary.json").exists()
 
 
+@pytest.mark.usefixtures("fixture_safe_baseline_grid")
 def test_run_train_baseline_writes_model_artifacts(tmp_path: Path) -> None:
     previous_tracking_uri = mlflow.get_tracking_uri()
     try:
@@ -166,6 +184,32 @@ def test_run_build_model_report_writes_report(tmp_path: Path) -> None:
 
     assert output_path == tmp_path / "model-report.json"
     assert output_path.exists()
+
+
+def test_run_build_model_report_includes_training_limits(tmp_path: Path) -> None:
+    comparison_path = tmp_path / "model_comparison.csv"
+    comparison_path.write_text(
+        "model_name,validation_accuracy,validation_macro_f1,test_accuracy,test_macro_f1,inference_seconds_per_sample\n"
+        "tfidf-logreg,0.8,0.7,0.81,0.72,0.001\n",
+        encoding="utf-8",
+    )
+
+    report_path = run_build_model_report(
+        dataset_path=FIXTURE,
+        comparison_path=comparison_path,
+        model_dirs=[],
+        output_path=tmp_path / "model-report.json",
+        training_limits={
+            "classic_max_rows": 20_000,
+            "embedding_max_rows": 5_000,
+            "transformer_max_rows": 5_000,
+        },
+    )
+
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    assert report["training"]["classic_max_rows"] == 20_000
+    assert report["training"]["embedding_max_rows"] == 5_000
+    assert report["training"]["transformer_max_rows"] == 5_000
 
 
 def test_main_compare_models_uses_custom_comparisons_without_defaults(

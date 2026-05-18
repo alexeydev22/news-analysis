@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 from dialog_service.application.ports import DialogGenerator
 from dialog_service.application.use_cases import GenerateDialogAnswer
-from dialog_service.infrastructure.llm_generator import LlmDialogGenerator
+from dialog_service.infrastructure.fallback_generator import FallbackDialogGenerator
 from dialog_service.infrastructure.template_generator import TemplateDialogGenerator
 from dialog_service.main.container import create_container
 from dialog_service.main.settings import DialogGeneratorKind, DialogServiceSettings
@@ -20,9 +20,9 @@ _DIALOG_ENV_KEYS = (
     "DIALOG_LLM_TIMEOUT_SECONDS",
     "DIALOG_LLM_TEMPERATURE",
     "DIALOG_LLM_MAX_TOKENS",
-    "DIALOG_GROQ_BASE_URL",
-    "DIALOG_GROQ_MODEL",
-    "DIALOG_GROQ_API_KEY",
+    "DIALOG_GEMINI_BASE_URL",
+    "DIALOG_GEMINI_MODEL",
+    "DIALOG_GEMINI_API_KEY",
 )
 
 
@@ -60,12 +60,14 @@ def test_dialog_settings_include_llm_defaults(isolate_dialog_settings: None) -> 
     assert settings.llm_max_tokens == 512
 
 
-def test_dialog_settings_include_groq_defaults(isolate_dialog_settings: None) -> None:
+def test_dialog_settings_include_gemini_defaults(isolate_dialog_settings: None) -> None:
     settings = DialogServiceSettings()
 
-    assert str(settings.groq_base_url) == "https://api.groq.com/openai/"
-    assert settings.groq_model == "qwen/qwen3-32b"
-    assert settings.groq_api_key is None
+    assert str(settings.gemini_base_url) == (
+        "https://generativelanguage.googleapis.com/v1beta/openai/"
+    )
+    assert settings.gemini_model == "gemini-2.5-flash"
+    assert settings.gemini_api_key is None
 
 
 def test_dialog_settings_reject_blank_llm_model(isolate_dialog_settings: None) -> None:
@@ -133,22 +135,27 @@ def test_dialog_settings_read_prefixed_llm_env(
     assert settings.llm_max_tokens == 384
 
 
-def test_dialog_settings_read_prefixed_groq_env(
+def test_dialog_settings_read_prefixed_gemini_env(
     isolate_dialog_settings: None,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setenv("DIALOG_GENERATOR_KIND", "groq")
-    monkeypatch.setenv("DIALOG_GROQ_BASE_URL", "https://api.groq.com/openai")
-    monkeypatch.setenv("DIALOG_GROQ_MODEL", "qwen/qwen3-32b")
-    monkeypatch.setenv("DIALOG_GROQ_API_KEY", "secret-key")
+    monkeypatch.setenv("DIALOG_GENERATOR_KIND", "gemini")
+    monkeypatch.setenv(
+        "DIALOG_GEMINI_BASE_URL",
+        "https://generativelanguage.googleapis.com/v1beta/openai",
+    )
+    monkeypatch.setenv("DIALOG_GEMINI_MODEL", "gemini-2.5-flash")
+    monkeypatch.setenv("DIALOG_GEMINI_API_KEY", "secret-key")
 
     settings = DialogServiceSettings()
 
-    assert settings.generator_kind == DialogGeneratorKind.GROQ
-    assert str(settings.groq_base_url) == "https://api.groq.com/openai/"
-    assert settings.groq_model == "qwen/qwen3-32b"
-    assert settings.groq_api_key is not None
-    assert settings.groq_api_key.get_secret_value() == "secret-key"
+    assert settings.generator_kind == DialogGeneratorKind.GEMINI
+    assert str(settings.gemini_base_url) == (
+        "https://generativelanguage.googleapis.com/v1beta/openai/"
+    )
+    assert settings.gemini_model == "gemini-2.5-flash"
+    assert settings.gemini_api_key is not None
+    assert settings.gemini_api_key.get_secret_value() == "secret-key"
 
 
 @pytest.mark.asyncio
@@ -200,16 +207,16 @@ async def test_container_resolves_llm_generator_for_llm_mode(
     finally:
         await container.close()
 
-    assert isinstance(generator, LlmDialogGenerator)
+    assert isinstance(generator, FallbackDialogGenerator)
 
 
 @pytest.mark.asyncio
-async def test_container_resolves_llm_generator_for_groq_mode(
+async def test_container_resolves_llm_generator_for_gemini_mode(
     isolate_dialog_settings: None,
 ) -> None:
     settings = DialogServiceSettings(
-        generator_kind=DialogGeneratorKind.GROQ,
-        groq_api_key="secret-key",
+        generator_kind=DialogGeneratorKind.GEMINI,
+        gemini_api_key="secret-key",
     )
     container: AsyncContainer = create_container(settings)
 
@@ -218,4 +225,4 @@ async def test_container_resolves_llm_generator_for_groq_mode(
     finally:
         await container.close()
 
-    assert isinstance(generator, LlmDialogGenerator)
+    assert isinstance(generator, FallbackDialogGenerator)

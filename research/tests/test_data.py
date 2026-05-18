@@ -59,13 +59,92 @@ def test_validate_news_dataset_adapts_fnspid_format_with_weak_labels() -> None:
 
     dataset = validate_news_dataset(frame)
 
-    assert list(dataset.columns) == ["article_id", "text", "impact", "source", "published_at"]
+    assert list(dataset.columns) == [
+        "article_id",
+        "text",
+        "impact",
+        "source",
+        "published_at",
+        "label_source",
+        "weak_label_margin",
+        "weak_positive_score",
+        "weak_negative_score",
+    ]
     assert dataset["article_id"].tolist() == ["news-positive", "news-negative", "news-neutral"]
+    assert dataset["text"].tolist() == [
+        "GDP grows. Company revenue rises and profit beats expectations.",
+        "Shares drop after warning. The stock fell after a weak outlook and lower demand.",
+        "Central bank keeps rate unchanged. The regulator published a scheduled market update.",
+    ]
     assert dataset["impact"].tolist() == [
         ImpactLabel.POSITIVE,
         ImpactLabel.NEGATIVE,
         ImpactLabel.NEUTRAL,
     ]
+    assert dataset["label_source"].tolist() == ["weak_rules", "weak_rules", "weak_rules"]
+    assert dataset["weak_label_margin"].tolist() == [4, 5, 0]
+    assert dataset["weak_positive_score"].tolist() == [4, 0, 0]
+    assert dataset["weak_negative_score"].tolist() == [0, 5, 0]
+
+
+def test_validate_news_dataset_infers_fnspid_weak_metadata_from_normalized_text() -> None:
+    frame = pd.DataFrame(
+        {
+            "id": ["news-positive"],
+            "title": ["Revenue rises"],
+            "text": [
+                "Fintel reports that on December 13, 2023, revenue   rises. "
+                "See our leaderboard of companies with the largest price target upside. "
+                "Read more at https://example.com/page"
+            ],
+            "source": ["FNSPID"],
+            "published_at": ["2024-01-01T00:00:00Z"],
+        },
+    )
+
+    dataset = validate_news_dataset(frame)
+
+    assert dataset["text"].tolist() == ["Revenue rises. revenue rises. Read more at"]
+    assert dataset["impact"].tolist() == [ImpactLabel.NEUTRAL]
+    assert dataset["label_source"].tolist() == ["weak_rules"]
+    assert dataset["weak_label_margin"].tolist() == [1]
+    assert dataset["weak_positive_score"].tolist() == [1]
+    assert dataset["weak_negative_score"].tolist() == [0]
+
+
+def test_validate_news_dataset_preserves_optional_weak_label_metadata() -> None:
+    frame = pd.DataFrame(
+        {
+            "article_id": ["news-1"],
+            "text": ["Market update"],
+            "impact": ["neutral"],
+            "source": ["fixture"],
+            "published_at": ["2024-01-01T00:00:00Z"],
+            "label_source": ["weak_rules"],
+            "weak_label_margin": [1],
+            "weak_positive_score": [2],
+            "weak_negative_score": [1],
+            "ignored": ["value"],
+        },
+    )
+
+    dataset = validate_news_dataset(frame)
+
+    assert list(dataset.columns) == [
+        "article_id",
+        "text",
+        "impact",
+        "source",
+        "published_at",
+        "label_source",
+        "weak_label_margin",
+        "weak_positive_score",
+        "weak_negative_score",
+    ]
+    assert dataset["label_source"].tolist() == ["weak_rules"]
+    assert dataset["weak_label_margin"].tolist() == [1]
+    assert dataset["weak_positive_score"].tolist() == [2]
+    assert dataset["weak_negative_score"].tolist() == [1]
 
 
 def test_validate_news_dataset_rejects_unknown_label() -> None:

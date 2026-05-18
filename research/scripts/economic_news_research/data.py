@@ -1,74 +1,20 @@
 from dataclasses import dataclass
-from enum import StrEnum
 from pathlib import Path
 
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
-
-class ImpactLabel(StrEnum):
-    POSITIVE = "positive"
-    NEUTRAL = "neutral"
-    NEGATIVE = "negative"
-
+from economic_news_research.text_normalization import normalize_news_text
+from economic_news_research.weak_labeling import ImpactLabel, infer_weak_impact
 
 REQUIRED_COLUMNS = ["article_id", "text", "impact", "source", "published_at"]
 FNSPID_COLUMNS = ["id", "title", "text", "source", "published_at"]
-POSITIVE_TERMS = frozenset(
-    {
-        "approval",
-        "approved",
-        "beat",
-        "beats",
-        "bullish",
-        "gain",
-        "gains",
-        "grew",
-        "grow",
-        "grows",
-        "growth",
-        "higher",
-        "improve",
-        "improves",
-        "profit",
-        "profits",
-        "record",
-        "rise",
-        "rises",
-        "rose",
-        "strong buy",
-        "surge",
-        "upgraded",
-        "upside",
-    },
-)
-NEGATIVE_TERMS = frozenset(
-    {
-        "bankruptcy",
-        "bearish",
-        "cut",
-        "decline",
-        "declines",
-        "downgrade",
-        "downgraded",
-        "drop",
-        "drops",
-        "fell",
-        "fall",
-        "falls",
-        "lawsuit",
-        "loss",
-        "losses",
-        "lower",
-        "miss",
-        "misses",
-        "recession",
-        "risk",
-        "risks",
-        "weak",
-        "warning",
-    },
-)
+OPTIONAL_COLUMNS = [
+    "label_source",
+    "weak_label_margin",
+    "weak_positive_score",
+    "weak_negative_score",
+]
 
 
 class NewsDatasetError(ValueError):
@@ -95,11 +41,14 @@ def validate_news_dataset(frame: pd.DataFrame) -> pd.DataFrame:
     if missing_columns:
         raise NewsDatasetError(f"Missing required columns: {missing_columns}")
 
-    dataset = frame.loc[:, REQUIRED_COLUMNS].copy()
+    selected_columns = REQUIRED_COLUMNS + [
+        column for column in OPTIONAL_COLUMNS if column in frame.columns
+    ]
+    dataset = frame.loc[:, selected_columns].copy()
     if dataset["text"].isna().any():
         raise NewsDatasetError("text values must be non-empty")
 
-    dataset["text"] = dataset["text"].astype(str).str.strip()
+    dataset["text"] = [normalize_news_text(value) for value in dataset["text"]]
     dataset["impact"] = dataset["impact"].astype(str).str.strip().str.lower()
     dataset["source"] = dataset["source"].astype(str).str.strip()
     dataset["published_at"] = pd.to_datetime(dataset["published_at"], errors="coerce")
@@ -127,23 +76,21 @@ def adapt_news_dataset(frame: pd.DataFrame) -> pd.DataFrame:
     if all(column in frame.columns for column in FNSPID_COLUMNS):
         dataset = frame.copy()
         dataset["article_id"] = dataset["id"]
-        dataset["impact"] = [
-            infer_weak_impact_label(title=title, text=text)
+        dataset["text"] = [
+            normalize_news_text(f"{title}. {text}")
             for title, text in zip(dataset["title"], dataset["text"], strict=True)
         ]
+        weak_labels = [
+            infer_weak_impact(title="", text=text)
+            for text in dataset["text"]
+        ]
+        dataset["impact"] = [label.label for label in weak_labels]
+        dataset["label_source"] = "weak_rules"
+        dataset["weak_label_margin"] = [label.margin for label in weak_labels]
+        dataset["weak_positive_score"] = [label.positive_score for label in weak_labels]
+        dataset["weak_negative_score"] = [label.negative_score for label in weak_labels]
         return dataset
     return frame
-
-
-def infer_weak_impact_label(*, title: object, text: object) -> str:
-    content = f"{title or ''} {text or ''}".lower()
-    positive_score = sum(term in content for term in POSITIVE_TERMS)
-    negative_score = sum(term in content for term in NEGATIVE_TERMS)
-    if positive_score > negative_score:
-        return ImpactLabel.POSITIVE.value
-    if negative_score > positive_score:
-        return ImpactLabel.NEGATIVE.value
-    return ImpactLabel.NEUTRAL.value
 
 
 def split_news_dataset(

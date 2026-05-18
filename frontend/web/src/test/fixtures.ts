@@ -53,6 +53,16 @@ export const mlReportFixture: MlReport = {
       neutral: 45,
       negative: 25,
     },
+    label_quality: {
+      label_source: "generated",
+      low_margin_count: 4,
+      average_margin: 0.78,
+    },
+  },
+  training: {
+    classic_max_rows: 20_000,
+    embedding_max_rows: 5_000,
+    transformer_max_rows: 5_000,
   },
   models: [
     {
@@ -70,6 +80,11 @@ export const mlReportFixture: MlReport = {
           [2, 3, 20],
         ],
       },
+      per_class: {
+        positive: { precision: 0.875, recall: 0.84, f1: 0.875 },
+        neutral: { precision: 0.826, recall: 0.844, f1: 0.835 },
+        negative: { precision: 0.769, recall: 0.8, f1: 0.784 },
+      },
     },
     {
       model_name: "embedding-logreg",
@@ -79,6 +94,7 @@ export const mlReportFixture: MlReport = {
       test_macro_f1: 0.84,
       inference_seconds_per_sample: 0.012,
       confusion_matrix: null,
+      per_class: {},
     },
   ],
   best_model: {
@@ -89,6 +105,11 @@ export const mlReportFixture: MlReport = {
     test_macro_f1: 0.88,
     inference_seconds_per_sample: 0.004,
     confusion_matrix: null,
+    per_class: {
+      positive: { precision: 0.875, recall: 0.84, f1: 0.875 },
+      neutral: { precision: 0.826, recall: 0.844, f1: 0.835 },
+      negative: { precision: 0.769, recall: 0.8, f1: 0.784 },
+    },
   },
   top_features: {
     "tfidf-logreg": {

@@ -389,6 +389,8 @@ describe("App", () => {
     });
     expect(screen.getByText("Строк в датасете: 120")).toBeInTheDocument();
     expect(screen.getByText("ввп")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Качество по классам" })).toBeInTheDocument();
+    expect(screen.getByText("positive: recall 0.840, F1 0.875")).toBeInTheDocument();
     expect(screen.getByText("0.900")).toBeInTheDocument();
   });
 
@@ -585,7 +587,7 @@ describe("App", () => {
     expect(screen.getByText("ошибка")).toBeInTheDocument();
   });
 
-  it("generates and renders a Groq forecast for a topic", async () => {
+  it("generates and renders a Gemini forecast for a topic", async () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input);
 
@@ -605,14 +607,13 @@ describe("App", () => {
         return Response.json(topicForecastFixture);
       }
 
-      if (url.includes("/api/v1/topic-forecast/groq-predictions")) {
+      if (url.includes("/api/v1/topic-forecast/gemini-predictions")) {
         return Response.json({
-          provider: "groq",
-          model_name: "qwen/qwen3-32b",
+          provider: "gemini",
+          model_name: "gemini-2.5-flash",
           scope: "topic",
           target_id: "topic-1",
-          prediction: "Groq видит умеренно позитивный сценарий.",
-          disclaimer: "Это аналитический сценарий, а не финансовая рекомендация.",
+          prediction: "Gemini видит умеренно позитивный сценарий.",
           metadata: {},
         });
       }
@@ -628,16 +629,15 @@ describe("App", () => {
     await waitFor(() => {
       expect(screen.getAllByText("Рост ВВП").length).toBeGreaterThan(0);
     });
-    await user.click(screen.getAllByRole("button", { name: "Groq-прогноз темы" })[0]);
+    await user.click(screen.getAllByRole("button", { name: "Прогноз темы" })[0]);
 
     await waitFor(() => {
-      expect(screen.getByText("Groq видит умеренно позитивный сценарий.")).toBeInTheDocument();
+      expect(screen.getByText("Gemini видит умеренно позитивный сценарий.")).toBeInTheDocument();
     });
-    expect(screen.getByText("qwen/qwen3-32b · topic")).toBeInTheDocument();
-    expect(screen.getByText("Это аналитический сценарий, а не финансовая рекомендация.")).toBeInTheDocument();
+    expect(screen.getByText("gemini-2.5-flash · topic")).toBeInTheDocument();
   });
 
-  it("sends topic and news identity when generating a Groq forecast for news", async () => {
+  it("sends topic and news identity when generating a Gemini forecast for news", async () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL, _init?: RequestInit) => {
       const url = String(input);
 
@@ -657,14 +657,13 @@ describe("App", () => {
         return Response.json(topicForecastFixture);
       }
 
-      if (url.includes("/api/v1/topic-forecast/groq-predictions")) {
+      if (url.includes("/api/v1/topic-forecast/gemini-predictions")) {
         return Response.json({
-          provider: "groq",
-          model_name: "qwen/qwen3-32b",
+          provider: "gemini",
+          model_name: "gemini-2.5-flash",
           scope: "news",
           target_id: "news-1",
-          prediction: "Groq выделяет позитивный новостной сигнал.",
-          disclaimer: "Это аналитический сценарий, а не финансовая рекомендация.",
+          prediction: "Gemini выделяет позитивный новостной сигнал.",
           metadata: {},
         });
       }
@@ -678,18 +677,18 @@ describe("App", () => {
 
     await user.click(screen.getByRole("button", { name: "Прогноз" }));
     await waitFor(() => {
-      expect(screen.getAllByRole("button", { name: "Groq-прогноз новости" }).length).toBeGreaterThan(0);
+      expect(screen.getAllByRole("button", { name: "Прогноз новости" }).length).toBeGreaterThan(0);
     });
-    await user.click(screen.getAllByRole("button", { name: "Groq-прогноз новости" })[0]);
+    await user.click(screen.getAllByRole("button", { name: "Прогноз новости" })[0]);
 
     await waitFor(() => {
-      expect(screen.getByText("Groq выделяет позитивный новостной сигнал.")).toBeInTheDocument();
+      expect(screen.getByText("Gemini выделяет позитивный новостной сигнал.")).toBeInTheDocument();
     });
-    const groqCall = fetchMock.mock.calls.find(([input]) =>
-      String(input).includes("/api/v1/topic-forecast/groq-predictions"),
+    const geminiCall = fetchMock.mock.calls.find(([input]) =>
+      String(input).includes("/api/v1/topic-forecast/gemini-predictions"),
     );
-    expect(groqCall).toBeDefined();
-    const request = JSON.parse(String(groqCall![1]?.body));
+    expect(geminiCall).toBeDefined();
+    const request = JSON.parse(String(geminiCall![1]?.body));
     expect(request).toEqual(
       expect.objectContaining({
         scope: "news",
@@ -703,7 +702,7 @@ describe("App", () => {
     );
   });
 
-  it("renders backend Groq error detail", async () => {
+  it("renders backend Gemini error detail", async () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input);
 
@@ -723,8 +722,8 @@ describe("App", () => {
         return Response.json(topicForecastFixture);
       }
 
-      if (url.includes("/api/v1/topic-forecast/groq-predictions")) {
-        return Response.json({ detail: "GROQ API key is not configured" }, { status: 503 });
+      if (url.includes("/api/v1/topic-forecast/gemini-predictions")) {
+        return Response.json({ detail: "GEMINI API key is not configured" }, { status: 503 });
       }
 
       return Response.json({ detail: "not found" }, { status: 404 });
@@ -736,12 +735,12 @@ describe("App", () => {
 
     await user.click(screen.getByRole("button", { name: "Прогноз" }));
     await waitFor(() => {
-      expect(screen.getAllByRole("button", { name: "Groq-прогноз темы" }).length).toBeGreaterThan(0);
+      expect(screen.getAllByRole("button", { name: "Прогноз темы" }).length).toBeGreaterThan(0);
     });
-    await user.click(screen.getAllByRole("button", { name: "Groq-прогноз темы" })[0]);
+    await user.click(screen.getAllByRole("button", { name: "Прогноз темы" })[0]);
 
     await waitFor(() => {
-      expect(screen.getByRole("alert")).toHaveTextContent("GROQ API key is not configured");
+      expect(screen.getByRole("alert")).toHaveTextContent("GEMINI API key is not configured");
     });
   });
 });

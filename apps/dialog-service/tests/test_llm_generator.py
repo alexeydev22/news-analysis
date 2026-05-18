@@ -57,13 +57,32 @@ class FakeZaprosClient:
 
 
 class RaisingZaprosClient:
+    def __init__(self) -> None:
+        self.call_count = 0
+
     async def post(
         self,
         url: str,
         json: dict[str, object],
         headers: dict[str, str] | None = None,
     ) -> FakeResponse:
+        self.call_count += 1
         raise OSError("connection refused")
+
+
+class SequenceZaprosClient:
+    def __init__(self, responses: list[FakeResponse]) -> None:
+        self.responses = responses
+        self.calls: list[tuple[str, dict[str, object], dict[str, str] | None]] = []
+
+    async def post(
+        self,
+        url: str,
+        json: dict[str, object],
+        headers: dict[str, str] | None = None,
+    ) -> FakeResponse:
+        self.calls.append((url, json, headers))
+        return self.responses.pop(0)
 
 
 class FakeZaprosClientContext:
@@ -188,16 +207,100 @@ async def test_llm_generator_parses_answer_and_metadata() -> None:
 
 
 @pytest.mark.asyncio
+async def test_llm_generator_removes_thinking_blocks_from_answer() -> None:
+    generator = LlmDialogGenerator(
+        base_url="http://llm.local:8080",
+        model_name="qwen3-0.6b",
+        timeout_seconds=4.5,
+        temperature=0.1,
+        max_tokens=384,
+        client=FakeZaprosClient(
+            FakeResponse(
+                200,
+                llm_payload(
+                    "<think>внутренние рассуждения</think>\n\nРост ВВП позитивен.",
+                ),
+            ),
+        ),
+    )
+
+    generation = await generator.generate(
+        question=DialogQuestion("Что значит рост ВВП?"),
+        context=dialog_context(),
+        impact_summaries=impact_summaries(),
+        language="ru",
+    )
+
+    assert generation.answer == "Рост ВВП позитивен."
+
+
+@pytest.mark.asyncio
+async def test_llm_generator_rejects_unclosed_thinking_block() -> None:
+    generator = LlmDialogGenerator(
+        base_url="http://llm.local:8080",
+        model_name="qwen3-0.6b",
+        timeout_seconds=4.5,
+        temperature=0.1,
+        max_tokens=384,
+        client=FakeZaprosClient(
+            FakeResponse(
+                200,
+                llm_payload("<think>незавершенные внутренние рассуждения"),
+            ),
+        ),
+    )
+
+    with pytest.raises(
+        DialogGeneratorUnavailableError,
+        match="dialog llm is unavailable",
+    ):
+        await generator.generate(
+            question=DialogQuestion("Что значит рост ВВП?"),
+            context=dialog_context(),
+            impact_summaries=impact_summaries(),
+            language="ru",
+        )
+
+
+@pytest.mark.asyncio
+async def test_llm_generator_retries_transient_provider_error() -> None:
+    transport = SequenceZaprosClient(
+        [
+            FakeResponse(503, {"error": "provider overloaded"}),
+            FakeResponse(200, llm_payload("Ответ после повтора.")),
+        ],
+    )
+    generator = LlmDialogGenerator(
+        base_url="http://llm.local:8080",
+        model_name="qwen3-0.6b",
+        timeout_seconds=4.5,
+        temperature=0.1,
+        max_tokens=384,
+        client=transport,
+    )
+
+    generation = await generator.generate(
+        question=DialogQuestion("Что значит рост ВВП?"),
+        context=dialog_context(),
+        impact_summaries=impact_summaries(),
+        language="ru",
+    )
+
+    assert generation.answer == "Ответ после повтора."
+    assert len(transport.calls) == 2
+
+
+@pytest.mark.asyncio
 async def test_llm_generator_sends_bearer_token_and_provider_metadata() -> None:
     transport = FakeZaprosClient(FakeResponse(200, llm_payload("Прогноз сформирован.")))
     generator = LlmDialogGenerator(
-        base_url="https://api.groq.com/openai",
-        model_name="qwen/qwen3-32b",
+        base_url="https://generativelanguage.googleapis.com/v1beta/openai",
+        model_name="gemini-2.5-flash",
         timeout_seconds=30.0,
         temperature=0.2,
         max_tokens=512,
-        api_key="test-groq-key",
-        generator_kind="groq",
+        api_key="test-gemini-key",
+        generator_kind="gemini",
         client=transport,
     )
 
@@ -209,14 +312,14 @@ async def test_llm_generator_sends_bearer_token_and_provider_metadata() -> None:
     )
 
     url, payload, headers = transport.calls[0]
-    assert url == "https://api.groq.com/openai/v1/chat/completions"
-    assert payload["model"] == "qwen/qwen3-32b"
+    assert url == "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
+    assert payload["model"] == "gemini-2.5-flash"
     assert headers == {
-        "Authorization": "Bearer test-groq-key",
+        "Authorization": "Bearer test-gemini-key",
         "Content-Type": "application/json",
     }
-    assert generation.metadata["generator_kind"] == "groq"
-    assert generation.metadata["model_name"] == "qwen/qwen3-32b"
+    assert generation.metadata["generator_kind"] == "gemini"
+    assert generation.metadata["model_name"] == "gemini-2.5-flash"
 
 
 @pytest.mark.asyncio

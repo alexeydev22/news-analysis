@@ -7,7 +7,7 @@ from analysis_service.domain.errors import (
     ModelUnavailableError,
     TopicForecastJobNotFoundError,
 )
-from analysis_service.infrastructure.groq_forecast_client import GroqForecastGenerationError
+from analysis_service.infrastructure.gemini_forecast_client import GeminiForecastGenerationError
 
 
 def register_error_handlers(app: FastAPI) -> None:
@@ -25,10 +25,10 @@ def register_error_handlers(app: FastAPI) -> None:
     ) -> JSONResponse:
         return JSONResponse(status_code=503, content={"detail": str(exc)})
 
-    @app.exception_handler(GroqForecastGenerationError)
-    async def groq_forecast_generation_error_handler(
+    @app.exception_handler(GeminiForecastGenerationError)
+    async def gemini_forecast_generation_error_handler(
         request: Request,
-        exc: GroqForecastGenerationError,
+        exc: GeminiForecastGenerationError,
     ) -> JSONResponse:
         return JSONResponse(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,

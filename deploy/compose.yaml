@@ -12,7 +12,6 @@ services:
     ports:
       - "8000:8000"
     depends_on:
-      - postgres
       - redis
       - qdrant
       - analysis-service
@@ -24,24 +23,25 @@ services:
       context: ..
       dockerfile: deploy/docker/analysis-service.Dockerfile
     env_file:
-      - ../.env.example
+      - path: ../.env.example
+        required: true
+      - path: ../.env
+        required: false
     environment:
       ANALYSIS_USE_STATIC_CLASSIFIER: "${ANALYSIS_USE_STATIC_CLASSIFIER:-false}"
       ANALYSIS_TFIDF_ARTIFACT_PATH: "${ANALYSIS_TFIDF_ARTIFACT_PATH:-artifacts/models/baseline/tfidf-logreg.joblib}"
       ANALYSIS_EMBEDDING_ARTIFACT_PATH: "${ANALYSIS_EMBEDDING_ARTIFACT_PATH:-artifacts/models/embedding/embedding-logreg.joblib}"
       ANALYSIS_TRANSFORMER_ARTIFACT_PATH: "${ANALYSIS_TRANSFORMER_ARTIFACT_PATH:-artifacts/models/transformer/tiny-transformer-classifier.joblib}"
       HF_HOME: "${HF_HOME:-/app/artifacts/hf-cache}"
-      HF_HUB_OFFLINE: "${HF_HUB_OFFLINE:-1}"
-      TRANSFORMERS_OFFLINE: "${TRANSFORMERS_OFFLINE:-1}"
+      HF_HUB_OFFLINE: "${HF_HUB_OFFLINE:-0}"
+      HF_HUB_DISABLE_XET: "${HF_HUB_DISABLE_XET:-1}"
+      TRANSFORMERS_OFFLINE: "${TRANSFORMERS_OFFLINE:-0}"
       ANALYSIS_REDIS_URL: "redis://redis:6379/0"
       ANALYSIS_ML_DATASET_PATH: "${ANALYSIS_ML_DATASET_PATH:-data/raw/economic_news.csv}"
-      ANALYSIS_TOPIC_FORECAST_DOCUMENT_LIMIT: "${ANALYSIS_TOPIC_FORECAST_DOCUMENT_LIMIT:-500}"
-      ANALYSIS_GROQ_BASE_URL: "${ANALYSIS_GROQ_BASE_URL:-https://api.groq.com/openai}"
-      ANALYSIS_GROQ_MODEL: "${ANALYSIS_GROQ_MODEL:-qwen/qwen3-32b}"
-      ANALYSIS_GROQ_API_KEY: "${ANALYSIS_GROQ_API_KEY:-}"
+      ANALYSIS_TOPIC_FORECAST_DOCUMENT_LIMIT: "${ANALYSIS_TOPIC_FORECAST_DOCUMENT_LIMIT:-10000}"
+      ANALYSIS_GEMINI_BASE_URL: "${ANALYSIS_GEMINI_BASE_URL:-https://generativelanguage.googleapis.com/v1beta/openai}"
+      ANALYSIS_GEMINI_MODEL: "${ANALYSIS_GEMINI_MODEL:-gemini-2.5-flash}"
       ANALYSIS_RETRIEVAL_SERVICE_TIMEOUT_SECONDS: "${ANALYSIS_RETRIEVAL_SERVICE_TIMEOUT_SECONDS:-60.0}"
-      ANALYSIS_ML_TRAIN_MAX_ROWS: "${ANALYSIS_ML_TRAIN_MAX_ROWS:-3000}"
-      ANALYSIS_ML_TRANSFORMER_MAX_ROWS: "${ANALYSIS_ML_TRANSFORMER_MAX_ROWS:-1000}"
       ANALYSIS_ML_REPORT_OUTPUT_PATH: "${ANALYSIS_ML_REPORT_OUTPUT_PATH:-reports/ml/model-report.json}"
       ANALYSIS_ML_REPORT_JOBS_DIR: "${ANALYSIS_ML_REPORT_JOBS_DIR:-reports/ml/jobs}"
     ports:
@@ -59,24 +59,25 @@ services:
       context: ..
       dockerfile: deploy/docker/analysis-service.Dockerfile
     env_file:
-      - ../.env.example
+      - path: ../.env.example
+        required: true
+      - path: ../.env
+        required: false
     environment:
       ANALYSIS_USE_STATIC_CLASSIFIER: "false"
       ANALYSIS_TFIDF_ARTIFACT_PATH: "${ANALYSIS_TFIDF_ARTIFACT_PATH:-artifacts/models/baseline/tfidf-logreg.joblib}"
       ANALYSIS_EMBEDDING_ARTIFACT_PATH: "${ANALYSIS_EMBEDDING_ARTIFACT_PATH:-artifacts/models/embedding/embedding-logreg.joblib}"
       ANALYSIS_TRANSFORMER_ARTIFACT_PATH: "${ANALYSIS_TRANSFORMER_ARTIFACT_PATH:-artifacts/models/transformer/tiny-transformer-classifier.joblib}"
       HF_HOME: "${HF_HOME:-/app/artifacts/hf-cache}"
-      HF_HUB_OFFLINE: "${HF_HUB_OFFLINE:-1}"
-      TRANSFORMERS_OFFLINE: "${TRANSFORMERS_OFFLINE:-1}"
+      HF_HUB_OFFLINE: "${HF_HUB_OFFLINE:-0}"
+      HF_HUB_DISABLE_XET: "${HF_HUB_DISABLE_XET:-1}"
+      TRANSFORMERS_OFFLINE: "${TRANSFORMERS_OFFLINE:-0}"
       ANALYSIS_REDIS_URL: "redis://redis:6379/0"
       ANALYSIS_ML_DATASET_PATH: "${ANALYSIS_ML_DATASET_PATH:-data/raw/economic_news.csv}"
-      ANALYSIS_TOPIC_FORECAST_DOCUMENT_LIMIT: "${ANALYSIS_TOPIC_FORECAST_DOCUMENT_LIMIT:-500}"
-      ANALYSIS_GROQ_BASE_URL: "${ANALYSIS_GROQ_BASE_URL:-https://api.groq.com/openai}"
-      ANALYSIS_GROQ_MODEL: "${ANALYSIS_GROQ_MODEL:-qwen/qwen3-32b}"
-      ANALYSIS_GROQ_API_KEY: "${ANALYSIS_GROQ_API_KEY:-}"
+      ANALYSIS_TOPIC_FORECAST_DOCUMENT_LIMIT: "${ANALYSIS_TOPIC_FORECAST_DOCUMENT_LIMIT:-10000}"
+      ANALYSIS_GEMINI_BASE_URL: "${ANALYSIS_GEMINI_BASE_URL:-https://generativelanguage.googleapis.com/v1beta/openai}"
+      ANALYSIS_GEMINI_MODEL: "${ANALYSIS_GEMINI_MODEL:-gemini-2.5-flash}"
       ANALYSIS_RETRIEVAL_SERVICE_TIMEOUT_SECONDS: "${ANALYSIS_RETRIEVAL_SERVICE_TIMEOUT_SECONDS:-60.0}"
-      ANALYSIS_ML_TRAIN_MAX_ROWS: "${ANALYSIS_ML_TRAIN_MAX_ROWS:-3000}"
-      ANALYSIS_ML_TRANSFORMER_MAX_ROWS: "${ANALYSIS_ML_TRANSFORMER_MAX_ROWS:-1000}"
       ANALYSIS_ML_REPORT_OUTPUT_PATH: "${ANALYSIS_ML_REPORT_OUTPUT_PATH:-reports/ml/model-report.json}"
       ANALYSIS_ML_REPORT_JOBS_DIR: "${ANALYSIS_ML_REPORT_JOBS_DIR:-reports/ml/jobs}"
     command:
@@ -98,7 +99,10 @@ services:
       context: ..
       dockerfile: deploy/docker/retrieval-service.Dockerfile
     env_file:
-      - ../.env.example
+      - path: ../.env.example
+        required: true
+      - path: ../.env
+        required: false
     environment:
       RETRIEVAL_QDRANT_URL: "http://qdrant:6333"
       RETRIEVAL_USE_STATIC_EMBEDDINGS: "${RETRIEVAL_USE_STATIC_EMBEDDINGS:-true}"
@@ -113,12 +117,14 @@ services:
       context: ..
       dockerfile: deploy/docker/dialog-service.Dockerfile
     env_file:
-      - ../.env.example
+      - path: ../.env.example
+        required: true
+      - path: ../.env
+        required: false
     environment:
-      DIALOG_GENERATOR_KIND: "${DIALOG_GENERATOR_KIND:-groq}"
-      DIALOG_GROQ_BASE_URL: "${DIALOG_GROQ_BASE_URL:-https://api.groq.com/openai}"
-      DIALOG_GROQ_MODEL: "${DIALOG_GROQ_MODEL:-qwen/qwen3-32b}"
-      DIALOG_GROQ_API_KEY: "${DIALOG_GROQ_API_KEY:-}"
+      DIALOG_GENERATOR_KIND: "${DIALOG_GENERATOR_KIND:-gemini}"
+      DIALOG_GEMINI_BASE_URL: "${DIALOG_GEMINI_BASE_URL:-https://generativelanguage.googleapis.com/v1beta/openai}"
+      DIALOG_GEMINI_MODEL: "${DIALOG_GEMINI_MODEL:-gemini-2.5-flash}"
       DIALOG_LLM_BASE_URL: "${DIALOG_LLM_BASE_URL:-http://host.docker.internal:8080}"
       DIALOG_LLM_MODEL: "${DIALOG_LLM_MODEL:-Qwen3-0.6B-Instruct-GGUF}"
     extra_hosts:
@@ -131,7 +137,10 @@ services:
       context: ..
       dockerfile: deploy/docker/news-service.Dockerfile
     env_file:
-      - ../.env.example
+      - path: ../.env.example
+        required: true
+      - path: ../.env
+        required: false
     environment:
       NEWS_SERVICE_RETRIEVAL_SERVICE_URL: "http://retrieval-service:8000"
       NEWS_SERVICE_NEWS_DATASET_PATH: "${NEWS_SERVICE_NEWS_DATASET_PATH:-data/raw/economic_news.csv}"
@@ -153,7 +162,10 @@ services:
       context: ..
       dockerfile: deploy/docker/news-service.Dockerfile
     env_file:
-      - ../.env.example
+      - path: ../.env.example
+        required: true
+      - path: ../.env
+        required: false
     environment:
       NEWS_SERVICE_RETRIEVAL_SERVICE_URL: "http://retrieval-service:8000"
       NEWS_SERVICE_NEWS_DATASET_PATH: "${NEWS_SERVICE_NEWS_DATASET_PATH:-data/raw/economic_news.csv}"
@@ -192,17 +204,6 @@ services:
       - news-service
       - analysis-service
 
-  postgres:
-    image: postgres:17-alpine
-    environment:
-      POSTGRES_DB: economic_news
-      POSTGRES_USER: economic_news
-      POSTGRES_PASSWORD: economic_news
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-
   redis:
     image: redis:7-alpine
     ports:
@@ -224,7 +225,6 @@ services:
       - mlflow_data:/mlflow
 
 volumes:
-  postgres_data:
   qdrant_data:
   mlflow_data:
   news_uploads:

@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { mlReportFixture, topicForecastFixture } from "../test/fixtures";
 import {
-  generateGroqForecast,
+  generateGeminiForecast,
   getLatestMlReport,
   getLatestTopicForecast,
   getMlReportJob,
@@ -116,21 +116,20 @@ describe("analysis api", () => {
     expect(forecast).toBeNull();
   });
 
-  it("generates a Groq forecast for a topic", async () => {
+  it("generates a Gemini forecast for a topic", async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       Response.json({
-        provider: "groq",
-        model_name: "qwen/qwen3-32b",
+        provider: "gemini",
+        model_name: "gemini-2.5-flash",
         scope: "topic",
         target_id: "topic-1",
-        prediction: "Groq видит умеренно позитивный сценарий.",
-        disclaimer: "Это аналитический сценарий, а не финансовая рекомендация.",
+        prediction: "Gemini видит умеренно позитивный сценарий.",
         metadata: {},
       }),
     );
     const topic = topicForecastFixture.model_reports![0].topics[0];
 
-    const response = await generateGroqForecast(
+    const response = await generateGeminiForecast(
       {
         scope: "topic",
         model_name: topicForecastFixture.model_reports![0].model_name,
@@ -140,7 +139,7 @@ describe("analysis api", () => {
       { baseUrl: "http://localhost:8010", fetcher: fetchMock },
     );
 
-    expect(fetchMock).toHaveBeenCalledWith("http://localhost:8010/api/v1/topic-forecast/groq-predictions", {
+    expect(fetchMock).toHaveBeenCalledWith("http://localhost:8010/api/v1/topic-forecast/gemini-predictions", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -150,17 +149,17 @@ describe("analysis api", () => {
         news_id: null,
       }),
     });
-    expect(response.model_name).toBe("qwen/qwen3-32b");
+    expect(response.model_name).toBe("gemini-2.5-flash");
   });
 
-  it("uses backend detail when Groq forecast generation fails", async () => {
+  it("uses backend detail when Gemini forecast generation fails", async () => {
     const fetchMock = vi.fn().mockResolvedValue(
-      Response.json({ detail: "GROQ API key is not configured" }, { status: 503 }),
+      Response.json({ detail: "GEMINI API key is not configured" }, { status: 503 }),
     );
     const topic = topicForecastFixture.model_reports![0].topics[0];
 
     await expect(
-      generateGroqForecast(
+      generateGeminiForecast(
         {
           scope: "topic",
           model_name: topicForecastFixture.model_reports![0].model_name,
@@ -169,6 +168,6 @@ describe("analysis api", () => {
         },
         { baseUrl: "http://localhost:8010", fetcher: fetchMock },
       ),
-    ).rejects.toThrow("GROQ API key is not configured");
+    ).rejects.toThrow("GEMINI API key is not configured");
   });
 });

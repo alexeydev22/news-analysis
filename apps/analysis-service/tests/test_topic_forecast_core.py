@@ -73,7 +73,7 @@ def test_build_topic_forecast_groups_neighbors_and_aggregates_impact() -> None:
     topic = topics[0]
     assert topic.overall_impact == ImpactLabel.POSITIVE
     assert topic.positive_count == 2
-    assert "не финансовая рекомендация" in topic.forecast
+    assert "сценарий зависит от полноты новостного потока" in topic.forecast
     assert {news.id for news in topic.news} == {"news-1", "news-2"}
     assert {news.text for news in topic.news} == {
         "Экспорт растет. Подробности события.",

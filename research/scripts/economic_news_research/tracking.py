@@ -137,15 +137,18 @@ def _serialize_model_metrics(result: ModelTrainingResult) -> dict[str, Any]:
         "best_params": _to_json_value(result.best_params),
         "validation": _serialize_classification_metrics(result.validation_metrics),
         "test": _serialize_classification_metrics(result.test_metrics),
+        "validation_per_class": result.validation_metrics.per_class,
+        "test_per_class": result.test_metrics.per_class,
     }
 
 
-def _serialize_classification_metrics(metrics: ClassificationMetrics) -> dict[str, float]:
+def _serialize_classification_metrics(metrics: ClassificationMetrics) -> dict[str, Any]:
     return {
         "accuracy": float(metrics.accuracy),
         "macro_precision": float(metrics.macro_precision),
         "macro_recall": float(metrics.macro_recall),
         "macro_f1": float(metrics.macro_f1),
+        "per_class": metrics.per_class,
     }
 
 

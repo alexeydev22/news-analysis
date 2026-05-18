@@ -7,7 +7,7 @@ from economic_news_research.metrics import compute_classification_metrics
 from economic_news_research.modeling import IMPACT_LABELS
 from economic_news_research.results import ModelTrainingResult, measure_prediction_time
 
-DEFAULT_TINY_TRANSFORMER_MODEL = "cointegrated/rubert-tiny2"
+DEFAULT_TINY_TRANSFORMER_MODEL = "google/bert_uncased_L-2_H-128_A-2"
 
 
 TransformerTrainingResult = ModelTrainingResult
@@ -30,11 +30,53 @@ class TinyTransformerTrainer(Protocol):
 @dataclass(frozen=True)
 class TinyTransformerConfig:
     model_name: str = DEFAULT_TINY_TRANSFORMER_MODEL
-    epochs: int = 1
-    batch_size: int = 4
+    tokenizer_name: str = "bert-base-uncased"
+    epochs: int = 2
+    batch_size: int = 16
     learning_rate: float = 2e-5
-    max_length: int = 256
+    max_length: int = 192
     seed: int = 42
+
+
+def compute_class_weights(
+    *,
+    labels: list[str],
+    label_to_id: dict[str, int],
+) -> list[float]:
+    total = len(labels)
+    class_count = len(label_to_id)
+    counts = {label: labels.count(label) for label in label_to_id}
+    return [
+        total / (class_count * max(counts[label], 1))
+        for label, _ in sorted(label_to_id.items(), key=lambda item: item[1])
+    ]
+
+
+class WeightedTrainer:
+    @staticmethod
+    def build(*, class_weights: list[float], trainer_class: Any) -> type[Any]:
+        import torch
+
+        class _WeightedTrainer(trainer_class):
+            def compute_loss(
+                self,
+                model: Any,
+                inputs: dict[str, Any],
+                return_outputs: bool = False,
+                **kwargs: Any,
+            ) -> Any:
+                labels = inputs.pop("labels")
+                outputs = model(**inputs)
+                weights = torch.tensor(
+                    class_weights,
+                    dtype=torch.float,
+                    device=labels.device,
+                )
+                loss_function = torch.nn.CrossEntropyLoss(weight=weights)
+                loss = loss_function(outputs.logits, labels)
+                return (loss, outputs) if return_outputs else loss
+
+        return _WeightedTrainer
 
 
 class HuggingFaceTinyTransformerTrainer:
@@ -42,6 +84,7 @@ class HuggingFaceTinyTransformerTrainer:
         self.config = config or TinyTransformerConfig()
         self.best_params = {
             "model_name": self.config.model_name,
+            "tokenizer_name": self.config.tokenizer_name,
             "epochs": self.config.epochs,
             "batch_size": self.config.batch_size,
             "learning_rate": self.config.learning_rate,
@@ -69,13 +112,24 @@ class HuggingFaceTinyTransformerTrainer:
         )
 
         set_seed(self.config.seed)
-        tokenizer: Any = AutoTokenizer.from_pretrained(self.config.model_name)
+        tokenizer: Any = AutoTokenizer.from_pretrained(
+            self.config.tokenizer_name,
+            use_fast=False,
+        )
         self._tokenizer = tokenizer
         self._model = AutoModelForSequenceClassification.from_pretrained(
             self.config.model_name,
             num_labels=len(IMPACT_LABELS),
             id2label=self._id_to_label,
             label2id=self._label_to_id,
+        )
+        class_weights = compute_class_weights(
+            labels=train_labels,
+            label_to_id=self._label_to_id,
+        )
+        trainer_class = WeightedTrainer.build(
+            class_weights=class_weights,
+            trainer_class=Trainer,
         )
         self._training_dir = TemporaryDirectory()
         training_args = TrainingArguments(
@@ -87,9 +141,9 @@ class HuggingFaceTinyTransformerTrainer:
             report_to=[],
             save_strategy="no",
             logging_strategy="no",
-            eval_strategy="no",
+            eval_strategy="epoch",
         )
-        self._trainer = Trainer(
+        self._trainer = trainer_class(
             model=self._model,
             args=training_args,
             train_dataset=_NewsTextDataset(
@@ -119,19 +173,23 @@ class HuggingFaceTinyTransformerTrainer:
 
         import torch
 
-        encoded = self._tokenizer(
-            texts,
-            truncation=True,
-            padding=True,
-            max_length=self.config.max_length,
-            return_tensors="pt",
-        )
         device = next(self._model.parameters()).device
-        encoded = {key: value.to(device) for key, value in encoded.items()}
         self._model.eval()
+        prediction_ids: list[int] = []
+        batch_size = max(self.config.batch_size, 1)
         with torch.no_grad():
-            outputs = self._model(**encoded)
-        prediction_ids = outputs.logits.argmax(dim=-1).tolist()
+            for batch_start in range(0, len(texts), batch_size):
+                batch_texts = texts[batch_start : batch_start + batch_size]
+                encoded = self._tokenizer(
+                    batch_texts,
+                    truncation=True,
+                    padding=True,
+                    max_length=self.config.max_length,
+                    return_tensors="pt",
+                )
+                encoded = {key: value.to(device) for key, value in encoded.items()}
+                outputs = self._model(**encoded)
+                prediction_ids.extend(outputs.logits.argmax(dim=-1).tolist())
         return [self._id_to_label[prediction_id] for prediction_id in prediction_ids]
 
     def __getstate__(self) -> dict[str, Any]:

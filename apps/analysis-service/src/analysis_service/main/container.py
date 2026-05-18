@@ -17,7 +17,7 @@ from analysis_service.application.use_cases import (
     AnalyzeNewsImpact,
     EnqueueMlReportJob,
     EnqueueTopicForecastJob,
-    GenerateGroqTopicForecast,
+    GenerateGeminiTopicForecast,
     GenerateTopicForecastReport,
     GetLatestMlReport,
     GetLatestTopicForecast,
@@ -29,7 +29,7 @@ from analysis_service.infrastructure.classifiers import (
     StaticImpactClassifier,
     StaticModelRegistry,
 )
-from analysis_service.infrastructure.groq_forecast_client import GroqEconomicForecastGenerator
+from analysis_service.infrastructure.gemini_forecast_client import GeminiEconomicForecastGenerator
 from analysis_service.infrastructure.ml_report_queue import TaskiqMlReportTaskQueue
 from analysis_service.infrastructure.ml_report_storage import JsonMlReportStorage
 from analysis_service.infrastructure.topic_forecast_queue import TaskiqTopicForecastTaskQueue
@@ -155,25 +155,25 @@ class AnalysisServiceProvider(Provider):
         self,
         settings: AnalysisServiceSettings,
     ) -> EconomicForecastGenerator:
-        return GroqEconomicForecastGenerator(
-            base_url=str(settings.groq_base_url),
+        return GeminiEconomicForecastGenerator(
+            base_url=str(settings.gemini_base_url),
             api_key=(
-                settings.groq_api_key.get_secret_value()
-                if settings.groq_api_key
+                settings.gemini_api_key.get_secret_value()
+                if settings.gemini_api_key
                 else None
             ),
-            model_name=settings.groq_model,
-            timeout_seconds=settings.groq_timeout_seconds,
-            temperature=settings.groq_temperature,
-            max_tokens=settings.groq_max_tokens,
+            model_name=settings.gemini_model,
+            timeout_seconds=settings.gemini_timeout_seconds,
+            temperature=settings.gemini_temperature,
+            max_tokens=settings.gemini_max_tokens,
         )
 
     @provide(scope=Scope.APP)
-    def generate_groq_topic_forecast(
+    def generate_gemini_topic_forecast(
         self,
         generator: EconomicForecastGenerator,
-    ) -> GenerateGroqTopicForecast:
-        return GenerateGroqTopicForecast(generator)
+    ) -> GenerateGeminiTopicForecast:
+        return GenerateGeminiTopicForecast(generator)
 
     @provide(scope=Scope.APP)
     def generate_topic_forecast_report(

@@ -120,11 +120,13 @@ def run_build_model_report(
     comparison_path: Path,
     model_dirs: list[Path],
     output_path: Path,
+    training_limits: dict[str, int | None] | None = None,
 ) -> Path:
     report = build_model_report(
         dataset_path=dataset_path,
         comparison_path=comparison_path,
         model_dirs=model_dirs,
+        training_limits=training_limits,
     )
     return save_model_report(report, output_path=output_path)
 

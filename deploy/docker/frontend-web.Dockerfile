@@ -1,3 +1,5 @@
+# syntax=docker/dockerfile:1.7
+
 FROM node:22-alpine AS build
 
 WORKDIR /app
@@ -8,7 +10,8 @@ ENV VITE_API_GATEWAY_URL=${VITE_API_GATEWAY_URL}
 ENV VITE_NEWS_SERVICE_URL=${VITE_NEWS_SERVICE_URL}
 
 COPY frontend/web/package*.json ./frontend/web/
-RUN npm --prefix frontend/web ci
+RUN --mount=type=cache,target=/root/.npm \
+    npm --prefix frontend/web ci
 
 COPY frontend/web ./frontend/web
 RUN npm --prefix frontend/web run build

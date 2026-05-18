@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import {
-  generateGroqForecast,
+  generateGeminiForecast,
   getLatestMlReport,
   getLatestTopicForecast,
   getMlReportJob,
@@ -27,14 +27,14 @@ import { MlReportPanel } from "../components/MlReportPanel";
 import { NewsPreview } from "../components/NewsPreview";
 import { SourcesPanel } from "../components/SourcesPanel";
 import { Timeline } from "../components/Timeline";
-import { groqForecastKey, TopicForecastPanel } from "../components/TopicForecastPanel";
+import { geminiForecastKey, TopicForecastPanel } from "../components/TopicForecastPanel";
 import type {
   ActiveDataset,
   AnalysisModelName,
   ChatResponse,
   ChatStreamEvent,
-  GroqForecastRequest,
-  GroqForecastResponse,
+  GeminiForecastRequest,
+  GeminiForecastResponse,
   ImpactSummary,
   IndexNewsDatasetResponse,
   MlReport,
@@ -105,9 +105,9 @@ export function App() {
   const [topicForecast, setTopicForecast] = useState<TopicForecast | null>(null);
   const [topicForecastStatus, setTopicForecastStatus] = useState<TopicForecastJobStatus | null>(null);
   const [topicForecastError, setTopicForecastError] = useState<string | null>(null);
-  const [groqForecasts, setGroqForecasts] = useState<Record<string, GroqForecastResponse>>({});
-  const [groqForecastLoadingKeys, setGroqForecastLoadingKeys] = useState<Record<string, boolean>>({});
-  const [groqForecastError, setGroqForecastError] = useState<string | null>(null);
+  const [geminiForecasts, setGeminiForecasts] = useState<Record<string, GeminiForecastResponse>>({});
+  const [geminiForecastLoadingKeys, setGeminiForecastLoadingKeys] = useState<Record<string, boolean>>({});
+  const [geminiForecastError, setGeminiForecastError] = useState<string | null>(null);
   const [isStreaming, setStreaming] = useState(false);
   const [isPreviewLoading, setPreviewLoading] = useState(false);
   const [isIndexLoading, setIndexLoading] = useState(false);
@@ -163,16 +163,16 @@ export function App() {
         const forecast = await getLatestTopicForecast();
         if (isMounted) {
           setTopicForecast(forecast);
-          setGroqForecasts({});
-          setGroqForecastError(null);
-          setGroqForecastLoadingKeys({});
+          setGeminiForecasts({});
+          setGeminiForecastError(null);
+          setGeminiForecastLoadingKeys({});
         }
       } catch {
         if (isMounted) {
           setTopicForecast(null);
-          setGroqForecasts({});
-          setGroqForecastError(null);
-          setGroqForecastLoadingKeys({});
+          setGeminiForecasts({});
+          setGeminiForecastError(null);
+          setGeminiForecastLoadingKeys({});
         }
       }
     }
@@ -329,9 +329,9 @@ export function App() {
   async function loadLatestTopicForecast() {
     const forecast = await getLatestTopicForecast();
     setTopicForecast(forecast);
-    setGroqForecasts({});
-    setGroqForecastError(null);
-    setGroqForecastLoadingKeys({});
+    setGeminiForecasts({});
+    setGeminiForecastError(null);
+    setGeminiForecastLoadingKeys({});
   }
 
   function scheduleMlReportPoll(jobId: string) {
@@ -448,23 +448,23 @@ export function App() {
     }
   }
 
-  async function handleGenerateGroqForecast(request: GroqForecastRequest, forecastGeneratedAt: string): Promise<void> {
-    const targetKey = groqForecastKey({
+  async function handleGenerateGeminiForecast(request: GeminiForecastRequest, forecastGeneratedAt: string): Promise<void> {
+    const targetKey = geminiForecastKey({
       forecastGeneratedAt,
       modelName: request.model_name,
       scope: request.scope,
       topicId: request.topic.topic_id,
       newsId: request.news_id,
     });
-    setGroqForecastLoadingKeys((current) => ({ ...current, [targetKey]: true }));
-    setGroqForecastError(null);
+    setGeminiForecastLoadingKeys((current) => ({ ...current, [targetKey]: true }));
+    setGeminiForecastError(null);
     try {
-      const response = await generateGroqForecast(request);
-      setGroqForecasts((current) => ({ ...current, [targetKey]: response }));
+      const response = await generateGeminiForecast(request);
+      setGeminiForecasts((current) => ({ ...current, [targetKey]: response }));
     } catch (forecastError) {
-      setGroqForecastError(messageFromError(forecastError));
+      setGeminiForecastError(messageFromError(forecastError));
     } finally {
-      setGroqForecastLoadingKeys((current) => {
+      setGeminiForecastLoadingKeys((current) => {
         const next = { ...current };
         delete next[targetKey];
         return next;
@@ -580,14 +580,14 @@ export function App() {
             status={topicForecastStatus}
             error={topicForecastError}
             isLoading={isTopicForecastLoading}
-            groqForecasts={groqForecasts}
-            groqForecastLoadingKeys={groqForecastLoadingKeys}
-            groqForecastError={groqForecastError}
+            geminiForecasts={geminiForecasts}
+            geminiForecastLoadingKeys={geminiForecastLoadingKeys}
+            geminiForecastError={geminiForecastError}
             onGenerate={() => {
               void handleGenerateTopicForecast();
             }}
-            onGenerateGroqForecast={(request, forecastGeneratedAt) => {
-              void handleGenerateGroqForecast(request, forecastGeneratedAt);
+            onGenerateGeminiForecast={(request, forecastGeneratedAt) => {
+              void handleGenerateGeminiForecast(request, forecastGeneratedAt);
             }}
           />
         </div>

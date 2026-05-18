@@ -1,6 +1,6 @@
 import type {
-  GroqForecastRequest,
-  GroqForecastResponse,
+  GeminiForecastRequest,
+  GeminiForecastResponse,
   MlReport,
   MlReportJob,
   MlReportJobCreated,
@@ -148,15 +148,15 @@ export async function getLatestTopicForecast(options: ApiOptions = {}): Promise<
   return (await response.json()) as TopicForecast | null;
 }
 
-export async function generateGroqForecast(
-  request: GroqForecastRequest,
+export async function generateGeminiForecast(
+  request: GeminiForecastRequest,
   options: ApiOptions = {},
-): Promise<GroqForecastResponse> {
+): Promise<GeminiForecastResponse> {
   const fetcher = options.fetcher ?? fetch;
 
   let response: Response;
   try {
-    response = await fetcher(`${normalizeBaseUrl(options.baseUrl ?? ANALYSIS_SERVICE_URL)}/api/v1/topic-forecast/groq-predictions`, {
+    response = await fetcher(`${normalizeBaseUrl(options.baseUrl ?? ANALYSIS_SERVICE_URL)}/api/v1/topic-forecast/gemini-predictions`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(request),
@@ -166,8 +166,8 @@ export async function generateGroqForecast(
   }
 
   if (!response.ok) {
-    throw await errorFromResponse(response, "Не удалось сформировать Groq-прогноз");
+    throw await errorFromResponse(response, "Не удалось сформировать прогноз");
   }
 
-  return (await response.json()) as GroqForecastResponse;
+  return (await response.json()) as GeminiForecastResponse;
 }

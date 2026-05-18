@@ -2,13 +2,31 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import pytest
 
+from economic_news_research import modeling
 from economic_news_research.data import load_news_dataset, split_news_dataset
 from economic_news_research.embedding import train_embedding_classifier
 from economic_news_research.modeling import train_baseline_model
 from economic_news_research.tracking import save_model_artifacts, write_model_comparison
 
 FIXTURE = Path(__file__).parent / "fixtures" / "news_impact_sample.csv"
+
+
+@pytest.fixture
+def fixture_safe_baseline_grid(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        modeling,
+        "baseline_param_grid",
+        lambda: {
+            "tfidf__max_features": [100],
+            "tfidf__ngram_range": [(1, 1)],
+            "tfidf__min_df": [1],
+            "tfidf__max_df": [1.0],
+            "tfidf__sublinear_tf": [True],
+            "classifier__C": [1.0],
+        },
+    )
 
 
 class FakeEmbedder:
@@ -26,6 +44,7 @@ class FakeEmbedder:
         return np.array(rows, dtype=float)
 
 
+@pytest.mark.usefixtures("fixture_safe_baseline_grid")
 def test_write_model_comparison_combines_multiple_results(tmp_path: Path) -> None:
     dataset = load_news_dataset(FIXTURE)
     split = split_news_dataset(dataset, random_state=42)
@@ -42,6 +61,7 @@ def test_write_model_comparison_combines_multiple_results(tmp_path: Path) -> Non
     assert "inference_seconds_per_sample" in comparison.columns
 
 
+@pytest.mark.usefixtures("fixture_safe_baseline_grid")
 def test_save_model_artifacts_writes_model_named_files(tmp_path: Path) -> None:
     dataset = load_news_dataset(FIXTURE)
     split = split_news_dataset(dataset, random_state=42)

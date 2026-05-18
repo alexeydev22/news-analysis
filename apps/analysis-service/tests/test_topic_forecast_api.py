@@ -70,7 +70,7 @@ class StubGetLatestTopicForecast(GetLatestTopicForecast):
                     positive_count=1,
                     neutral_count=0,
                     negative_count=0,
-                    forecast="Позитивное влияние; не финансовая рекомендация.",
+                    forecast="Позитивное влияние при сохранении текущих факторов.",
                     arguments=["Рост ВВП поддерживает ожидания."],
                     risks=[],
                     news=[

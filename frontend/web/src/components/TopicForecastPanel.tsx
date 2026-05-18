@@ -1,6 +1,6 @@
 import type {
-  GroqForecastRequest,
-  GroqForecastResponse,
+  GeminiForecastRequest,
+  GeminiForecastResponse,
   ImpactLabel,
   TopicForecast,
   TopicForecastJobStatus,
@@ -13,11 +13,11 @@ type TopicForecastPanelProps = {
   status: TopicForecastJobStatus | null;
   error: string | null;
   isLoading: boolean;
-  groqForecasts: Record<string, GroqForecastResponse>;
-  groqForecastLoadingKeys: Record<string, boolean>;
-  groqForecastError: string | null;
+  geminiForecasts: Record<string, GeminiForecastResponse>;
+  geminiForecastLoadingKeys: Record<string, boolean>;
+  geminiForecastError: string | null;
   onGenerate: () => void;
-  onGenerateGroqForecast: (request: GroqForecastRequest, forecastGeneratedAt: string) => void;
+  onGenerateGeminiForecast: (request: GeminiForecastRequest, forecastGeneratedAt: string) => void;
 };
 
 const STATUS_LABELS: Record<TopicForecastJobStatus, string> = {
@@ -53,7 +53,7 @@ function renderNewsMeta(news: TopicForecastNewsItem): string {
   return parts.join(" · ");
 }
 
-export function groqForecastKey(request: {
+export function geminiForecastKey(request: {
   forecastGeneratedAt: string;
   modelName: string;
   scope: "topic" | "news";
@@ -69,16 +69,15 @@ export function groqForecastKey(request: {
   ].join(":");
 }
 
-function renderGroqForecastResult(result: GroqForecastResponse | undefined) {
+function renderGeminiForecastResult(result: GeminiForecastResponse | undefined) {
   if (!result) {
     return null;
   }
 
   return (
-    <div className={styles.groqForecastResult}>
+    <div className={styles.geminiForecastResult}>
       <strong>{`${result.model_name} · ${result.scope}`}</strong>
       <p>{result.prediction}</p>
-      <small>{result.disclaimer}</small>
     </div>
   );
 }
@@ -88,11 +87,11 @@ export function TopicForecastPanel({
   status,
   error,
   isLoading,
-  groqForecasts,
-  groqForecastLoadingKeys,
-  groqForecastError,
+  geminiForecasts,
+  geminiForecastLoadingKeys,
+  geminiForecastError,
   onGenerate,
-  onGenerateGroqForecast,
+  onGenerateGeminiForecast,
 }: TopicForecastPanelProps) {
   const documentCount = forecast ? metadataValue(forecast, "document_count") : null;
   const fallbackModel = forecast ? (metadataValue(forecast, "model") ?? metadataValue(forecast, "analysis_model")) : null;
@@ -115,9 +114,9 @@ export function TopicForecastPanel({
           {error}
         </p>
       ) : null}
-      {groqForecastError ? (
+      {geminiForecastError ? (
         <p className={styles.errorText} role="alert">
-          {groqForecastError}
+          {geminiForecastError}
         </p>
       ) : null}
 
@@ -133,7 +132,7 @@ export function TopicForecastPanel({
 
               <div className={styles.topicCards}>
                 {modelReport.topics.map((topic) => {
-                  const topicGroqKey = groqForecastKey({
+                  const topicGeminiKey = geminiForecastKey({
                     forecastGeneratedAt: forecast.generated_at,
                     modelName: modelReport.model_name,
                     scope: "topic",
@@ -146,9 +145,9 @@ export function TopicForecastPanel({
                       <div className={styles.forecastActions}>
                         <button
                           type="button"
-                          disabled={Boolean(groqForecastLoadingKeys[topicGroqKey])}
+                          disabled={Boolean(geminiForecastLoadingKeys[topicGeminiKey])}
                           onClick={() =>
-                            onGenerateGroqForecast(
+                            onGenerateGeminiForecast(
                               {
                                 scope: "topic",
                                 model_name: modelReport.model_name,
@@ -159,10 +158,10 @@ export function TopicForecastPanel({
                             )
                           }
                         >
-                          {groqForecastLoadingKeys[topicGroqKey] ? "Формирование Groq-прогноза" : "Groq-прогноз темы"}
+                          {geminiForecastLoadingKeys[topicGeminiKey] ? "Формирование прогноза темы" : "Прогноз темы"}
                         </button>
                       </div>
-                      {renderGroqForecastResult(groqForecasts[topicGroqKey])}
+                      {renderGeminiForecastResult(geminiForecasts[topicGeminiKey])}
                       <ul className={styles.inlineList}>
                         <li>Общее влияние: {IMPACT_LABELS[topic.overall_impact]}</li>
                         <li>Уверенность: {formatMetric(topic.confidence)}</li>
@@ -207,7 +206,7 @@ export function TopicForecastPanel({
                         {topic.news.length > 0 ? (
                           <ul className={styles.newsList}>
                             {topic.news.map((news) => {
-                              const newsGroqKey = groqForecastKey({
+                              const newsGeminiKey = geminiForecastKey({
                                 forecastGeneratedAt: forecast.generated_at,
                                 modelName: modelReport.model_name,
                                 scope: "news",
@@ -220,9 +219,9 @@ export function TopicForecastPanel({
                                   <span>{renderNewsMeta(news)}</span>
                                   <button
                                     type="button"
-                                    disabled={Boolean(groqForecastLoadingKeys[newsGroqKey])}
+                                    disabled={Boolean(geminiForecastLoadingKeys[newsGeminiKey])}
                                     onClick={() =>
-                                      onGenerateGroqForecast(
+                                      onGenerateGeminiForecast(
                                         {
                                           scope: "news",
                                           model_name: modelReport.model_name,
@@ -233,11 +232,11 @@ export function TopicForecastPanel({
                                       )
                                     }
                                   >
-                                    {groqForecastLoadingKeys[newsGroqKey]
-                                      ? "Формирование Groq-прогноза"
-                                      : "Groq-прогноз новости"}
+                                    {geminiForecastLoadingKeys[newsGeminiKey]
+                                      ? "Формирование прогноза новости"
+                                      : "Прогноз новости"}
                                   </button>
-                                  {renderGroqForecastResult(groqForecasts[newsGroqKey])}
+                                  {renderGeminiForecastResult(geminiForecasts[newsGeminiKey])}
                                 </li>
                               );
                             })}

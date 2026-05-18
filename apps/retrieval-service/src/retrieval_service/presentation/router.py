@@ -26,6 +26,7 @@ from retrieval_service.domain.model import NewsDocument, SearchQuery, SearchResu
 from retrieval_service.main.settings import RetrievalServiceSettings
 
 router = APIRouter(prefix="/api/v1")
+MAX_DOCUMENT_LIST_LIMIT = 50_000
 
 
 @router.post("/index")
@@ -84,7 +85,10 @@ async def list_documents(
     limit: int = 100,
     source: str | None = None,
 ) -> ListIndexedDocumentsResponse:
-    documents = await use_case.execute(limit=min(max(limit, 1), 500), source=source)
+    documents = await use_case.execute(
+        limit=min(max(limit, 1), MAX_DOCUMENT_LIST_LIMIT),
+        source=source,
+    )
     return ListIndexedDocumentsResponse(
         documents=[_to_indexed_document(document) for document in documents],
     )

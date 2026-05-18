@@ -103,6 +103,27 @@ function renderConfusionMatrix(model: MlReportModel | null) {
   );
 }
 
+function renderPerClassMetrics(model: MlReportModel | null) {
+  const entries = Object.entries(model?.per_class ?? {});
+
+  if (entries.length === 0) {
+    return null;
+  }
+
+  return (
+    <section>
+      <h3>Качество по классам</h3>
+      <ul className={styles.inlineList}>
+        {entries.map(([label, metrics]) => (
+          <li key={label}>
+            {label}: recall {formatMetric(metrics.recall)}, F1 {formatMetric(metrics.f1)}
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 export function MlReportPanel({ report, status, error, isLoading, onGenerate }: MlReportPanelProps) {
   const displayModel = report ? getDisplayModel(report) : null;
 
@@ -154,6 +175,7 @@ export function MlReportPanel({ report, status, error, isLoading, onGenerate }: 
 
           <h3>Матрица ошибок</h3>
           {renderConfusionMatrix(displayModel)}
+          {renderPerClassMetrics(displayModel)}
 
           <h3>Топ-признаки tfidf-logreg</h3>
           {renderTopFeatures(report)}

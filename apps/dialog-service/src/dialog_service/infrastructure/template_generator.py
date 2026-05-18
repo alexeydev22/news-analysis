@@ -48,8 +48,7 @@ class TemplateDialogGenerator:
         if not context:
             return (
                 f'По вопросу "{question.value}" релевантные новости не найдены. '
-                "Экономический вывод ограничен доступным контекстом и не является "
-                "финансовой рекомендацией."
+                "Экономический вывод ограничен доступным контекстом."
             )
 
         lines = [
@@ -72,10 +71,7 @@ class TemplateDialogGenerator:
                     f"- {item.title}: влияние={impact}, уверенность={confidence}. "
                     f"{summary.explanation}",
                 )
-        lines.append(
-            "Это аналитическая оценка на основе найденных новостей и не является "
-            "финансовой рекомендацией.",
-        )
+        lines.append("Сценарий может измениться при появлении новых макроэкономических данных.")
         return "\n".join(lines)
 
     def _summaries_by_news_id(

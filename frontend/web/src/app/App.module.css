@@ -283,7 +283,7 @@
   font-size: 0.86rem;
 }
 
-.groqForecastResult {
+.geminiForecastResult {
   display: grid;
   gap: 4px;
   border-left: 3px solid #7f9f92;
@@ -291,17 +291,17 @@
   padding: 9px 11px;
 }
 
-.groqForecastResult strong {
+.geminiForecastResult strong {
   color: #26332d;
   font-size: 0.82rem;
 }
 
-.groqForecastResult p {
+.geminiForecastResult p {
   margin: 0;
   line-height: 1.4;
 }
 
-.groqForecastResult small {
+.geminiForecastResult small {
   color: #4e6258;
   line-height: 1.35;
 }

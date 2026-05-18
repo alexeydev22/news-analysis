@@ -6,8 +6,8 @@ from economic_news_contracts.analysis import (
     AnalysisModelName,
     EnqueueMlReportJobResponse,
     EnqueueTopicForecastJobResponse,
-    GroqForecastRequest,
-    GroqForecastResponse,
+    GeminiForecastRequest,
+    GeminiForecastResponse,
     MlReportJobResponse,
     MlReportJobStatus,
     TopicForecastJobResponse,
@@ -105,11 +105,11 @@ class GetLatestTopicForecast:
         return await self._storage.get_latest_report()
 
 
-class GenerateGroqTopicForecast:
+class GenerateGeminiTopicForecast:
     def __init__(self, generator: EconomicForecastGenerator) -> None:
         self._generator = generator
 
-    async def execute(self, request: GroqForecastRequest) -> GroqForecastResponse:
+    async def execute(self, request: GeminiForecastRequest) -> GeminiForecastResponse:
         return await self._generator.generate(request)
 
 

@@ -1,6 +1,9 @@
+import asyncio
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from pathlib import Path
 
+import analysis_service.workers.tasks as ml_report_tasks
 from analysis_service.application.use_cases import (
     EnqueueMlReportJob,
     GetLatestMlReport,
@@ -188,3 +191,72 @@ def test_get_latest_ml_report_endpoint_returns_report() -> None:
     assert response.status_code == 200
     assert response.json()["dataset"]["row_count"] == 9
     assert response.json()["models"][0]["model_name"] == "tfidf-logreg"
+
+
+def test_generate_ml_report_task_retrains_transformer_when_artifacts_exist(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    calls: list[str] = []
+    transformer_dir = tmp_path / "transformer"
+    transformer_dir.mkdir()
+    transformer_artifact_path = transformer_dir / "model.joblib"
+    transformer_artifact_path.write_text("stale model", encoding="utf-8")
+    (transformer_dir / "model_comparison.csv").write_text("stale comparison", encoding="utf-8")
+
+    class Settings:
+        ml_report_jobs_dir = tmp_path / "jobs"
+        ml_report_output_path = tmp_path / "model-report.json"
+        ml_dataset_path = tmp_path / "dataset.csv"
+        tfidf_artifact_path = tmp_path / "tfidf" / "model.joblib"
+        embedding_artifact_path = tmp_path / "embedding" / "model.joblib"
+        ml_random_state = 42
+        ml_train_max_rows = 100
+        ml_embedding_max_rows = 75
+        ml_transformer_max_rows = 50
+        ml_comparison_path = tmp_path / "comparison.csv"
+
+    Settings.transformer_artifact_path = transformer_artifact_path
+
+    class Storage:
+        def __init__(self, *, jobs_dir: Path, latest_report_path: Path) -> None:
+            self.jobs_dir = jobs_dir
+            self.latest_report_path = latest_report_path
+
+        async def save_job(self, response: MlReportJobResponse) -> None:
+            calls.append(f"job:{response.status}")
+
+    def record_training_call(name: str):
+        def _record(**kwargs: object) -> None:
+            calls.append(f"{name}:{kwargs.get('max_rows')}")
+
+        return _record
+
+    def record_report_call(**kwargs: object) -> Path:
+        calls.append("report")
+        return Settings.ml_report_output_path
+
+    monkeypatch.setattr(ml_report_tasks, "AnalysisServiceSettings", Settings)
+    monkeypatch.setattr(ml_report_tasks, "JsonMlReportStorage", Storage)
+    monkeypatch.setattr(ml_report_tasks, "run_train_baseline", record_training_call("baseline"))
+    monkeypatch.setattr(ml_report_tasks, "run_train_embedding", record_training_call("embedding"))
+    monkeypatch.setattr(
+        ml_report_tasks,
+        "run_train_transformer",
+        record_training_call("transformer"),
+    )
+    monkeypatch.setattr(ml_report_tasks, "run_compare_models", record_training_call("compare"))
+    monkeypatch.setattr(ml_report_tasks, "run_build_model_report", record_report_call)
+
+    result = asyncio.run(ml_report_tasks.generate_ml_report_task.original_func("job-1"))
+
+    assert result == {"report_path": str(Settings.ml_report_output_path)}
+    assert calls == [
+        f"job:{MlReportJobStatus.STARTED}",
+        "baseline:100",
+        "embedding:75",
+        "transformer:50",
+        "compare:None",
+        "report",
+        f"job:{MlReportJobStatus.SUCCEEDED}",
+    ]

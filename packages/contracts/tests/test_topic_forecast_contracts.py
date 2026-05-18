@@ -1,6 +1,7 @@
 from economic_news_contracts.analysis import (
     EnqueueTopicForecastJobResponse,
     ImpactLabel,
+    MlReportResponse,
     TopicForecastItemResponse,
     TopicForecastJobResponse,
     TopicForecastJobStatus,
@@ -48,6 +49,64 @@ def test_retrieval_neighbor_contracts_validate_payloads() -> None:
     assert response.groups[0].neighbors[0].score == 0.87
 
 
+def test_ml_report_contract_validates_training_limits_and_label_quality() -> None:
+    response = MlReportResponse.model_validate(
+        {
+            "generated_at": "2026-05-12T10:00:00Z",
+            "dataset": {
+                "path": "data/raw/news_impact.csv",
+                "row_count": 50_000,
+                "class_distribution": {
+                    "positive": 20_000,
+                    "neutral": 18_000,
+                    "negative": 12_000,
+                },
+                "label_quality": {
+                    "label_source": "generated",
+                    "low_margin_count": 42,
+                    "average_margin": 0.74,
+                },
+            },
+            "training": {
+                "classic_max_rows": 20_000,
+                "embedding_max_rows": 5_000,
+                "transformer_max_rows": 5_000,
+            },
+            "models": [
+                {
+                    "model_name": "tfidf-logreg",
+                    "validation_accuracy": 0.91,
+                    "validation_macro_f1": 0.89,
+                    "test_accuracy": 0.9,
+                    "test_macro_f1": 0.88,
+                    "inference_seconds_per_sample": 0.004,
+                    "confusion_matrix": {
+                        "labels": ["positive", "neutral", "negative"],
+                        "matrix": [
+                            [42, 5, 3],
+                            [4, 38, 3],
+                            [2, 3, 20],
+                        ],
+                    },
+                    "per_class": {
+                        "positive": {"precision": 0.875, "recall": 0.84, "f1": 0.875},
+                    },
+                },
+            ],
+            "best_model": None,
+            "top_features": {},
+        },
+    )
+
+    assert response.training.classic_max_rows == 20_000
+    assert response.training.embedding_max_rows == 5_000
+    assert response.training.transformer_max_rows == 5_000
+    assert response.dataset.label_quality is not None
+    assert response.dataset.label_quality.label_source == "generated"
+    assert response.dataset.label_quality.low_margin_count == 42
+    assert response.dataset.label_quality.average_margin == 0.74
+
+
 def test_topic_forecast_contracts_validate_payloads() -> None:
     news = TopicForecastNewsItemResponse(
         id="news-1",
@@ -66,10 +125,7 @@ def test_topic_forecast_contracts_validate_payloads() -> None:
         positive_count=2,
         neutral_count=1,
         negative_count=0,
-        forecast=(
-            "Вероятно положительное влияние. "
-            "Это аналитическая оценка, не финансовая рекомендация."
-        ),
+        forecast="Вероятно положительное влияние при сохранении текущих факторов.",
         arguments=["Доля positive-сигналов выше остальных."],
         risks=["Сигналы могут измениться после новых данных."],
         news=[news],

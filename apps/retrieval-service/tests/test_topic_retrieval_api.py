@@ -21,6 +21,14 @@ def test_list_documents_endpoint_returns_indexed_documents() -> None:
     }
 
 
+def test_list_documents_endpoint_accepts_large_forecast_limit() -> None:
+    with TestClient(create_app(use_fake_components=True)) as client:
+        response = client.get("/api/v1/documents?limit=10000")
+
+    assert response.status_code == 200
+    assert len(response.json()["documents"]) == 1
+
+
 def test_neighbors_endpoint_returns_groups() -> None:
     with TestClient(create_app(use_fake_components=True)) as client:
         response = client.post(

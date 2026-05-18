@@ -75,6 +75,14 @@ class MlConfusionMatrixResponse(BaseModel):
     matrix: list[list[int]]
 
 
+class MlPerClassMetricResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    precision: float = Field(ge=0.0, le=1.0)
+    recall: float = Field(ge=0.0, le=1.0)
+    f1: float = Field(ge=0.0, le=1.0)
+
+
 class MlModelReportItemResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -85,6 +93,15 @@ class MlModelReportItemResponse(BaseModel):
     test_macro_f1: float | None = None
     inference_seconds_per_sample: float | None = None
     confusion_matrix: MlConfusionMatrixResponse | None = None
+    per_class: dict[str, MlPerClassMetricResponse] = Field(default_factory=dict)
+
+
+class MlLabelQualityReportResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    label_source: str = Field(min_length=1)
+    low_margin_count: int | None = Field(default=None, ge=0)
+    average_margin: float | None = None
 
 
 class MlDatasetReportResponse(BaseModel):
@@ -93,6 +110,15 @@ class MlDatasetReportResponse(BaseModel):
     path: str
     row_count: int = Field(ge=0)
     class_distribution: dict[str, int]
+    label_quality: MlLabelQualityReportResponse | None = None
+
+
+class MlTrainingLimitsResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    classic_max_rows: int | None = Field(default=None, ge=0)
+    embedding_max_rows: int | None = Field(default=None, ge=0)
+    transformer_max_rows: int | None = Field(default=None, ge=0)
 
 
 class MlReportResponse(BaseModel):
@@ -100,6 +126,7 @@ class MlReportResponse(BaseModel):
 
     generated_at: str
     dataset: MlDatasetReportResponse
+    training: MlTrainingLimitsResponse = Field(default_factory=MlTrainingLimitsResponse)
     models: list[MlModelReportItemResponse]
     best_model: MlModelReportItemResponse | None = None
     top_features: dict[str, dict[str, list[str]]] = Field(default_factory=dict)
@@ -156,37 +183,34 @@ class TopicForecastItemResponse(BaseModel):
     news: list[TopicForecastNewsItemResponse] = Field(default_factory=list)
 
 
-class GroqForecastScope(StrEnum):
+class GeminiForecastScope(StrEnum):
     TOPIC = "topic"
     NEWS = "news"
 
 
-class GroqForecastRequest(BaseModel):
+class GeminiForecastRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    scope: GroqForecastScope
+    scope: GeminiForecastScope
     model_name: str = Field(min_length=1)
     topic: TopicForecastItemResponse
     news_id: str | None = None
 
     @model_validator(mode="after")
-    def validate_news_scope_target(self) -> "GroqForecastRequest":
-        if self.scope == GroqForecastScope.NEWS and self.news_id is None:
+    def validate_news_scope_target(self) -> "GeminiForecastRequest":
+        if self.scope == GeminiForecastScope.NEWS and self.news_id is None:
             raise ValueError("news_id is required for news scope")
         return self
 
 
-class GroqForecastResponse(BaseModel):
+class GeminiForecastResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     provider: str = Field(min_length=1)
     model_name: str = Field(min_length=1)
-    scope: GroqForecastScope
+    scope: GeminiForecastScope
     target_id: str = Field(min_length=1)
     prediction: str = Field(min_length=1)
-    disclaimer: str = Field(
-        default="Это аналитический сценарий, а не финансовая рекомендация.",
-    )
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 

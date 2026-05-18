@@ -5,6 +5,7 @@ from dishka.integrations.fastapi import FastapiProvider
 
 from dialog_service.application.ports import DialogGenerator
 from dialog_service.application.use_cases import GenerateDialogAnswer
+from dialog_service.infrastructure.fallback_generator import FallbackDialogGenerator
 from dialog_service.infrastructure.llm_generator import LlmDialogGenerator
 from dialog_service.infrastructure.prompt_builder import DialogPromptBuilder
 from dialog_service.infrastructure.template_generator import TemplateDialogGenerator
@@ -31,7 +32,7 @@ class DialogServiceProvider(Provider):
         prompt_builder: DialogPromptBuilder,
     ) -> DialogGenerator:
         if settings.generator_kind == DialogGeneratorKind.LLM:
-            return LlmDialogGenerator(
+            primary = LlmDialogGenerator(
                 base_url=str(settings.llm_base_url),
                 model_name=settings.llm_model,
                 timeout_seconds=settings.llm_timeout_seconds,
@@ -39,20 +40,28 @@ class DialogServiceProvider(Provider):
                 max_tokens=settings.llm_max_tokens,
                 prompt_builder=prompt_builder,
             )
-        if settings.generator_kind == DialogGeneratorKind.GROQ:
-            return LlmDialogGenerator(
-                base_url=str(settings.groq_base_url),
-                model_name=settings.groq_model,
+            return FallbackDialogGenerator(
+                primary=primary,
+                fallback=TemplateDialogGenerator(model_name=settings.generator_name),
+            )
+        if settings.generator_kind == DialogGeneratorKind.GEMINI:
+            primary = LlmDialogGenerator(
+                base_url=str(settings.gemini_base_url),
+                model_name=settings.gemini_model,
                 timeout_seconds=settings.llm_timeout_seconds,
                 temperature=settings.llm_temperature,
                 max_tokens=settings.llm_max_tokens,
                 api_key=(
-                    settings.groq_api_key.get_secret_value()
-                    if settings.groq_api_key
+                    settings.gemini_api_key.get_secret_value()
+                    if settings.gemini_api_key
                     else None
                 ),
-                generator_kind="groq",
+                generator_kind="gemini",
                 prompt_builder=prompt_builder,
+            )
+            return FallbackDialogGenerator(
+                primary=primary,
+                fallback=TemplateDialogGenerator(model_name=settings.generator_name),
             )
         return TemplateDialogGenerator(model_name=settings.generator_name)
 

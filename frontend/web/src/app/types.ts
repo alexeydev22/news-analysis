@@ -107,6 +107,19 @@ export type MlReportModel = {
     labels: string[];
     matrix: number[][];
   } | null;
+  per_class?: Record<string, { precision: number; recall: number; f1: number }>;
+};
+
+export type MlTrainingLimits = {
+  classic_max_rows: number | null;
+  embedding_max_rows: number | null;
+  transformer_max_rows: number | null;
+};
+
+export type MlLabelQuality = {
+  label_source: string;
+  low_margin_count?: number | null;
+  average_margin?: number | null;
 };
 
 export type MlReport = {
@@ -115,7 +128,9 @@ export type MlReport = {
     path: string;
     row_count: number;
     class_distribution: Record<string, number>;
+    label_quality?: MlLabelQuality | null;
   };
+  training: MlTrainingLimits;
   models: MlReportModel[];
   best_model: MlReportModel | null;
   top_features: Record<string, Record<string, string[]>>;
@@ -158,21 +173,20 @@ export type TopicForecast = {
   metadata: Record<string, unknown>;
 };
 
-export type GroqForecastScope = "topic" | "news";
+export type GeminiForecastScope = "topic" | "news";
 
-export type GroqForecastRequest = {
-  scope: GroqForecastScope;
+export type GeminiForecastRequest = {
+  scope: GeminiForecastScope;
   model_name: string;
   topic: TopicForecastTopic;
   news_id: string | null;
 };
 
-export type GroqForecastResponse = {
+export type GeminiForecastResponse = {
   provider: string;
   model_name: string;
-  scope: GroqForecastScope;
+  scope: GeminiForecastScope;
   target_id: string;
   prediction: string;
-  disclaimer: string;
   metadata: Record<string, unknown>;
 };

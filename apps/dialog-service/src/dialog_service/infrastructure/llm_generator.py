@@ -1,3 +1,4 @@
+import re
 from collections.abc import Callable, Mapping, Sequence
 from typing import Any, Protocol, cast
 
@@ -13,6 +14,7 @@ from dialog_service.domain.model import (
 from dialog_service.infrastructure.prompt_builder import DialogPromptBuilder
 
 _UNAVAILABLE_MESSAGE = "dialog llm is unavailable"
+_MAX_ATTEMPTS = 2
 
 
 class _ZaprosResponse(Protocol):
@@ -61,17 +63,7 @@ class LlmDialogGenerator:
         language: str,
     ) -> DialogGeneration:
         payload = self._build_payload(question, context, impact_summaries, language)
-        response = await self._post(payload)
-        if response.status >= 400:
-            raise DialogGeneratorUnavailableError(_UNAVAILABLE_MESSAGE)
-
-        try:
-            await response.aread()
-            content = self._parse_content(response.json)
-        except DialogGeneratorUnavailableError:
-            raise
-        except Exception as error:
-            raise DialogGeneratorUnavailableError(_UNAVAILABLE_MESSAGE) from error
+        content = await self._generate_content(payload)
         return DialogGeneration(
             answer=content,
             used_context_ids=[item.id for item in context],
@@ -82,6 +74,34 @@ class LlmDialogGenerator:
                 "context_count": len(context),
                 "impact_summary_count": len(impact_summaries),
             },
+        )
+
+    async def _generate_content(self, payload: dict[str, object]) -> str:
+        last_error: Exception | None = None
+        for attempt_number in range(_MAX_ATTEMPTS):
+            try:
+                response = await self._post(payload)
+                if response.status >= 400:
+                    if self._can_retry_status(response.status, attempt_number):
+                        continue
+                    raise DialogGeneratorUnavailableError(_UNAVAILABLE_MESSAGE)
+
+                await response.aread()
+                return self._parse_content(response.json)
+            except DialogGeneratorUnavailableError as error:
+                last_error = error
+                if attempt_number + 1 >= _MAX_ATTEMPTS:
+                    raise
+            except Exception as error:
+                last_error = error
+                if attempt_number + 1 >= _MAX_ATTEMPTS:
+                    raise DialogGeneratorUnavailableError(_UNAVAILABLE_MESSAGE) from error
+
+        raise DialogGeneratorUnavailableError(_UNAVAILABLE_MESSAGE) from last_error
+
+    def _can_retry_status(self, status: int, attempt_number: int) -> bool:
+        return attempt_number + 1 < _MAX_ATTEMPTS and (
+            status == 429 or 500 <= status < 600
         )
 
     def _build_payload(
@@ -105,7 +125,7 @@ class LlmDialogGenerator:
         }
 
     async def _post(self, payload: dict[str, object]) -> _ZaprosResponse:
-        url = f"{self._base_url}/v1/chat/completions"
+        url = self._chat_completions_url()
         headers = self._headers()
         try:
             if self._client is not None:
@@ -122,6 +142,11 @@ class LlmDialogGenerator:
             raise
         except Exception as error:
             raise DialogGeneratorUnavailableError(_UNAVAILABLE_MESSAGE) from error
+
+    def _chat_completions_url(self) -> str:
+        if self._base_url.endswith("/openai"):
+            return f"{self._base_url}/chat/completions"
+        return f"{self._base_url}/v1/chat/completions"
 
     def _headers(self) -> dict[str, str] | None:
         if self._api_key is None:
@@ -143,10 +168,24 @@ class LlmDialogGenerator:
         if not isinstance(content, str):
             raise DialogGeneratorUnavailableError(_UNAVAILABLE_MESSAGE)
 
-        answer = content.strip()
+        answer = self._remove_thinking_blocks(content).strip()
         if not answer:
             raise DialogGeneratorUnavailableError(_UNAVAILABLE_MESSAGE)
         return answer
+
+    def _remove_thinking_blocks(self, content: str) -> str:
+        without_closed_blocks = re.sub(
+            r"<think>.*?</think>",
+            "",
+            content,
+            flags=re.DOTALL | re.IGNORECASE,
+        )
+        return re.sub(
+            r"<think>.*$",
+            "",
+            without_closed_blocks,
+            flags=re.DOTALL | re.IGNORECASE,
+        )
 
     def _field(self, value: object, field_name: str) -> object:
         if not isinstance(value, Mapping):

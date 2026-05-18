@@ -17,6 +17,7 @@ def build_model_report(
     dataset_path: Path,
     comparison_path: Path,
     model_dirs: list[Path],
+    training_limits: dict[str, int | None] | None = None,
 ) -> dict[str, Any]:
     """Собирает JSON-совместимый отчет по обученным ML-моделям."""
     dataset = load_news_dataset(dataset_path)
@@ -31,7 +32,9 @@ def build_model_report(
             "path": str(dataset_path),
             "row_count": int(len(dataset)),
             "class_distribution": _class_distribution(dataset),
+            "label_quality": _label_quality(dataset),
         },
+        "training": training_limits or {},
         "models": models,
         "best_model": _best_model(models),
         "top_features": _top_features(model_dirs=model_dirs),
@@ -52,8 +55,21 @@ def _class_distribution(dataset: pd.DataFrame) -> dict[str, int]:
     return {label: int(counts.get(label, 0)) for label in IMPACT_LABELS}
 
 
+def _label_quality(dataset: pd.DataFrame) -> dict[str, Any]:
+    if "weak_label_margin" not in dataset.columns:
+        return {"label_source": "provided"}
+
+    margins = pd.to_numeric(dataset["weak_label_margin"], errors="coerce")
+    return {
+        "label_source": "weak_rules",
+        "low_margin_count": int((margins <= 1).sum()),
+        "average_margin": float(margins.mean()),
+    }
+
+
 def _build_model_section(row: dict[str, Any], model_dirs: list[Path]) -> dict[str, Any]:
     model_name = str(row["model_name"])
+    metrics = _read_metrics_json(model_name=model_name, model_dirs=model_dirs)
     return {
         "model_name": model_name,
         "validation_accuracy": _float_or_none(row.get("validation_accuracy")),
@@ -67,6 +83,7 @@ def _build_model_section(row: dict[str, Any], model_dirs: list[Path]) -> dict[st
             model_name=model_name,
             model_dirs=model_dirs,
         ),
+        "per_class": metrics.get("test_per_class", {}) if metrics else {},
     }
 
 
@@ -96,6 +113,16 @@ def _read_confusion_matrix(
             for row in matrix.loc[:, labels].to_numpy().tolist()
         ],
     }
+
+
+def _read_metrics_json(*, model_name: str, model_dirs: list[Path]) -> dict[str, Any] | None:
+    metrics_path = _find_existing_file(
+        model_dirs=model_dirs,
+        filename=f"{model_name}_metrics.json",
+    )
+    if metrics_path is None:
+        return None
+    return json.loads(metrics_path.read_text(encoding="utf-8"))
 
 
 def _best_model(models: list[dict[str, Any]]) -> dict[str, Any] | None:

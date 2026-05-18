@@ -2,8 +2,8 @@ from typing import Protocol
 
 from economic_news_contracts.analysis import (
     AnalysisModelName,
-    GroqForecastRequest,
-    GroqForecastResponse,
+    GeminiForecastRequest,
+    GeminiForecastResponse,
     MlReportJobResponse,
     TopicForecastJobResponse,
     TopicForecastResponse,
@@ -76,7 +76,7 @@ class TopicForecastTaskQueue(Protocol):
 
 
 class EconomicForecastGenerator(Protocol):
-    async def generate(self, request: GroqForecastRequest) -> GroqForecastResponse:
+    async def generate(self, request: GeminiForecastRequest) -> GeminiForecastResponse:
         """Generate an LLM-based economic forecast for a topic or one news item."""
         ...
 

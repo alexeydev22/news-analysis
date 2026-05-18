@@ -18,24 +18,46 @@ def build_baseline_pipeline(
     max_features: int,
     c_value: float,
     ngram_range: tuple[int, int],
+    min_df: int = 2,
+    max_df: float = 0.95,
+    sublinear_tf: bool = True,
 ) -> Pipeline:
     return Pipeline(
         steps=[
             (
                 "tfidf",
-                TfidfVectorizer(max_features=max_features, ngram_range=ngram_range),
+                TfidfVectorizer(
+                    max_features=max_features,
+                    ngram_range=ngram_range,
+                    min_df=min_df,
+                    max_df=max_df,
+                    sublinear_tf=sublinear_tf,
+                    strip_accents="unicode",
+                    lowercase=True,
+                ),
             ),
             (
                 "classifier",
                 LogisticRegression(
                     C=c_value,
-                    max_iter=1000,
+                    max_iter=1500,
                     class_weight="balanced",
                     random_state=42,
                 ),
             ),
         ],
     )
+
+
+def baseline_param_grid() -> dict[str, list[object]]:
+    return {
+        "tfidf__max_features": [20_000, 50_000],
+        "tfidf__ngram_range": [(1, 2)],
+        "tfidf__min_df": [2],
+        "tfidf__max_df": [0.95],
+        "tfidf__sublinear_tf": [True],
+        "classifier__C": [1.0, 3.0],
+    }
 
 
 def train_baseline_model(
@@ -46,11 +68,7 @@ def train_baseline_model(
     estimator = _build_training_pipeline(random_state=random_state)
     search = GridSearchCV(
         estimator=estimator,
-        param_grid={
-            "tfidf__max_features": [100, 1000],
-            "tfidf__ngram_range": [(1, 1), (1, 2)],
-            "classifier__C": [0.1, 1.0, 10.0],
-        },
+        param_grid=baseline_param_grid(),
         scoring="f1_macro",
         cv=safe_cv(split.train["impact"].tolist(), random_state=random_state),
         n_jobs=1,
@@ -84,9 +102,12 @@ def train_baseline_model(
 
 def _build_training_pipeline(*, random_state: int) -> Pipeline:
     pipeline = build_baseline_pipeline(
-        max_features=100,
+        max_features=20_000,
         c_value=1.0,
-        ngram_range=(1, 1),
+        ngram_range=(1, 2),
+        min_df=2,
+        max_df=0.95,
+        sublinear_tf=True,
     )
     classifier = pipeline.named_steps["classifier"]
     classifier.set_params(random_state=random_state)

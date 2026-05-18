@@ -8,7 +8,7 @@ from pydantic_settings import SettingsConfigDict
 class DialogGeneratorKind(StrEnum):
     TEMPLATE = "template"
     LLM = "llm"
-    GROQ = "groq"
+    GEMINI = "gemini"
 
 
 class DialogServiceSettings(BaseServiceSettings):
@@ -28,11 +28,13 @@ class DialogServiceSettings(BaseServiceSettings):
     llm_timeout_seconds: float = Field(default=30.0, gt=0.0)
     llm_temperature: float = Field(default=0.2, ge=0.0, le=2.0)
     llm_max_tokens: int = Field(default=512, ge=1, le=4096)
-    groq_base_url: AnyHttpUrl = AnyHttpUrl("https://api.groq.com/openai")
-    groq_model: str = Field(default="qwen/qwen3-32b", min_length=1)
-    groq_api_key: SecretStr | None = None
+    gemini_base_url: AnyHttpUrl = AnyHttpUrl(
+        "https://generativelanguage.googleapis.com/v1beta/openai",
+    )
+    gemini_model: str = Field(default="gemini-2.5-flash", min_length=1)
+    gemini_api_key: SecretStr | None = None
 
-    @field_validator("llm_model", "groq_model")
+    @field_validator("llm_model", "gemini_model")
     @classmethod
     def validate_model_name(cls, value: str) -> str:
         stripped_value = value.strip()
@@ -41,7 +43,7 @@ class DialogServiceSettings(BaseServiceSettings):
             raise ValueError(msg)
         return stripped_value
 
-    @field_validator("groq_base_url")
+    @field_validator("gemini_base_url")
     @classmethod
-    def normalize_groq_base_url(cls, value: AnyHttpUrl) -> AnyHttpUrl:
+    def normalize_gemini_base_url(cls, value: AnyHttpUrl) -> AnyHttpUrl:
         return AnyHttpUrl(f"{str(value).rstrip('/')}/")

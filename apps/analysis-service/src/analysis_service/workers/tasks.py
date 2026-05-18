@@ -44,17 +44,14 @@ async def generate_ml_report_task(
             dataset_path=selected_dataset_path,
             output_dir=settings.embedding_artifact_path.parent,
             random_state=settings.ml_random_state,
-            max_rows=settings.ml_train_max_rows,
+            max_rows=settings.ml_embedding_max_rows,
         )
-        if not _has_model_report_artifacts(
-            artifact_path=settings.transformer_artifact_path,
-        ):
-            run_train_transformer(
-                dataset_path=selected_dataset_path,
-                output_dir=settings.transformer_artifact_path.parent,
-                random_state=settings.ml_random_state,
-                max_rows=settings.ml_transformer_max_rows,
-            )
+        run_train_transformer(
+            dataset_path=selected_dataset_path,
+            output_dir=settings.transformer_artifact_path.parent,
+            random_state=settings.ml_random_state,
+            max_rows=settings.ml_transformer_max_rows,
+        )
         run_compare_models(
             comparison_paths=[
                 settings.tfidf_artifact_path.parent / "model_comparison.csv",
@@ -72,6 +69,11 @@ async def generate_ml_report_task(
                 settings.transformer_artifact_path.parent,
             ],
             output_path=settings.ml_report_output_path,
+            training_limits={
+                "classic_max_rows": settings.ml_train_max_rows,
+                "embedding_max_rows": settings.ml_embedding_max_rows,
+                "transformer_max_rows": settings.ml_transformer_max_rows,
+            },
         )
     except Exception as error:
         await storage.save_job(
@@ -126,8 +128,3 @@ def _build_topic_forecast_report_use_case(
         max_topic_size=settings.topic_forecast_max_topic_size,
         report_path=settings.topic_forecast_output_path,
     )
-
-
-def _has_model_report_artifacts(*, artifact_path: Path) -> bool:
-    artifact_dir = artifact_path.parent
-    return artifact_path.exists() and (artifact_dir / "model_comparison.csv").exists()
