@@ -229,13 +229,14 @@ def set_cell_margins(cell, top: int = 120, start: int = 120, bottom: int = 120, 
         node.set(qn("w:type"), "dxa")
 
 
-def style_run(run, size: int = 14, bold: bool = False) -> None:
+def style_run(run, size: int = 12, bold: bool = False, italic: bool = False) -> None:
     run.font.name = "Times New Roman"
     run._element.rPr.rFonts.set(qn("w:ascii"), "Times New Roman")
     run._element.rPr.rFonts.set(qn("w:hAnsi"), "Times New Roman")
     run._element.rPr.rFonts.set(qn("w:cs"), "Times New Roman")
     run.font.size = Pt(size)
     run.bold = bold
+    run.italic = italic
 
 
 def set_cell_text(cell, text: str, bold: bool = False, size: int = 11) -> None:
@@ -296,7 +297,7 @@ def add_caption(doc: Document, text: str) -> None:
     caption.paragraph_format.space_before = Pt(3)
     caption.paragraph_format.space_after = Pt(8)
     run = caption.add_run(text)
-    style_run(run, size=12)
+    style_run(run, size=11)
 
 
 def add_picture(doc: Document, path: Path, caption: str, width: float = 6.3) -> None:
@@ -338,17 +339,17 @@ def configure_doc(doc: Document, facts: dict[str, Any]) -> None:
     normal._element.rPr.rFonts.set(qn("w:ascii"), "Times New Roman")
     normal._element.rPr.rFonts.set(qn("w:hAnsi"), "Times New Roman")
     normal._element.rPr.rFonts.set(qn("w:cs"), "Times New Roman")
-    normal.font.size = Pt(14)
-    normal.paragraph_format.space_after = Pt(0)
+    normal.font.size = Pt(12)
+    normal.paragraph_format.space_after = Pt(6)
     normal.paragraph_format.first_line_indent = Cm(1.25)
     normal.paragraph_format.line_spacing = 1.5
     normal.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
 
     for name, size, color, before, after, align in [
         ("Title", 16, INK, 0, 12, WD_ALIGN_PARAGRAPH.CENTER),
-        ("Heading 1", 14, INK, 18, 8, WD_ALIGN_PARAGRAPH.CENTER),
-        ("Heading 2", 14, INK, 12, 6, WD_ALIGN_PARAGRAPH.LEFT),
-        ("Heading 3", 14, INK, 10, 4, WD_ALIGN_PARAGRAPH.LEFT),
+        ("Heading 1", 14, INK, 10, 6, WD_ALIGN_PARAGRAPH.LEFT),
+        ("Heading 2", 13, INK, 10, 6, WD_ALIGN_PARAGRAPH.LEFT),
+        ("Heading 3", 12, INK, 10, 4, WD_ALIGN_PARAGRAPH.LEFT),
     ]:
         style = styles[name]
         style.font.name = "Times New Roman"
@@ -369,91 +370,102 @@ def configure_doc(doc: Document, facts: dict[str, Any]) -> None:
         list_style._element.rPr.rFonts.set(qn("w:ascii"), "Times New Roman")
         list_style._element.rPr.rFonts.set(qn("w:hAnsi"), "Times New Roman")
         list_style._element.rPr.rFonts.set(qn("w:cs"), "Times New Roman")
-        list_style.font.size = Pt(14)
+        list_style.font.size = Pt(12)
 
-    student = facts["student"]
     header = section.header.paragraphs[0]
-    header.text = "Пояснительная записка к курсовой работе"
-    header.runs[0].font.name = "Times New Roman"
-    header.runs[0].font.size = Pt(10)
-    header.runs[0].font.color.rgb = RGBColor.from_string(MUTED)
+    header.text = ""
 
     footer = section.footer.paragraphs[0]
-    footer.text = f"{student['name']}, {student['group']}"
-    footer.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-    footer.runs[0].font.name = "Times New Roman"
-    footer.runs[0].font.size = Pt(10)
-    footer.runs[0].font.color.rgb = RGBColor.from_string(MUTED)
+    footer.text = ""
 
 
 def add_title_page(doc: Document, facts: dict[str, Any]) -> None:
     student = facts["student"]
     coursework = facts["coursework"]
-    rows = [
-        student["university"],
-        student["department"],
+    title_rows = [
+        "ФЕДЕРАЛЬНОЕ ГОСУДАРСТВЕННОЕ ОБРАЗОВАТЕЛЬНОЕ БЮДЖЕТНОЕ\nУЧРЕЖДЕНИЕ ВЫСШЕГО ОБРАЗОВАНИЯ",
+        "«ФИНАНСОВЫЙ УНИВЕРСИТЕТ ПРИ ПРАВИТЕЛЬСТВЕ\nРОССИЙСКОЙ ФЕДЕРАЦИИ»\n(ФИНАНСОВЫЙ УНИВЕРСИТЕТ)",
+        f"{student['department']}\nФакультета информационных технологий и анализа больших данных",
+        f"Дисциплина: «{coursework['discipline']}»",
+        f"Направление подготовки: «{student['training_direction']}»",
+        f"Профиль: «{student['profile']}»",
+        student["faculty"],
+        f"Форма обучения {student['study_form']}",
+        f"Учебный {student['academic_year']} год, {student['semester']} семестр",
     ]
-    for row in rows:
+    spacing_after = [0, 18, 12, 0, 0, 0, 0, 0, 0]
+    sizes = [13, 13, 12, 12, 12, 12, 12, 12, 12]
+    italics = [False, False, False, True, True, True, True, True, True]
+    for row, after, size, italic in zip(title_rows, spacing_after, sizes, italics, strict=True):
         paragraph = doc.add_paragraph()
         paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
         paragraph.paragraph_format.first_line_indent = Cm(0)
+        paragraph.paragraph_format.line_spacing = 1.5
+        paragraph.paragraph_format.space_after = Pt(after)
         run = paragraph.add_run(row)
-        style_run(run, size=14, bold=True)
-
-    for _ in range(6):
-        doc.add_paragraph()
-
-    for text, size in [
-        ("КУРСОВАЯ РАБОТА", 16),
-        (f"по дисциплине: «{coursework['discipline']}»", 14),
-        (f"на тему: «{coursework['topic']}»", 14),
-    ]:
-        paragraph = doc.add_paragraph()
-        paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        paragraph.paragraph_format.first_line_indent = Cm(0)
-        run = paragraph.add_run(text)
-        style_run(run, size=size, bold=True)
-
-    for _ in range(5):
-        doc.add_paragraph()
-
-    meta = doc.add_paragraph()
-    meta.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-    meta.paragraph_format.first_line_indent = Cm(0)
-    run = meta.add_run(f"Выполнил: {student['name']}\nГруппа: {student['group']}\nРуководитель: ____________________")
-    style_run(run, size=14)
+        style_run(run, size=size, bold=True, italic=italic)
 
     for _ in range(2):
         doc.add_paragraph()
 
+    topic = doc.add_paragraph()
+    topic.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    topic.paragraph_format.first_line_indent = Cm(0)
+    topic.paragraph_format.line_spacing = 1.5
+    topic.paragraph_format.space_before = Pt(12)
+    topic.paragraph_format.space_after = Pt(12)
+    run = topic.add_run(f"Курсовая работа на тему:\n«{coursework['topic']}»")
+    style_run(run, size=13, bold=True)
+
+    def add_right_line(text: str, *, bold: bool = False, italic: bool = False) -> None:
+        paragraph = doc.add_paragraph()
+        paragraph.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+        paragraph.paragraph_format.first_line_indent = Cm(0)
+        paragraph.paragraph_format.line_spacing = 1.5
+        paragraph.paragraph_format.space_after = Pt(0)
+        style_run(paragraph.add_run(text), size=12, bold=bold, italic=italic)
+
+    add_right_line("Выполнил(а):", bold=True, italic=True)
+    add_right_line(f"студент группы {student['group']}")
+    add_right_line(student["name"])
+    doc.add_paragraph()
+    add_right_line("Научный руководитель:", bold=True, italic=True)
+    add_right_line(student["supervisor"])
+
     year = doc.add_paragraph()
     year.alignment = WD_ALIGN_PARAGRAPH.CENTER
     year.paragraph_format.first_line_indent = Cm(0)
-    run = year.add_run(f"{student['city']}, {student['year']}")
-    style_run(run, size=14)
+    year.paragraph_format.space_before = Pt(10)
+    year.paragraph_format.space_after = Pt(6)
+    run = year.add_run(f"{student['city']} {student['year']}")
+    style_run(run, size=13, bold=True)
     add_page_break(doc)
 
 
 def add_contents(doc: Document) -> None:
-    add_section_title(doc, "СОДЕРЖАНИЕ")
+    heading = doc.add_heading("Содержание", level=1)
+    heading.alignment = WD_ALIGN_PARAGRAPH.LEFT
     entries = [
-        "Введение",
-        "1 Теоретические основы анализа экономических новостей",
-        "2 Данные и постановка ML-задачи",
-        "3 Методы и модели",
-        "4 Архитектура программной системы",
-        "5 Реализация и пользовательский сценарий",
-        "6 Эксперимент и результаты",
-        "7 Направления улучшения",
-        "Заключение",
-        "Список использованных источников",
-        "Приложения",
+        ("Введение", "3"),
+        ("1 Теоретические основы анализа экономических новостей", "5"),
+        ("2 Данные и постановка ML-задачи", "8"),
+        ("3 Методы и модели", "10"),
+        ("4 Архитектура программной системы", "13"),
+        ("5 Реализация и пользовательский сценарий", "15"),
+        ("6 Эксперимент и результаты", "18"),
+        ("7 Направления улучшения", "21"),
+        ("Заключение", "23"),
+        ("Список использованных источников", "24"),
+        ("Приложения", "26"),
     ]
-    for entry in entries:
+    for entry, page in entries:
+        dots = "." * max(3, 84 - len(entry))
         paragraph = doc.add_paragraph()
         paragraph.paragraph_format.first_line_indent = Cm(0)
-        paragraph.paragraph_format.line_spacing = 1.5
-        paragraph.add_run(entry)
+        paragraph.paragraph_format.line_spacing = 1.15
+        paragraph.paragraph_format.space_after = Pt(1)
+        run = paragraph.add_run(f"{entry} {dots} {page}")
+        style_run(run, size=12)
     add_page_break(doc)
 
 
@@ -632,13 +644,13 @@ def add_sources(doc: Document, facts: dict[str, Any]) -> None:
         "MLflow documentation [Электронный ресурс]. - URL: https://mlflow.org/docs/latest/ (дата обращения: "
         f"{access_date}). - Текст : электронный.",
     ]
-    add_section_title(doc, "СПИСОК ИСПОЛЬЗОВАННЫХ ИСТОЧНИКОВ")
+    add_section_title(doc, "Список использованных источников")
     add_numbers(doc, sources)
 
 
 def add_appendices(doc: Document, facts: dict[str, Any]) -> None:
     add_page_break(doc)
-    add_section_title(doc, "ПРИЛОЖЕНИЯ")
+    add_section_title(doc, "Приложения")
     add_section_title(doc, "Приложение А. Ссылка на репозиторий", level=2)
     doc.add_paragraph("GitHub-репозиторий проекта: https://github.com/alexeydev22/news-analysis")
     add_section_title(doc, "Приложение Б. Сводные факты проекта", level=2)
@@ -684,10 +696,10 @@ def build_docx() -> Path:
     add_title_page(doc, facts)
     add_contents(doc)
 
-    add_section_title(doc, "ВВЕДЕНИЕ")
+    add_section_title(doc, "Введение")
     add_paragraphs(doc, intro_paragraphs(facts))
 
-    add_section_title(doc, "1 ТЕОРЕТИЧЕСКИЕ ОСНОВЫ АНАЛИЗА ЭКОНОМИЧЕСКИХ НОВОСТЕЙ")
+    add_section_title(doc, "1 Теоретические основы анализа экономических новостей")
     add_paragraphs(doc, theory_paragraphs())
     add_table(
         doc,
@@ -702,7 +714,7 @@ def build_docx() -> Path:
         widths=[4.0, 12.0],
     )
 
-    add_section_title(doc, "2 ДАННЫЕ И ПОСТАНОВКА ML-ЗАДАЧИ")
+    add_section_title(doc, "2 Данные и постановка ML-задачи")
     add_paragraphs(doc, data_paragraphs(facts))
     add_table(
         doc,
@@ -717,7 +729,7 @@ def build_docx() -> Path:
         widths=[4.5, 11.5],
     )
 
-    add_section_title(doc, "3 МЕТОДЫ И МОДЕЛИ")
+    add_section_title(doc, "3 Методы и модели")
     add_paragraphs(doc, methods_paragraphs())
     add_table(
         doc,
@@ -730,25 +742,25 @@ def build_docx() -> Path:
         widths=[4.7, 5.7, 5.6],
     )
 
-    add_section_title(doc, "4 АРХИТЕКТУРА ПРОГРАММНОЙ СИСТЕМЫ")
+    add_section_title(doc, "4 Архитектура программной системы")
     add_paragraphs(doc, architecture_paragraphs())
     add_picture(doc, arch, "Схема 1 - Компактная архитектура программной системы")
     add_picture(doc, rag, "Схема 2 - ML/RAG-пайплайн обработки вопроса")
 
-    add_section_title(doc, "5 РЕАЛИЗАЦИЯ И ПОЛЬЗОВАТЕЛЬСКИЙ СЦЕНАРИЙ")
+    add_section_title(doc, "5 Реализация и пользовательский сценарий")
     add_paragraphs(doc, realization_paragraphs())
     add_picture(doc, ASSETS_DIR / "chat-page.png", "Рисунок 1 - Страница чата", width=6.2)
     add_picture(doc, ASSETS_DIR / "ml-report-page.png", "Рисунок 2 - Страница ML-отчета", width=6.2)
     add_picture(doc, ASSETS_DIR / "topic-forecast-page.png", "Рисунок 3 - Страница прогноза", width=6.2)
 
-    add_section_title(doc, "6 ЭКСПЕРИМЕНТ И РЕЗУЛЬТАТЫ")
+    add_section_title(doc, "6 Эксперимент и результаты")
     add_paragraphs(doc, experiment_paragraphs(facts))
     add_model_results_table(doc, facts)
     doc.add_paragraph(
         "Из таблицы видно, что TF-IDF + Logistic Regression является наиболее рациональным выбором для текущей версии системы. Она сочетает лучшее качество, простую интерпретацию и достаточную скорость для включения в пользовательский RAG-сценарий."
     )
 
-    add_section_title(doc, "7 НАПРАВЛЕНИЯ УЛУЧШЕНИЯ")
+    add_section_title(doc, "7 Направления улучшения")
     add_paragraphs(doc, improvements_paragraphs())
     add_bullets(
         doc,
@@ -762,7 +774,7 @@ def build_docx() -> Path:
         ],
     )
 
-    add_section_title(doc, "ЗАКЛЮЧЕНИЕ")
+    add_section_title(doc, "Заключение")
     add_paragraphs(doc, conclusion_paragraphs())
 
     add_sources(doc, facts)
