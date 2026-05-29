@@ -1,8 +1,0 @@
-ok: api-gateway health
-ok: news-service health
-ok: news preview returned 5 documents
-ok: indexed 5 demo documents
-ok: queued index job dcbb61a0-e00c-4c56-8ca0-ebb00e79954d
-ok: chat stream emitted 8 events
-ok: frontend returned HTML
-ok: demo smoke passed
