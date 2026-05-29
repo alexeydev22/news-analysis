@@ -17,10 +17,13 @@ from news_service.main.settings import NewsServiceSettings
 
 
 def test_news_settings_defaults_and_env_prefix(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.delenv("NEWS_SERVICE_NEWS_DATASET_PATH", raising=False)
-    monkeypatch.delenv("NEWS_SERVICE_DATASET_UPLOAD_DIR", raising=False)
-    monkeypatch.delenv("NEWS_SERVICE_ACTIVE_DATASET_FILE", raising=False)
-    monkeypatch.delenv("NEWS_SERVICE_UPLOAD_MAX_BYTES", raising=False)
+    # Explicitly set env vars to defaults to override any local .env file settings
+    monkeypatch.setenv("NEWS_SERVICE_NEWS_DATASET_PATH", "data/raw/economic_news.csv")
+    monkeypatch.setenv("NEWS_SERVICE_DATASET_UPLOAD_DIR", "data/uploads")
+    monkeypatch.setenv("NEWS_SERVICE_ACTIVE_DATASET_FILE", "data/uploads/active_dataset.json")
+    monkeypatch.setenv("NEWS_SERVICE_UPLOAD_MAX_BYTES", str(50 * 1024 * 1024))
+    monkeypatch.setenv("NEWS_SERVICE_RETRIEVAL_SERVICE_URL", "http://retrieval-service:8000")
+    monkeypatch.setenv("NEWS_SERVICE_REDIS_URL", "redis://redis:6379/0")
     settings = NewsServiceSettings()
 
     assert settings.service_name == "news-service"
